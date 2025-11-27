@@ -94,21 +94,41 @@ public:
         this->_vtable = callable_vfns<T, sbo_enable>::table_for();
     }
 
-    using base::base;
+    callable_wrapper() noexcept = default;
+    callable_wrapper(const callable_wrapper&) = default;
+    callable_wrapper(callable_wrapper&&) = default;
+    callable_wrapper& operator=(const callable_wrapper& rhs) = default;
+    callable_wrapper& operator=(callable_wrapper&& rhs) = default;
+    ~callable_wrapper() noexcept = default;
+
+    template <typename callable,
+        typename callable_storage_t = std::decay_t<callable>,
+        typename = std::enable_if_t<conjunction_v<
+            callable_handle_impl::is_compatible<callable_storage_t, R, Args...>,
+            negation<std::is_same<callable_storage_t, callable_wrapper>>>>>
+    callable_wrapper(callable&& f) 
+        noexcept(noexcept(this->template emplace<callable_storage_t>(std::declval<callable&&>()))) {
+        this->template emplace<callable_storage_t>(std::forward<callable>(f));
+    }
+
     using base::clear;
     using base::emplace;
     using base::swap;
 
-    explicit operator bool() const noexcept {
-        return this->_vtable != nullptr;
+    template <typename callable,
+        typename callable_storage_t = std::decay_t<callable>,
+        typename = std::enable_if_t<conjunction_v<
+            callable_handle_impl::is_compatible<callable_storage_t, R, Args...>,
+            negation<std::is_same<callable_storage_t, callable_wrapper>>>>>
+    callable_wrapper& operator=(callable&& f) 
+        noexcept(noexcept(this->template emplace<callable_storage_t>(std::declval<callable&&>()))) {
+        callable_wrapper tmp(std::forward<callable>(f));
+        swap(*this, tmp);
+        return *this;
     }
 
-    template <typename callable, 
-        typename callable_storage_t = std::decay_t<callable>,
-        typename = std::enable_if_t<callable_handle_impl::is_compatible<callable_storage_t, R, Args...>::value>>
-    callable_wrapper(callable&& f) 
-        noexcept(std::is_nothrow_constructible<callable_storage_t, callable&&>::value) {
-        emplace<callable_storage_t>(std::forward<callable>(f));
+    explicit operator bool() const noexcept {
+        return this->_vtable != nullptr;
     }
 
     R operator()(Args&&... args) const {

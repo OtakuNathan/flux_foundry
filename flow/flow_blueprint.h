@@ -3,12 +3,16 @@
 
 #include <utility>
 #include <tuple>
+
+#include "../utility/compressed_pair.h"
 #include "../base/traits.h"
 #include "../memory/result_t.h"
 
 namespace lite_fnds {
 
 namespace flow_impl {
+    static constexpr size_t MAX_ZIP_N = 8;
+
     enum class flow_node_type {
         flow_node_calc,
         flow_node_control,
@@ -68,68 +72,51 @@ namespace flow_impl {
     };
 
     // this only for private use
-    template <class ... Fs>
+    template <typename F, typename G>
     struct zipped_callable {
-        using callables = std::tuple<Fs...>;
-        callables fs;
+    public:
+        using F_T = std::decay_t<F>;
+        using G_T = std::decay_t<G>;
 
         zipped_callable() = delete;
 
-        template <typename = std::enable_if_t<std::is_move_constructible<callables>::value>>
-        zipped_callable(callables&& fs_)
-            noexcept(std::is_nothrow_move_constructible<callables>::value) : fs(std::move(fs_)) {
+        template <typename F_T_ = F_T, typename G_T_ = G_T>
+        zipped_callable(F_T_&& f_, G_T_&& g_) 
+            noexcept(conjunction_v<std::is_nothrow_constructible<F_T, F_T_&&>,
+            std::is_nothrow_constructible<G_T, G_T_&&>>)
+            : fg(std::forward<F_T_>(f_), std::forward<G_T_>(g_)) {
         }
-
-        template <typename = std::enable_if_t<std::is_copy_constructible<callables>::value>>
-        zipped_callable(const callables& fs_) 
-            noexcept(std::is_nothrow_copy_constructible<callables>::value)
-            : fs(fs_) {
-        }
-
-        template <std::size_t i, std::size_t N>
-        struct run {
-            template <typename Self, typename X>
-            static auto call(Self& self, X&& x)
-                -> decltype(run<i + 1, N>::call(self,
-                    std::get<i>(self.fs)(std::forward<X>(x)))) {
-                return run<i + 1, N>::call(self, std::get<i>(self.fs)(std::forward<X>(x)));
-            }
-        };
-
-        template <std::size_t N>
-        struct run<N, N> {
-            template <typename Self, typename X>
-            static auto call(Self&, X&& x) {
-                return std::forward<X>(x); 
-            }
-        };
 
         template <typename X>
-        decltype(auto) operator()(X&& x)
-            noexcept(noexcept(run<0, sizeof...(Fs)>::call(*this, std::forward<X>(x)))) {
-            return run<0, sizeof ... (Fs)>::call(*this, std::forward<X>(x));
+        inline auto operator()(X&& x) noexcept {
+            return fg.second()(fg.first()(std::forward<X>(x)));
         }
+
+        template <typename X>
+        inline auto operator()(X&& x) const noexcept {
+            return fg.second()(fg.first()(std::forward<X>(x)));
+        }
+
+    private:
+        compressed_pair<F_T, G_T> fg;
     };
 
-    template <typename G, typename ... Fs>
-    auto zip_callables(zipped_callable<Fs...> s, G g) {
-        return zipped_callable<Fs..., std::decay_t<G>>(
-            std::tuple_cat(std::move(s.fs), std::make_tuple(std::move(g))));
+    template <typename F, typename G>
+    auto zip_callables(F&& f, G&& g) 
+        noexcept(std::is_nothrow_constructible<
+            zipped_callable<std::decay_t<F>, std::decay_t<G>>, F&&, G&&>::value) {
+        return zipped_callable<std::decay_t<F>, std::decay_t<G>>(
+            std::forward<F>(f), std::forward<G>(g)
+        );
     }
 
-    template <class... Fs, typename ... Gs>
-    auto zip_callables(zipped_callable<Fs...> lhs, zipped_callable<Gs...> rhs) {
-        return zipped_callable<Fs..., Gs...>(std::tuple_cat(std::move(lhs.fs), std::move(rhs.fs)));
-    }
-
-    template <typename... Fs>
-    auto zip_callables(Fs&&... fs) {
-        using Ds = std::tuple<std::decay_t<Fs>...>;
-        return zipped_callable<std::decay_t<Fs>...>(Ds { std::forward<Fs>(fs)... });
+    template <typename F, typename G, typename... Os>
+    auto zip_callables(F f, G g, Os... os) {
+        return zip_callables(zip_callables(std::move(f), std::move(g)), std::move(os)...);
     }
 
     // flow calc
-    template <typename I, typename O, typename F>
+    template <typename I, typename O, typename F, size_t N = 1>
     struct flow_calc_node {
         static constexpr auto kind = flow_node_type::flow_node_calc;
 
@@ -150,19 +137,19 @@ namespace flow_impl {
         }
     };
 
-    template <typename F_I, typename F_O, typename F,
+    template <typename F_I, typename F_O, typename F, size_t F_N,
          typename G_I, typename G_O, typename G>
-    auto operator|(flow_calc_node<F_I, F_O, F> a, flow_calc_node<G_I, G_O, G> b)
+    auto operator|(flow_calc_node<F_I, F_O, F, F_N> a, flow_calc_node<G_I, G_O, G> b)
         noexcept(noexcept(zip_callables(std::move(a.f), std::move(b.f)))) {
         using zipped_t = decltype(zip_callables(std::declval<F>(), std::declval<G>()));
-        return flow_calc_node<F_I, G_O, zipped_t>(zip_callables(std::move(a.f), std::move(b.f)));
+        return flow_calc_node<F_I, G_O, zipped_t, F_N + 1>(zip_callables(std::move(a.f), std::move(b.f)));
     }
 
     template <class T>
     struct is_calc_node : std::false_type { };
 
-    template <typename F_I, typename F_O, typename F>
-    struct is_calc_node<flow_calc_node<F_I, F_O, F>> : std::true_type { };
+    template <typename F_I, typename F_O, typename F, size_t N>
+    struct is_calc_node<flow_calc_node<F_I, F_O, F, N>> : std::true_type { };
 
     template <typename T>
     using is_calc_node_t = typename is_calc_node<T>::type;
@@ -289,8 +276,8 @@ namespace flow_impl {
     }
 
     template <typename G_I, typename G_O, typename G,
-        typename I, typename O, typename F_I, typename F_O, typename F, typename ... Others>
-    auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F>, Others...> bp, flow_calc_node<G_I, G_O, G> b) {
+        typename I, typename O, typename F_I, typename F_O, typename F, size_t N, typename ... Others>
+    auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...> bp, flow_calc_node<G_I, G_O, G> b) {
         static_assert(is_invocable_with<G, O>::value,
             "calc node is not invocable with current blueprint output type");
 
@@ -303,10 +290,20 @@ namespace flow_impl {
         return flow_blueprint<I, G_O, decltype(merged), Others...>(std::move(nodes));
     }
 
+    template <typename G_I, typename G_O, typename G,
+        typename I, typename O, typename F_I, typename F_O, typename F, typename... Others>
+    auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...> bp, flow_calc_node<G_I, G_O, G> b) {
+        static_assert(is_invocable_with<G, O>::value,
+            "calc node is not invocable with current blueprint output type");
+        return flow_blueprint<I, G_O, flow_calc_node<G_I, G_O, G>, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...>(
+            std::tuple_cat(std::make_tuple(std::move(b)), std::move(bp.nodes_))
+        );
+    }
+
     template <typename P_I, typename P_O, typename P,
-        typename I, typename O, typename F, typename F_I, typename F_O,  typename ... Others>
-    auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F>, Others...> bp, flow_control_node<P_I, P_O, P> b) {
-        return flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, flow_calc_node<F_I, F_O, F>, Others...>(
+        typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
+    auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...> bp, flow_control_node<P_I, P_O, P> b) {
+        return flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, flow_calc_node<F_I, F_O, F, N>, Others...>(
             std::tuple_cat(std::make_tuple(std::move(b)), std::move(bp.nodes_))
         );
     }

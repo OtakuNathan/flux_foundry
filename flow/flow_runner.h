@@ -97,7 +97,8 @@ namespace lite_fnds {
             return controller;
         }
 
-        template <typename In, std::enable_if_t<std::is_convertible<In, typename I_t::value_type>::value>* = nullptr>
+        template <typename In, 
+            std::enable_if_t<std::is_convertible<In, typename I_t::value_type>::value>* = nullptr>
         void operator()(In &&in) noexcept {
             if (!bp) {
                 return;
@@ -143,8 +144,7 @@ namespace lite_fnds {
                                  std::false_type, // has next
                                  flow_runner &self, In &&in) noexcept {
                 auto &node = std::get<Index>(self.bp->nodes_);
-                auto next = node.f(std::forward<In>(in));
-                step<Index - 1>::run(self, std::move(next));
+                step<Index - 1>::run(self, node.f(std::forward<In>(in)));
             }
 
             template<typename In>
@@ -164,16 +164,12 @@ namespace lite_fnds {
 
                 auto bp = self.bp;
                 auto controller = self.controller;
-                auto wrapper = [bp = std::move(bp),
-                        controller = std::move(controller),
-                        in = std::forward<In>(in)]() mutable noexcept {
+                node.p(task_wrapper_sbo([bp = std::move(bp),
+                                         controller = std::move(controller),
+                                         in = std::forward<In>(in)]() mutable noexcept {
                     flow_runner next_runner(std::move(bp), std::move(controller));
                     step<Index - 1>::run(next_runner, std::move(in));
-                };
-
-                task_wrapper_sbo task;
-                task.emplace<decltype(wrapper)>(std::move(wrapper));
-                node.p(std::move(task));
+                }));
             }
         };
     };

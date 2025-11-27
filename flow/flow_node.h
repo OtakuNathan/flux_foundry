@@ -41,7 +41,7 @@ namespace lite_fnds {
                 std::enable_if_t<negation_v<std::is_void<F_I>>>* = nullptr>
             static auto make(map_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using F_O = invoke_result_t<F, F_I>;
-                auto wrapper = [f = std::move(self.f)](result_t<F_I, E> in) mutable noexcept {
+                auto wrapper = [f = std::move(self.f)](result_t<F_I, E>&& in) mutable noexcept {
                     if (in.has_value()) {
                         return call<F_O, E, F>(std::is_void<F_O> {}, std::false_type{}, f, std::move(in).value());
                     }
@@ -85,7 +85,7 @@ namespace lite_fnds {
 
             template <typename F_I, typename F_O>
             static auto make(then_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I in) noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
                     try {
                         if (in.has_value()) {
                             return f(std::move(in));
@@ -119,7 +119,7 @@ namespace lite_fnds {
 
             template <typename F_I, typename F_O>
             static auto make(error_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I in) noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
 
                     try {
                         if (in.has_value()) {
@@ -153,7 +153,7 @@ namespace lite_fnds {
             template <typename F_I, typename F_O>
             static auto make(exception_catch_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using R = result_t<F_O, std::exception_ptr>;
-                auto wrapper = [f = std::move(self.f)](F_I in) mutable noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
                     if (in.has_value()) {
                         return R(value_tag, std::move(in).value());
                     }
@@ -216,7 +216,7 @@ namespace lite_fnds {
 
             template <typename F_I>
             static auto make(via_node&& node) noexcept {
-                auto wrapper = [e = std::move(node.e)](task_wrapper_sbo sbo) noexcept {
+                auto wrapper = [e = std::move(node.e)](task_wrapper_sbo&& sbo) noexcept {
                     e->dispatch(std::move(sbo));
                 };
                 return flow_control_node<F_I, F_I, decltype(wrapper)>(std::move(wrapper));
@@ -236,7 +236,7 @@ namespace lite_fnds {
 
             template <typename F_I, typename F_O>
             static auto make(end_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I in) noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
                     try {
                         return f(std::move(in));
                     } catch (...) {
@@ -251,7 +251,7 @@ namespace lite_fnds {
         struct end_node <void> {
             template <typename F_I, typename F_O>
             static auto make(end_node&&) noexcept {
-                auto wrapper = [](F_I in) noexcept {
+                auto wrapper = [](F_I&& in) noexcept {
                     return in;
                 };
                 return flow_end_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
@@ -280,7 +280,7 @@ namespace lite_fnds {
     }
 
     template <typename T, typename E = std::exception_ptr>
-    auto make_blueprint() noexcept(conjunction_v<
+    inline auto make_blueprint() noexcept(conjunction_v<
         std::is_nothrow_move_constructible<T>,
         std::is_nothrow_constructible<result_t<T, E>, decltype(value_tag), T&&>>) {
         using R = result_t<T, E>;
@@ -299,33 +299,33 @@ namespace lite_fnds {
 
 
     template <typename F>
-    auto map(F&& f) noexcept {
+    inline auto map(F&& f) noexcept {
         return flow_impl::map_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
-    auto then(F&& f) noexcept {
+    inline auto then(F&& f) noexcept {
         return flow_impl::then_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
-    auto on_error(F&& f) noexcept {
+    inline auto on_error(F&& f) noexcept {
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename Exception, typename F>
-    auto catch_exception(F&& f) noexcept {
+    inline auto catch_exception(F&& f) noexcept {
         return flow_impl::exception_catch_node<std::decay_t<F>, Exception> { std::forward<F>(f) };
     }
 
     template <typename Executor>
-    auto via(Executor&& exec) noexcept {
+    inline auto via(Executor&& exec) noexcept {
         using E = std::decay_t<Executor>;
         return flow_impl::via_node<E> { std::forward<Executor>(exec) };
     }
 
     template <typename F>
-    auto end(F&& f) noexcept {
+    inline auto end(F&& f) noexcept {
         return flow_impl::end_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 

@@ -149,19 +149,8 @@ namespace lite_fnds {
 
         static constexpr size_t buf_size = size;
 
-        raw_type_erase_base() noexcept : _vtable{nullptr} {
-        }
-
-        template <typename T>
-        raw_type_erase_base(std::add_lvalue_reference_t<const T> rhs) 
-            noexcept(noexcept(this->template emplace<T>(std::declval<std::add_lvalue_reference_t<const T>>()))) {
-            this->template emplace<T>(rhs);
-        }
-
-        template <typename T>
-        raw_type_erase_base(std::add_rvalue_reference_t<T> rhs) 
-            noexcept(noexcept(this->template emplace<T>(std::declval<std::add_rvalue_reference_t<T>>()))) {
-            this->template emplace<T>(std::move(rhs));
+        raw_type_erase_base() noexcept 
+            : _vtable{nullptr} {
         }
 
         raw_type_erase_base(const raw_type_erase_base &rhs) {

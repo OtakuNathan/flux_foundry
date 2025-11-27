@@ -4,6 +4,10 @@
 #include <cstdlib>
 #include <atomic>
 
+#ifdef _WIN32
+#include <malloc.h>
+#endif
+
 #include "../base/inplace_base.h"
 #include "flow_blueprint.h"
 
@@ -58,20 +62,22 @@ namespace lite_fnds {
 
             static std::shared_ptr<Data> make_shared() {
 #ifndef _WIN32
-                void* p = nullptr;
-                if (posix_memalign(&p, 64, sizeof(Data)) != 0) {
+                void* _p = nullptr;
+                if (posix_memalign(&_p, CACHE_LINE_SIZE, sizeof(Data)) != 0) {
                     throw std::bad_alloc();
                 }
+                std::unique_ptr<void, decltype(free)*> p(_p, free);
 #else
-                void* p = _aligned_malloc(sizeof(Data), 64);
+                std::unique_ptr<void, decltype(_aligned_free)*> p(
+                    _aligned_malloc(sizeof(Data), CACHE_LINE_SIZE), _aligned_free);
 #endif
                 if (!p) {
                     throw std::bad_alloc();
                 }
 
-                new (p) Data();
+                new (p.get()) Data();
 
-                return std::shared_ptr<Data>(static_cast<Data*>(p), 
+                return std::shared_ptr<Data>(static_cast<Data*>(p.release()), 
                     [](Data* p) noexcept {
                         p->~Data();
 #ifdef _WIN32
@@ -100,7 +106,12 @@ namespace lite_fnds {
             // Only call emplace once per delegate
             template <typename... Us, 
                 std::enable_if_t<std::is_constructible<elem_type, Us&&...>::value>* = nullptr>
-            void emplace(Us&&... args) noexcept {
+            bool emplace(Us&&... args) noexcept {
+                // if this slot is already used. return false;
+                if (data->slot_ready[I].load(std::memory_order_acquire)) {
+                    return false;
+                }
+
                 elem_type& e = std::get<I>(data->val);
                 try {
                     elem_type tmp(std::forward<Us>(args)...);
@@ -111,6 +122,7 @@ namespace lite_fnds {
                 
                 data->slot_ready[I].store(true, std::memory_order_release);
                 data->ready_count.fetch_add(1, std::memory_order_release);
+                return true;
             }
         };
         
