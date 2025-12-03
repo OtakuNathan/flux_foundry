@@ -127,11 +127,11 @@ namespace lite_fnds {
                 }
 
                 elem_type& e = std::get<I>(data->val);
-#ifdef LFNDS_COMPILER_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     e = elem_type(std::forward<Us>(args)...);
-#ifdef LFNDS_COMPILER_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     e.emplace_error(std::current_exception());
                 }

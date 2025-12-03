@@ -179,7 +179,7 @@ public:
         noexcept(noexcept(std::declval<callable_wrapper&>().template emplace<callable_storage_t>
             (std::declval<callable&&>()))) {
         callable_wrapper tmp(std::forward<callable>(f));
-        swap(*this, tmp);
+        swap(tmp);
         return *this;
     }
 
@@ -294,7 +294,7 @@ public:
         noexcept(noexcept(std::declval<callable_wrapper&>().template emplace<callable_storage_t>
             (std::declval<callable&&>()))) {
         callable_wrapper tmp(std::forward<callable>(f));
-        swap(*this, tmp);
+        swap(tmp);
         return *this;
     }
 
