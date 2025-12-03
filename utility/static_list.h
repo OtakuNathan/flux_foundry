@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_STATIC_LIST_H__
-#define __LITE_FNDS_STATIC_LIST_H__
+#ifndef LITE_FNDS_STATIC_LIST_H
+#define LITE_FNDS_STATIC_LIST_H
 
 #include <atomic>
 #include <type_traits>

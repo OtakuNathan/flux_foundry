@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_FLOW_AGGREGATOR_H__
-#define __LITE_FNDS_FLOW_AGGREGATOR_H__
+#ifndef LITE_FNDS_FLOW_AGGREGATOR_H
+#define LITE_FNDS_FLOW_AGGREGATOR_H
 
 #include <cstdlib>
 #include <atomic>
@@ -64,15 +64,24 @@ namespace lite_fnds {
 #ifndef _WIN32
                 void* _p = nullptr;
                 if (posix_memalign(&_p, CACHE_LINE_SIZE, sizeof(Data)) != 0) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     throw std::bad_alloc();
+#else
+                    return nullptr;
+#endif
                 }
                 std::unique_ptr<void, decltype(free)*> p(_p, free);
 #else
                 std::unique_ptr<void, decltype(_aligned_free)*> p(
                     _aligned_malloc(sizeof(Data), CACHE_LINE_SIZE), _aligned_free);
 #endif
+
                 if (!p) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     throw std::bad_alloc();
+#else
+                    return nullptr;
+#endif
                 }
 
                 new (p.get()) Data();
@@ -105,7 +114,12 @@ namespace lite_fnds {
 
             // Only call emplace once per delegate
             template <typename... Us, 
-                std::enable_if_t<std::is_constructible<elem_type, Us&&...>::value>* = nullptr>
+#if LFNDS_HAS_EXCEPTIONS
+                std::enable_if_t<std::is_constructible<elem_type, Us&&...>::value
+#else
+                std::enable_if_t<std::is_nothrow_constructible<elem_type, Us&&...>::value
+#endif
+            >* = nullptr>
             bool emplace(Us&&... args) noexcept {
                 // if this slot is already used. return false;
                 if (data->slot_ready[I].load(std::memory_order_acquire)) {
@@ -113,12 +127,15 @@ namespace lite_fnds {
                 }
 
                 elem_type& e = std::get<I>(data->val);
+#ifdef LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
-                    elem_type tmp(std::forward<Us>(args)...);
-                    e = std::move(tmp);
+#endif
+                    e = elem_type(std::forward<Us>(args)...);
+#ifdef LFNDS_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     e.emplace_error(std::current_exception());
                 }
+#endif
                 
                 data->slot_ready[I].store(true, std::memory_order_release);
                 data->ready_count.fetch_add(1, std::memory_order_release);
@@ -128,6 +145,9 @@ namespace lite_fnds {
         
         flow_aggregator() : 
             data(Data::make_shared()) {
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+            assert(data && "failed to allocate aggregator data.");
+#endif
         }
 
         flow_aggregator(const flow_aggregator&) = default;

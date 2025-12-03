@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_COMPRESSED_PAIR_H__
-#define __LITE_FNDS_COMPRESSED_PAIR_H__
+#ifndef LITE_FNDS_COMPRESSED_PAIR_H
+#define LITE_FNDS_COMPRESSED_PAIR_H
 
 #include <type_traits>
 #include <utility>
@@ -282,12 +282,12 @@ template <typename _A, typename _B,
 #if LFNDS_HAS_EXCEPTIONS
             typename = std::enable_if_t<conjunction_v<is_swappable<_A>, is_swappable<_B>>>
 #else
-            typename = std::enable_if_t<conjunction_v<is_nothrow_swappable<A__>, is_nothrow_swappable<B__>>>
+            typename = std::enable_if_t<conjunction_v<is_nothrow_swappable<_A>, is_nothrow_swappable<_B>>>
 #endif
         >
 void swap(compressed_pair<_A, _B>& a, compressed_pair<_A, _B>& b) 
     noexcept(noexcept(std::declval<compressed_pair<_A,_B>&>().swap(std::declval<compressed_pair<_A,_B>&>()))) { 
-    return a.swap(b); 
+    a.swap(b); 
 }
 
 }

@@ -2,8 +2,8 @@
 // Created by wufen on 12/2/2025.
 //
 
-#ifndef __LITE_FNDS_GSOURCE_EXECUTOR_H__
-#define __LITE_FNDS_GSOURCE_EXECUTOR_H__
+#ifndef LITE_FNDS_GSOURCE_EXECUTOR_H
+#define LITE_FNDS_GSOURCE_EXECUTOR_H
 
 #include <memory>
 #include <sstream>
@@ -34,17 +34,14 @@ namespace lite_fnds {
             static gint g_source_task_proc(void *data) noexcept {
                 auto self = static_cast<gsource_executor_ctx*>(data);
 
-                // Read once: returns and resets the 64-bit counter to 0.
                 for (uint64_t budget = 0;;) {
                     ssize_t r = ::read(self->m_efd, &budget, sizeof(uint64_t));
                     if (r == sizeof(uint64_t)) break;
                     if (r < 0 && errno == EINTR) continue;
                     if (r < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) break;
-                    if (r <= 0) break;  // 其他错误，直接放弃本轮
+                    if (r <= 0) break;
                 }
 
-                // Process up to max_task_per_round tasks, but no more than the budget we pulled.
-                // Note: budget counts "wake tokens", not strictly queue length; this keeps fairness.
                 bool queue_became_empty = false;
                 for (int c = 0; c < gsource_executor::max_task_per_round; ++c) {
                     auto tsk = self->executor_ref_.q_.try_pop();
@@ -56,14 +53,11 @@ namespace lite_fnds {
                     tsk.get()();
                 }
 
-                // If there’s leftover budget (we read N but only consumed part),
-                // or the queue still has work after this round, re-arm once.
-                // This prevents starvation while avoiding busy loops.
                 if (!queue_became_empty) {
                     (void)self->schedule_wake_up(1);
                 }
 
-                return TRUE; // keep the source
+                return TRUE;
             }
 
             struct executor_src : GSource {

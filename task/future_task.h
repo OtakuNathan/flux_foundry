@@ -1,5 +1,5 @@
-﻿#ifndef __LITE_FNDS_FUTURE_TASK_H__
-#define __LITE_FNDS_FUTURE_TASK_H__
+﻿#ifndef LITE_FNDS_FUTURE_TASK_H
+#define LITE_FNDS_FUTURE_TASK_H
 
 #include <future>
 #include <atomic>
@@ -17,22 +17,32 @@ namespace future_task_detail {
             return static_cast<base&>(*this);
         }
 
-        void run(std::false_type) noexcept {
+        void run(std::false_type, std::false_type) noexcept {
             auto result = _as_base()();
             if (result.has_value()) {
                 promise_.set_value(std::move(result.value()));
-            } else {
+            } 
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+              else {
                 promise_.set_exception(result.error());
             }
+#endif
         }
 
-        void run(std::true_type) noexcept {
+        void run(std::true_type, std::false_type) noexcept {
             auto result = _as_base()();
             if (result.has_value()) {
                 promise_.set_value();
-            } else {
+            }
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+              else {
                 promise_.set_exception(result.error());
             }
+#endif
+        }
+
+        void run(std::false_type, std::true_type) noexcept {
+            promise_.set_value(_as_base()());
         }
 
     public:
@@ -72,7 +82,7 @@ namespace future_task_detail {
             if (fired_.exchange(true, std::memory_order_relaxed)) {
                 return;
             }
-            this->run(std::is_void<result_type> {});
+            this->run(std::is_void<result_type> {}, is_result_t<result_type>{});
         }
 
     private:

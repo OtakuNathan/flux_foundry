@@ -1,5 +1,5 @@
-﻿#ifndef __LITE_FNDS_FLOW_NODES_H__
-#define __LITE_FNDS_FLOW_NODES_H__
+﻿#ifndef LITE_FNDS_FLOW_NODES_H
+#define LITE_FNDS_FLOW_NODES_H
 
 #include "../task/task_wrapper.h"
 #include "flow_blueprint.h"
@@ -25,8 +25,8 @@ namespace lite_fnds {
 
         template <typename F_O, typename E, typename F, typename F_I>
         result_t<F_O, E> call(std::false_type, std::true_type, F& f, F_I&&) 
-            noexcept(is_nothrow_invocable_with<F&, void>::value
-                && std::is_nothrow_constructible<result_t<F_O, E>, decltype(value_tag), invoke_result_t<F&>>::value) {
+            noexcept(conjunction_v<is_nothrow_invocable_with<F&, void>,
+                std::is_nothrow_constructible<result_t<F_O, E>, decltype(value_tag), invoke_result_t<F&>>>) {
             return result_t<F_O, E>(value_tag, f());
         }
 
@@ -91,17 +91,18 @@ namespace lite_fnds {
             F f;
 
             template <typename F_I, typename F_O>
-            static auto make(then_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
-
+            static auto make(then_node&& self) 
+                noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
-                        LIKELY_IF (in.has_value()) {
+                        LIKELY_IF(in.has_value())
+                        {
                             return f(std::move(in));
                         }
                         return F_O(error_tag, std::move(in).error());
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -135,19 +136,22 @@ namespace lite_fnds {
             F f;
 
             template <typename F_I, typename F_O>
-            static auto make(error_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
+            static auto make(error_node&& self) 
+                    noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
-                        LIKELY_IF (in.has_value()) {
+                        LIKELY_IF(in.has_value())
+                        {
                             return F_O(value_tag, std::move(in).value());
                         }
                         return f(std::move(in));
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
+#endif
                 };
 #endif
                 return flow_calc_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
@@ -172,14 +176,15 @@ namespace lite_fnds {
             return std::move(bp) | std::move(node);
         }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         // exception catch
         template <typename F, typename Exception>
         struct exception_catch_node {
             F f;
 
             template <typename F_I, typename F_O>
-            static auto make(exception_catch_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
+            static auto make(exception_catch_node&& self) 
+                noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using R = result_t<F_O, std::exception_ptr>;
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
                     LIKELY_IF (in.has_value()) {
@@ -267,11 +272,11 @@ namespace lite_fnds {
             static auto make(end_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         return f(std::move(in));
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }

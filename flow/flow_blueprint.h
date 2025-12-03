@@ -1,5 +1,5 @@
-﻿#ifndef __LITE_FNDS_FLOW_BLUEPRINT_H__
-#define __LITE_FNDS_FLOW_BLUEPRINT_H__
+﻿#ifndef LITE_FNDS_FLOW_BLUEPRINT_H
+#define LITE_FNDS_FLOW_BLUEPRINT_H
 
 #include <utility>
 #include <tuple>
@@ -103,7 +103,7 @@ namespace flow_impl {
 
         template <typename X>
         auto operator()(X&& x) const
-            noexcept(noexcept(std::declval<G_T&>()(std::declval<F_T&>()(std::forward<X>(x))))) {
+            noexcept(noexcept(std::declval<const G_T&>()(std::declval<const F_T&>()(std::forward<X>(x))))) {
             return fg.second()(fg.first()(std::forward<X>(x)));
         }
 

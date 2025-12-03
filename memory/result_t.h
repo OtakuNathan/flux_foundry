@@ -1,9 +1,9 @@
-//
+﻿//
 // Created by wufen on 10/6/2025.
 //
 
-#ifndef __LITE_FNDS_RESULTT_H__
-#define __LITE_FNDS_RESULTT_H__
+#ifndef LITE_FNDS_RESULTT_H
+#define LITE_FNDS_RESULTT_H
 
 #include "either_t.h"
 
@@ -105,11 +105,24 @@ namespace lite_fnds {
         return !(lhs.error() < rhs.error());
     }
 
+    template <typename T>
+    struct is_error_t_impl : std::false_type{};
+
+    template <typename T>
+    struct is_error_t_impl<error_t<T>> : std::true_type {};
+
+    template <typename T>
+    struct is_error_t : is_error_t_impl<std::decay_t<T>> {};
+
+    template <typename T>
+    constexpr bool is_error_t_v = is_error_t<T>::value;
+
     constexpr static in_place_index<0> value_tag{};
     constexpr static in_place_index<1> error_tag{};
 
     template <typename T, typename E>
-    struct result_t : private either_t<T, error_t<E> > {
+    struct result_t : private either_t<T, error_t<E>> {
+        static_assert(!is_error_t_v<T>, "T must not be an error_t");
     private:
         using base = either_t<T, error_t<E> >;
         using base::has_first;
@@ -138,7 +151,6 @@ namespace lite_fnds {
         using value_type = T;
         using error_type = E;
 
-        result_t() = delete;
         result_t(const result_t &) = default;
         result_t(result_t &&) noexcept = default;
         result_t &operator=(const result_t &) = default;
@@ -153,13 +165,63 @@ namespace lite_fnds {
             return !has_value();
         }
 
+        template <typename T_ = T,
+            std::enable_if_t<!std::is_void<T_>::value>* = nullptr>
+        result_t() = delete;
+
+        template <typename T_, std::enable_if_t<conjunction_v<
+            negation<std::is_void<T_>>, negation<is_error_t<T_>>,
+#if LFNDS_HAS_EXCEPTIONS
+            std::is_constructible<T, T_&&>
+#else
+            std::is_nothrow_constructible<T, T_&&>
+#endif
+        >>* = nullptr> 
+        result_t(T_&& t) 
+            noexcept(std::is_nothrow_constructible<base, in_place_index<0>, T_&&>::value)
+            : base(value_tag, std::forward<T_>(t)) {
+        }
+
+        template <typename T_ = T, 
+            std::enable_if_t<std::is_void<T_>::value>* = nullptr>
+        result_t() 
+            noexcept(std::is_nothrow_constructible<base, in_place_index<0>>::value)
+            : base(value_tag) {
+        }
+
+        template <bool B =
+#if LFNDS_HAS_EXCEPTIONS
+            std::is_copy_constructible<error_t<E>>::value
+#else
+            std::is_nothrow_copy_constructible<error_t<E>>::value
+#endif
+        , std::enable_if_t<B>* = nullptr>
+        result_t(const error_t<E>& e) 
+            noexcept(std::is_nothrow_constructible<base, 
+                in_place_index<1>, 
+                const error_t<E>&>::value)
+            : base(error_tag, e) {
+        }
+
+        template <bool B = 
+#if LFNDS_HAS_EXCEPTIONS
+            std::is_move_constructible<error_t<E>>::value
+#else
+            std::is_nothrow_move_constructible<error_t<E>>::value
+#endif
+        , std::enable_if_t<B>* = nullptr>
+        result_t(error_t<E>&& e) 
+            noexcept(std::is_nothrow_constructible<base, in_place_index<1>, error_t<E>&&>::value)
+            : base(error_tag, std::move(e)) {
+        }
+
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
 #if LFNDS_HAS_EXCEPTIONS
-                std::is_constructible<base&, other_base &&>
+                std::is_constructible<base, other_base &&>
 #else
-                std::is_constructible<base&, other_base &&>
+                std::is_constructible<base, other_base &&>
 #endif
         > >* = nullptr>
         explicit result_t(result_t<U, F> &&rhs)
@@ -171,9 +233,9 @@ namespace lite_fnds {
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
 #if LFNDS_HAS_EXCEPTIONS
-                std::is_constructible<base&, const other_base &>
+                std::is_constructible<base, const other_base &>
 #else
-                std::is_nothrow_constructible<base&, const other_base &>
+                std::is_nothrow_constructible<base, const other_base &>
 #endif
         > >* = nullptr>
         explicit result_t(const result_t<U, F> &rhs)

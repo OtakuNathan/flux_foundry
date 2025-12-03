@@ -2,8 +2,8 @@
 // Created by nathan on 2025/8/13.
 //
 
-#ifndef __LITE_FNDS_TASK_WRAPPER_H__
-#define __LITE_FNDS_TASK_WRAPPER_H__
+#ifndef LITE_FNDS_TASK_WRAPPER_H
+#define LITE_FNDS_TASK_WRAPPER_H
 
 #include <cassert>
 #include <cstddef>

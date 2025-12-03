@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_TYPE_ERASE_BASE_H__
-#define __LITE_FNDS_TYPE_ERASE_BASE_H__
+#ifndef LITE_FNDS_TYPE_ERASE_BASE_H
+#define LITE_FNDS_TYPE_ERASE_BASE_H
 
 #include <memory>
 #include <new>
@@ -288,7 +288,7 @@ namespace lite_fnds {
                 "SBO placement-new requires buffer alignment >= alignof(T*)");
 
             std::unique_ptr<T> tmp = std::make_unique<T>(std::forward<Args>(args)...);
-#if !defined(LFNDS_HAS_EXCEPTIONS)
+#if !LFNDS_HAS_EXCEPTIONS
             if (!tmp) {
                 return;
             }

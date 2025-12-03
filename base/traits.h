@@ -2,15 +2,17 @@
 // Created by nathan on 2025/8/13.
 //
 
-#ifndef __LITE_FNDS_TRAITS_H__
-#define __LITE_FNDS_TRAITS_H__
+#ifndef LITE_FNDS_TRAITS_H
+#define LITE_FNDS_TRAITS_H
 
+#include <cstddef>
+#include <cstdint>
 #include <type_traits>
 #include <memory>
 #include <cassert>
 
-#ifndef LFNDS_STRICT_NO_EXCEPTION
-#  define LFNDS_STRICT_NO_EXCEPTION 0
+#ifndef LFNDS_NO_EXCEPTION_STRICT
+#define LFNDS_NO_EXCEPTION_STRICT 0
 #endif
 
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
@@ -20,7 +22,7 @@
 #endif
 
 #ifndef LFNDS_HAS_EXCEPTIONS
-#  if !LFNDS_COMPILER_HAS_EXCEPTIONS && LFNDS_STRICT_NO_EXCEPTION
+#  if !LFNDS_COMPILER_HAS_EXCEPTIONS && LFNDS_NO_EXCEPTION_STRICT
 #    define LFNDS_HAS_EXCEPTIONS 0
 #  else
 #    define LFNDS_HAS_EXCEPTIONS 1
@@ -48,16 +50,6 @@ namespace lite_fnds {
         static_assert((cache_line_size & (cache_line_size - 1)) == 0, 
             "cache_line_size must be power of two");
         uint8_t pad[(cache_line_size - (n % cache_line_size)) % cache_line_size];
-    };
-
-    enum class TSK_ERRNO {
-        TASK_ERR_SUCCESS,
-        TASK_ERR_CANCELED,
-        TASK_ERR_RESULT_NOT_AVAILABLE,
-        TASK_ERR_TASK_EXECUTED,
-        TASK_ERR_INVALID_CALLABLE,
-        TASK_ERR_INVALID_OBJECT,
-        TASK_ERR_EXCEPTION_RAISED,
     };
 
     template <typename T>

@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_TASK_CORE_H__
-#define __LITE_FNDS_TASK_CORE_H__
+#ifndef LITE_FNDS_TASK_CORE_H
+#define LITE_FNDS_TASK_CORE_H
 
 #include <type_traits>
 #include <utility>
@@ -181,27 +181,30 @@ namespace lite_fnds {
 #if LFNDS_HAS_EXCEPTIONS
             template <size_t ... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::true_type) noexcept {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
-                    auto &obj = std::get<data_index::data_object>(_data);
-                    auto &_callable = std::get<data_index::data_callable>(_data);
-                    auto &params = std::get<data_index::data_params>(_data);
+#endif
+                    auto& obj = std::get<data_index::data_object>(_data);
+                    auto& _callable = std::get<data_index::data_callable>(_data);
+                    auto& params = std::get<data_index::data_params>(_data);
                     ((*obj).*_callable)(unpack_param(std::get<idx>(params))...);
                     return result_type(value_tag);
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     return result_type(error_tag, std::current_exception());
                 }
-            }
 #endif
+            }
 
             template <size_t ... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::false_type) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
-                    auto &obj = std::get<data_index::data_object>(_data);
-                    auto &_callable = std::get<data_index::data_callable>(_data);
-                    auto &params = std::get<data_index::data_params>(_data);
-#if LFNDS_HAS_EXCEPTIONS
+                    auto& obj = std::get<data_index::data_object>(_data);
+                    auto& _callable = std::get<data_index::data_callable>(_data);
+                    auto& params = std::get<data_index::data_params>(_data);
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     return make_success_result<R>(((*obj).*_callable)(unpack_param(std::get<idx>(params))...));
                 } catch (...) {
                     return make_error_result<R>(std::current_exception());
@@ -297,35 +300,36 @@ namespace lite_fnds {
                 return do_execute(std::index_sequence_for<Args...>(), std::is_same<R, void>{});
             }
         private:
-
-#if LFNDS_HAS_EXCEPTIONS
             template<size_t... idx>
-            result_type do_execute(const std::integer_sequence<size_t, idx...> &, std::true_type) noexcept {
+            result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::true_type) noexcept {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
+#endif
                     auto &callable = std::get<data_index::data_callable>(_data);
                     auto &params = std::get<data_index::data_params>(_data);
                     callable(unpack_param(std::get<idx>(params))...);
                     return result_type(value_tag);
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     return result_type(error_tag, std::current_exception());
                 }
-            }
 #endif
+            }
 
             template <size_t... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...> &, std::false_type) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     auto &callable = std::get<data_index::data_callable>(_data);
                     auto &params = std::get<data_index::data_params>(_data);
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     return make_success_result<R>(callable(unpack_param(std::get<idx>(params))...));
                 } catch (...) {
                     return make_error_result<R>(std::current_exception());
                 }
 #else
-                    return callable(unpack_param(std::get<idx>(params))...);
+                return callable(unpack_param(std::get<idx>(params))...);
 #endif
             }
 

@@ -2,8 +2,8 @@
 // Created by Nathan on 01/09/2025.
 //
 
-#ifndef __LITE_FNDS_INPLACE_T_H__
-#define __LITE_FNDS_INPLACE_T_H__
+#ifndef LITE_FNDS_INPLACE_T_H
+#define LITE_FNDS_INPLACE_T_H
 
 #include "../base/inplace_base.h"
 
@@ -40,7 +40,7 @@ namespace lite_fnds {
 #endif
         > > >
         explicit inplace_storage_base(Args &&... args)
-            noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>...))) :
+            noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) :
             _has_value{false} {
             this->construct(std::forward<Args>(args)...);
         }

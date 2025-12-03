@@ -2,8 +2,8 @@
 // Created by nathan on 2025/8/13.
 //
 
-#ifndef __LITE_FNDS_CALLABLE_HANDLE_H__
-#define __LITE_FNDS_CALLABLE_HANDLE_H__
+#ifndef LITE_FNDS_CALLABLE_HANDLE_H
+#define LITE_FNDS_CALLABLE_HANDLE_H
 
 #include <cassert>
 #include <functional>
@@ -116,12 +116,12 @@ class callable_wrapper <R(Args...)> :
 
     result_t<R, std::exception_ptr> 
         do_nothrow(std::true_type, Args... args) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             this->operator()(std::forward<Args>(args)...);
             return result_t<R, std::exception_ptr>(value_tag);
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
         }
@@ -130,12 +130,12 @@ class callable_wrapper <R(Args...)> :
 
     result_t<R, std::exception_ptr> 
         do_nothrow(std::false_type, Args... args) noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             return result_t<R, std::exception_ptr>(value_tag, 
                 this->operator()(std::forward<Args>(args)...));
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
         }
@@ -188,11 +188,11 @@ public:
     }
 
     R operator()(Args... args) 
-#if !LFNDS_HAS_EXCEPTIONS
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
     {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         if (!this->_vtable) {
             throw std::bad_function_call();
         }
@@ -233,12 +233,12 @@ class callable_wrapper <R(Args...) const> :
     
     result_t<R, std::exception_ptr> 
         do_nothrow(std::true_type, Args... args) const noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             this->operator()(std::forward<Args>(args)...);
             return result_t<R, std::exception_ptr>(value_tag);
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
         }
@@ -246,11 +246,11 @@ class callable_wrapper <R(Args...) const> :
     }
 
     result_t<R, std::exception_ptr> do_nothrow(std::false_type, Args... args) const noexcept {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             return result_t<R, std::exception_ptr>(value_tag, this->operator()(std::forward<Args>(args)...));
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
         }
@@ -303,11 +303,11 @@ public:
     }
 
     R operator()(Args... args) const 
-#if !LFNDS_HAS_EXCEPTIONS
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
     {
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         if (!this->_vtable) {
             throw std::bad_function_call();
         }

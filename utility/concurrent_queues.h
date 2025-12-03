@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_LOCK_FREE_QUEUES_H__
-#define __LITE_FNDS_LOCK_FREE_QUEUES_H__
+#ifndef LITE_FNDS_LOCK_FREE_QUEUES_H
+#define LITE_FNDS_LOCK_FREE_QUEUES_H
 
 #include <atomic>
 #include <thread>

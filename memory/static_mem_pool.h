@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_STATIC_MEM_POOL_H__
-#define __LITE_FNDS_STATIC_MEM_POOL_H__
+#ifndef LITE_FNDS_STATIC_MEM_POOL_H
+#define LITE_FNDS_STATIC_MEM_POOL_H
 
 #include "../utility/static_list.h"
 #include "../base/traits.h"

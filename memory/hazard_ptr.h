@@ -1,5 +1,5 @@
-﻿#ifndef __LITE_FNDS_HAZARD_PTR_H__
-#define __LITE_FNDS_HAZARD_PTR_H__
+﻿#ifndef LITE_FNDS_HAZARD_PTR_H
+#define LITE_FNDS_HAZARD_PTR_H
 
 #include <atomic>
 #include <thread>
@@ -208,6 +208,7 @@ public:
         return *this;
     }
 
+    // you must check if the hp is available before calling protect
     bool available() const noexcept {
         return slot != nullptr;
     }

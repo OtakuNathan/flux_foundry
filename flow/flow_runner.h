@@ -1,5 +1,5 @@
-﻿#ifndef __LITE_FNDS_FLOW_RUNNER_H__
-#define __LITE_FNDS_FLOW_RUNNER_H__
+﻿#ifndef LITE_FNDS_FLOW_RUNNER_H
+#define LITE_FNDS_FLOW_RUNNER_H
 
 #include <atomic>
 #include <memory>

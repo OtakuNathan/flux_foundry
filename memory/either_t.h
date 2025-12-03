@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_EITHERT_H__
-#define __LITE_FNDS_EITHERT_H__
+#ifndef LITE_FNDS_EITHERT_H
+#define LITE_FNDS_EITHERT_H
 
 #include <memory>
 
@@ -765,13 +765,17 @@ namespace lite_fnds {
 
 			U backup(std::move(this->get_second()));
 			opu::destroy_at(std::addressof(this->_data.second));
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
 			try {
+#endif
 				opt::construct_at(std::addressof(this->_data.first), std::forward<Args>(args)...);
 				this->_state = either_state::first;
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
 			} catch (...) {
 				opu::construct_at(std::addressof(this->_data.second), std::move(backup));
 				throw;
 			}
+#endif
 		}
 
 		template <typename T_ = T, typename U_ = U, typename... Args,
@@ -789,13 +793,17 @@ namespace lite_fnds {
 
 			U backup(this->get_second());
 			opu::destroy_at(std::addressof(this->_data.second));
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
 			try {
+#endif
 				opt::construct_at(std::addressof(this->_data.first), std::forward<Args>(args)...);
 				this->_state = either_state::first;
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
 			} catch (...) {
 				opu::construct_at(std::addressof(this->_data.second), backup);
 				throw;
 			}
+#endif
 		}
 
 		template <typename T_ = T, typename U_ = U, typename... Args,

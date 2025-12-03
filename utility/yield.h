@@ -1,5 +1,5 @@
-#ifndef __LITE_FNDS_PAUSE_H__
-#define __LITE_FNDS_PAUSE_H__
+#ifndef LITE_FNDS_PAUSE_H
+#define LITE_FNDS_PAUSE_H
 
 namespace lite_fnds {
 	void yield() noexcept;
