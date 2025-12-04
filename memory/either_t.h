@@ -1592,7 +1592,7 @@ namespace lite_fnds {
 #else
 				conjunction_v<is_nothrow_swappable<T>, is_nothrow_swappable<U>>
 #endif
-		>* =nullptr>
+		>* = nullptr>
 		void swap(either_t& rhs)
 			noexcept(conjunction_v<is_nothrow_swappable<T>, is_nothrow_swappable<U>>) {
 			if (this == std::addressof(rhs)) {

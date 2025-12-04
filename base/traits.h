@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by nathan on 2025/8/13.
 //
 
@@ -174,6 +174,9 @@ namespace lite_fnds {
                   std::is_move_constructible<T>::value))> {
     };
 
+    template <typename R, typename... Args>
+    struct is_swappable<R (*)(Args...)> : std::true_type { };
+
     template<class T, std::size_t N>
     struct is_swappable<T[N], T[N]>
             : std::integral_constant<
@@ -193,6 +196,8 @@ namespace lite_fnds {
                   swap_adl_tests::is_adl_swap_noexcept<T, U>::value))> {
     };
 
+    template <typename R, typename... Args>
+    struct is_nothrow_swappable<R (*)(Args...)> : std::true_type { };
 #else
     using std::conjunction;
     using std::conjunction_v;
