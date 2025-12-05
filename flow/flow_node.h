@@ -358,13 +358,15 @@ namespace lite_fnds {
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
     template <typename Exception, typename F>
     inline auto catch_exception(F&& f) noexcept {
         return flow_impl::exception_catch_node<std::decay_t<F>, Exception> { std::forward<F>(f) };
     }
 #endif
 
+    // CRITICAL: Max payload size is controlled by the SBO buffer (e.g., 64 bytes).
+    // Ensure that the captured data (result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Executor>
     inline auto via(Executor&& exec) noexcept {
         using E = std::decay_t<Executor>;

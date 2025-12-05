@@ -238,8 +238,7 @@ namespace lite_fnds {
 #endif
 		>
 		raw_either_storage_base(second_t, std::initializer_list<F> il, Args &&... args)
-			noexcept (std::is_nothrow_constructible<U_, std::initializer_list<F>, Args &&...>::value
-			) : _state{either_state::second} {
+			noexcept (std::is_nothrow_constructible<U_, std::initializer_list<F>, Args &&...>::value) : _state{either_state::second} {
 			opu::construct_at(std::addressof(_data.second), il, std::forward<Args>(args)...);
 		}
 

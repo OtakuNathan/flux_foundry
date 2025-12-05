@@ -24,6 +24,7 @@ namespace lite_fnds {
                           "lite_fnds::cancel_error<E> is not specialized for this error type E. "
                           "Please provide `template<> struct lite_fnds::cancel_error<E>` "
                           "with a static `E make(cancel_kind)` member.");
+            return 0;
         }
     };
 
@@ -64,28 +65,31 @@ namespace lite_fnds {
         }
     };
 
-    template<typename I_t, typename O_t, typename ... Nodes>
+    template <typename flow_bp>
     struct flow_runner {
-        static constexpr std::size_t node_count = sizeof ...(Nodes);
-        static_assert(node_count > 0, "attempting to run a empty blueprint");
+        static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
 
-        using bp_t = flow_impl::flow_blueprint<I_t, O_t, Nodes...>;
+        static constexpr std::size_t node_count = flow_bp::node_count;
+        static_assert(node_count > 0, "attempting to run an empty blueprint");
 
-        using first_node_t = std::tuple_element_t<0, typename bp_t::storage_t>;
-        static_assert(flow_impl::is_end_node_t<first_node_t>::value, "A valid blueprint must end with an end");
+        using bp_t = std::decay_t<flow_bp>;
+        using I_t = typename bp_t::I_t;
+        using O_t = typename bp_t::O_t;
+        using storage_t = typename bp_t::storage_t;
+
+        using first_node_t = std::tuple_element_t<0, storage_t>;
+        static_assert(flow_impl::is_end_node_v<first_node_t>, "A valid blueprint must end with an end");
 
         using bp_ptr = std::shared_ptr<bp_t>;
         using controller_ptr = std::shared_ptr<flow_controller>;
-        using storage_t = typename bp_t::storage_t;
     private:
         controller_ptr controller;
         bp_ptr bp;
-
     public:
         flow_runner() = delete;
 
-        explicit flow_runner(bp_ptr bp_, controller_ptr ctl = controller_ptr())
-            : controller(ctl ? std::move(ctl) : std::make_shared<flow_controller>())
+        explicit flow_runner(bp_ptr bp_, controller_ptr ctrl = controller_ptr())
+            : controller(ctrl ? std::move(ctrl) : std::make_shared<flow_controller>())
               , bp(std::move(bp_)) {
         }
 
@@ -114,16 +118,14 @@ namespace lite_fnds {
                     using end_node_t = std::tuple_element_t<0, storage_t>;
                     using end_in_t = typename end_node_t::I_t;
                     using end_err_t = typename end_in_t::error_type;
-                    ipc<0>::run(self,
-                                 end_in_t(error_tag, cancel_error<end_err_t>::make(cancel_kind::hard)));
+                    ipc<0>::run(self, end_in_t(error_tag, cancel_error<end_err_t>::make(cancel_kind::hard)));
                     return;
                 }
 
                 auto &node = std::get<I>(self.bp->nodes_);
                 using is_ctrl = flow_impl::is_control_node_t<node_t>;
                 UNLIKELY_IF(self.controller->is_soft_canceled()) {
-                    dispatch(is_ctrl{}, node, self,
-                             node_i_t(error_tag, cancel_error<error_type>::make(cancel_kind::soft)));
+                    dispatch(is_ctrl{}, node, self, node_i_t(error_tag, cancel_error<error_type>::make(cancel_kind::soft)));
                     return;
                 }
 
@@ -154,33 +156,168 @@ namespace lite_fnds {
         };
     };
 
-    template<typename I_t, typename O_t, typename... Nodes>
+    template <typename I_t, typename O_t, typename... Nodes>
     auto make_runner(std::shared_ptr<flow_impl::flow_blueprint<I_t, O_t, Nodes...>> bp,
-        std::shared_ptr<flow_controller> ctl = nullptr) noexcept {
-        return flow_runner<I_t, O_t, Nodes...>(std::move(bp), std::move(ctl));
+        std::shared_ptr<flow_controller> ctrl = nullptr) noexcept {
+        return flow_runner<flow_impl::flow_blueprint<I_t, O_t, Nodes...>>(std::move(bp), std::move(ctrl));
     }
 
-    // one-short runner, consume blue_print.
-    template <typename I_t, typename O_t, typename... Nodes>
+    // one-short runner.
+    namespace fast_runner_impl {
+        template <typename flow_bp>
+        struct bp_storage {
+            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
+            static_assert(false, "a flat bp storage should have a raw pointer or a unique_ptr or a shared_ptr or a reference.");
+        };
+
+        template <typename flow_bp>
+        struct bp_storage <flow_bp*> {
+            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
+
+            static constexpr std::size_t node_count = flow_bp::node_count;
+            static_assert(node_count > 0, "attempting to run an empty blueprint");
+
+            using bp_t = std::decay_t<flow_bp>;
+            using I_t = typename bp_t::I_t;
+            using O_t = typename bp_t::O_t;
+            using storage_t = typename bp_t::storage_t;
+
+            flow_bp *p;
+            explicit bp_storage(flow_bp* p_)
+                noexcept : p(p_) {}
+
+            inline flow_bp* operator->() const {
+                return p;
+            }
+
+            explicit operator bool () const noexcept {
+                return p;
+            }
+        };
+
+        template <typename flow_bp>
+        struct bp_storage <std::unique_ptr<flow_bp>> {
+            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
+
+            static constexpr std::size_t node_count = flow_bp::node_count;
+            static_assert(node_count > 0, "attempting to run an empty blueprint");
+
+            using bp_t = std::decay_t<flow_bp>;
+            using I_t = typename bp_t::I_t;
+            using O_t = typename bp_t::O_t;
+            using storage_t = typename bp_t::storage_t;
+
+            std::unique_ptr<flow_bp> p;
+            explicit bp_storage(std::unique_ptr<flow_bp> p_)
+                noexcept : p(std::move(p_)) {}
+
+            FORCE_INLINE flow_bp* operator->() const {
+                return p.get();
+            }
+
+            explicit operator bool () const noexcept {
+                return p;
+            }
+        };
+
+        template <typename flow_bp>
+        struct bp_storage <std::shared_ptr<flow_bp>> {
+            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
+
+            static constexpr std::size_t node_count = flow_bp::node_count;
+            static_assert(node_count > 0, "attempting to run an empty blueprint");
+
+            using bp_t = std::decay_t<flow_bp>;
+            using I_t = typename bp_t::I_t;
+            using O_t = typename bp_t::O_t;
+            using storage_t = typename bp_t::storage_t;
+
+            std::shared_ptr<flow_bp> p;
+            explicit bp_storage(std::shared_ptr<flow_bp> p_)
+                noexcept : p(std::move(p_)) {}
+
+            FORCE_INLINE flow_bp* operator->() const {
+                return p.get();
+            }
+
+            explicit operator bool () const noexcept {
+                return p;
+            }
+        };
+
+        template <typename flow_bp>
+        struct bp_storage <flow_bp&> {
+            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
+
+            static constexpr std::size_t node_count = flow_bp::node_count;
+            static_assert(node_count > 0, "attempting to run an empty blueprint");
+
+            using bp_t = std::decay_t<flow_bp>;
+            using I_t = typename bp_t::I_t;
+            using O_t = typename bp_t::O_t;
+            using storage_t = typename bp_t::storage_t;
+
+            flow_bp& p;
+
+            explicit bp_storage(flow_bp& p_)
+                noexcept : p(p_) {}
+
+            FORCE_INLINE flow_bp* operator->() const {
+                return &p;
+            }
+
+            explicit operator bool () const noexcept {
+                return true;
+            }
+        };
+
+        template <typename flow_bp>
+        struct bp_storage <flow_bp&&> {
+            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
+
+            static constexpr std::size_t node_count = flow_bp::node_count;
+            static_assert(node_count > 0, "attempting to run an empty blueprint");
+
+            using bp_t = std::decay_t<flow_bp>;
+            using I_t = typename bp_t::I_t;
+            using O_t = typename bp_t::O_t;
+            using storage_t = typename bp_t::storage_t;
+
+            std::unique_ptr<flow_bp> p;
+
+            explicit bp_storage(flow_bp&& p_)
+                noexcept : p(std::make_unique<flow_bp>(std::move(p_))) {}
+
+            FORCE_INLINE flow_bp* operator->() const {
+                return p.get();
+            }
+
+            explicit operator bool () const noexcept {
+                return true;
+            }
+        };
+    }
+
+    template <typename flow_bp_storage>
     struct flow_fast_runner {
-        static constexpr std::size_t node_count = sizeof ...(Nodes);
+        static constexpr std::size_t node_count = flow_bp_storage::node_count;
         static_assert(node_count > 0, "attempting to run a empty blueprint");
 
-        using bp_t = flow_impl::flow_blueprint<I_t, O_t, Nodes...>;
+        using bp_t = typename flow_bp_storage::bp_t;
+        using I_t = typename bp_t::I_t;
 
         using first_node_t = std::tuple_element_t<0, typename bp_t::storage_t>;
-        static_assert(flow_impl::is_end_node_t<first_node_t>::value, "A valid blueprint must end with an end");
+        static_assert(flow_impl::is_end_node_v<first_node_t>, "A valid blueprint must end with an end");
 
         using storage_t = typename bp_t::storage_t;
     private:
-        bp_t bp;
-
+        flow_bp_storage bp;
     public:
         flow_fast_runner() = delete;
 
-        explicit flow_fast_runner(bp_t&& bp_)
-            noexcept(std::is_nothrow_move_constructible<bp_t>::value)
-            : bp(std::move(bp_)) {
+        explicit flow_fast_runner(flow_bp_storage&& bp_)
+            noexcept(std::is_nothrow_move_constructible<flow_bp_storage>::value)
+                : bp(std::move(bp_)) {
         }
 
         template <typename In,
@@ -195,12 +332,12 @@ namespace lite_fnds {
             static void run(flow_fast_runner &self, param_t &&in) noexcept {
                 using node_t = std::tuple_element_t<I, storage_t>;
                 dispatch(flow_impl::is_control_node_t<node_t>{},
-                         std::get<I>(self.bp.nodes_), self, std::forward<param_t>(in));
+                         std::get<I>(self.bp->nodes_), self, std::forward<param_t>(in));
             }
 
             template <typename param_t, size_t I_ = I, std::enable_if_t<I_ == 0>* = nullptr>
             static void run(flow_fast_runner& self, param_t &&param) noexcept {
-                std::get<0>(self.bp.nodes_).f(std::forward<param_t>(param));
+                std::get<0>(self.bp->nodes_).f(std::forward<param_t>(param));
             }
         private:
             template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
@@ -221,9 +358,28 @@ namespace lite_fnds {
         };
     };
 
-    template<typename I_t, typename O_t, typename... Nodes>
-    auto make_fast_runner(flow_impl::flow_blueprint<I_t, O_t, Nodes...>&& bp) noexcept {
-        return flow_fast_runner<I_t, O_t, Nodes...>(std::move(bp));
+    template <typename bp_t>
+    auto make_fast_runner(bp_t&& bp) noexcept {
+        using bp_storage = fast_runner_impl::bp_storage<bp_t&&>;
+        return flow_fast_runner<bp_storage>(bp_storage(std::forward<bp_t>(bp)));
+    }
+
+    template <typename bp_t>
+    auto make_fast_runner_view(bp_t* bp) noexcept {
+        using bp_storage = fast_runner_impl::bp_storage<bp_t*>;
+        return flow_fast_runner<bp_storage>(bp_storage(bp));
+    }
+
+    template <typename bp_t>
+    auto make_fast_runner(std::unique_ptr<bp_t> bp) noexcept {
+        using bp_storage = fast_runner_impl::bp_storage<std::unique_ptr<bp_t>>;
+        return flow_fast_runner<bp_storage>(bp_storage(std::move(bp)));
+    }
+
+    template <typename bp_t>
+    auto make_fast_runner(std::shared_ptr<bp_t> bp) noexcept {
+        using bp_storage = fast_runner_impl::bp_storage<std::shared_ptr<bp_t>>;
+        return flow_fast_runner<bp_storage>(bp_storage(bp));
     }
 } // namespace lite_fnds
 

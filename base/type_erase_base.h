@@ -155,7 +155,7 @@ namespace lite_fnds {
             : _vtable{nullptr} {
         }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         raw_type_erase_base(const raw_type_erase_base& rhs)
             : _vtable(nullptr) {
             if (rhs._vtable) {

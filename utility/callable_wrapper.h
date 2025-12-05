@@ -33,8 +33,9 @@ namespace lite_fnds {
         };
 
         template <typename wrapper>
-        struct callable_storage_t : raw_type_erase_base<callable_storage_t<wrapper>> {
-            using base = raw_type_erase_base<callable_storage_t<wrapper>>;
+        struct callable_storage_t :
+            raw_type_erase_base<callable_storage_t<wrapper>, CACHE_LINE_SIZE - 4 * sizeof(std::nullptr_t)> {
+            using base = raw_type_erase_base<callable_storage_t<wrapper>, CACHE_LINE_SIZE - 4 * sizeof(std::nullptr_t)>;
             using callable_vtable = basic_vtable;
 
             template <typename T, bool sbo_enabled>
@@ -58,10 +59,32 @@ namespace lite_fnds {
 
             using base::base;
             using base::emplace;
-
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
             callable_storage_t(const callable_storage_t& rhs) = default;
             callable_storage_t& operator=(const callable_storage_t& rhs) = default;
+#else
+            callable_storage_t(const callable_storage_t& rhs)
+                noexcept : base() {
+                if (rhs._vtable) {
+                    if (!rhs._vtable->copy_construct) {
+                        std::abort();
+                    }
 
+                    rhs._vtable->copy_construct(this->_data, rhs._data);
+                    this->_vtable = rhs._vtable;
+                }
+            }
+
+            callable_storage_t& operator=(const callable_storage_t& rhs) noexcept {
+                if (this == &rhs) {
+                    return *this;
+                }
+                callable_storage_t tmp(rhs);
+                this->swap(tmp);
+                return *this;
+            }
+
+#endif
             callable_storage_t(callable_storage_t&& rhs) noexcept : base() {
                 if (!rhs._vtable) {
                     this->_vtable = nullptr;
@@ -78,7 +101,6 @@ namespace lite_fnds {
                 if (this == &rhs) {
                     return *this;
                 }
-
                 // clear current
                 this->clear();
                 if (rhs._vtable) {
@@ -146,32 +168,24 @@ namespace lite_fnds {
         using storage_t = either_t<fp_t, callable_storage_t>;
         storage_t storage_ = storage_t(to_first, nullptr);
 
-        result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) noexcept {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
+        result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) noexcept {
             try {
-#endif
                 this->operator()(std::forward<Args>(args)...);
                 return result_t<R, std::exception_ptr>(value_tag);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-            }
-            catch (...) {
+            } catch (...) {
                 return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
             }
-#endif
         }
 
         result_t<R, std::exception_ptr> do_nothrow(std::false_type, Args ... args) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
             try {
-#endif
                 return result_t<R, std::exception_ptr>(value_tag, this->operator()(args...));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-            }
-            catch (...) {
+            } catch (...) {
                 return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
             }
-#endif
         }
+#endif
     public:
         callable_wrapper() noexcept = default;
         callable_wrapper(const callable_wrapper&) = default;
@@ -194,7 +208,7 @@ namespace lite_fnds {
             typename callable_t = std::decay_t<callable>,
             std::enable_if_t<conjunction_v<
             std::is_convertible<callable_t, R(*)(Args...)>,
-            callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
+        callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
             negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
         void emplace(callable&& f) noexcept {
             storage_.emplace_first(std::forward<callable>(f));
@@ -204,7 +218,7 @@ namespace lite_fnds {
             typename callable_t = std::decay_t<callable>,
             std::enable_if_t<conjunction_v<
             negation<std::is_convertible<callable_t, R(*)(Args...)>>,
-            callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
+        callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
             negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
             void emplace(callable&& f)
             noexcept(noexcept(std::declval<storage_t&>().emplace_second(std::declval<callable&&>()))) {
@@ -226,7 +240,7 @@ namespace lite_fnds {
             typename = std::enable_if_t<conjunction_v<
             callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
             negation<std::is_same<callable_t, callable_wrapper>>>>>
-            callable_wrapper& operator=(callable&& f)
+        callable_wrapper& operator=(callable&& f)
             noexcept(noexcept(std::declval<callable_wrapper&>().
                 template emplace<callable_t>(std::declval<callable&&>()))) {
             callable_wrapper tmp(std::forward<callable>(f));
@@ -257,11 +271,13 @@ namespace lite_fnds {
 
             auto& st = storage_.get_second();
             return st.invoker_(st._data, args...);
-        }
 
+        }
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         FORCE_INLINE result_t<R, std::exception_ptr> nothrow_call(Args... args) noexcept {
             return do_nothrow(std::is_void<R>{}, args...);
         }
+#endif
     };
 
     template <typename R, typename ... Args>
@@ -290,32 +306,24 @@ namespace lite_fnds {
         using storage_t = either_t<fp_t, callable_storage_t>;
         storage_t storage_ = storage_t(to_first, nullptr);
 
-        result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) const noexcept {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
+        result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) const noexcept {
             try {
-#endif
                 this->operator()(std::forward<Args>(args)...);
                 return result_t<R, std::exception_ptr>(value_tag);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-            }
-            catch (...) {
+            } catch (...) {
                 return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
             }
-#endif
         }
 
         result_t<R, std::exception_ptr> do_nothrow(std::false_type, Args ... args) const noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
             try {
-#endif
                 return result_t<R, std::exception_ptr>(value_tag, this->operator()(args...));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-            }
-            catch (...) {
+            } catch (...) {
                 return result_t<R, std::exception_ptr>(error_tag, std::current_exception());
             }
-#endif
         }
+#endif
     public:
         callable_wrapper() noexcept = default;
         callable_wrapper(const callable_wrapper&) = default;
@@ -338,7 +346,7 @@ namespace lite_fnds {
             typename callable_t = std::decay_t<callable>,
             std::enable_if_t<conjunction_v<
             std::is_convertible<callable_t, R(*)(Args...)>,
-            callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>,
+        callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>,
             negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
         void emplace(callable&& f) noexcept {
             storage_.emplace_first(std::forward<callable>(f));
@@ -350,7 +358,7 @@ namespace lite_fnds {
             negation<std::is_convertible<callable_t, R(*)(Args...)>>,
             callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>,
             negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
-            void emplace(callable&& f)
+        void emplace(callable&& f)
             noexcept(noexcept(std::declval<storage_t&>().emplace_second(std::declval<callable&&>()))) {
             storage_.emplace_second(std::forward<callable>(f));
         }
@@ -403,9 +411,11 @@ namespace lite_fnds {
             return st.invoker_(st._data, args...);
         }
 
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
         FORCE_INLINE result_t<R, std::exception_ptr> nothrow_call(Args... args) const noexcept {
             return do_nothrow(std::is_void<R>{}, args...);
         }
+#endif
     };
 
     template <typename callable>
