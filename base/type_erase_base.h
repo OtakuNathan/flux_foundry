@@ -287,7 +287,11 @@ namespace lite_fnds {
             static_assert(align >= alignof(T*), 
                 "SBO placement-new requires buffer alignment >= alignof(T*)");
 
-            std::unique_ptr<T> tmp = std::make_unique<T>(std::forward<Args>(args)...);
+            std::unique_ptr<T> tmp(new
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+                (std::nothrow)
+#endif
+                T(std::forward<Args>(args)...));
 #if !LFNDS_HAS_EXCEPTIONS
             if (!tmp) {
                 return;

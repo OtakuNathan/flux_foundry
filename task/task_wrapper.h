@@ -52,7 +52,7 @@ namespace lite_fnds {
     class task_wrapper : public raw_type_erase_base<task_wrapper<sbo_size_, align_>, sbo_size_, align_>  {
         using base = raw_type_erase_base<task_wrapper<sbo_size_, align_>, sbo_size_, align_>;
 
-        template <class F, class... Args>
+        template <class F>
         struct is_compatible {
         private:
             template <typename C>
@@ -89,8 +89,7 @@ namespace lite_fnds {
         
         template <typename U,
             typename T = std::decay_t<U>,
-            typename = std::enable_if_t<
-                !std::is_same<T, task_wrapper>::value && is_compatible<T>::value>>
+            typename = std::enable_if_t<conjunction_v<negation<std::is_same<T, task_wrapper>>, is_compatible<T>>>>
         explicit task_wrapper(U&& rhs) 
             noexcept(noexcept(std::declval<task_wrapper&>().template emplace<T>(std::forward<U>(rhs)))) {
             this->template emplace<T>(std::forward<U>(rhs));
