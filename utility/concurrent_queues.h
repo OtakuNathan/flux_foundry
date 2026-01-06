@@ -42,6 +42,11 @@ public:
         _h { 0 } , _t { 0 } {
     }
 
+    spsc_queue(const spsc_queue&) = delete;
+    spsc_queue(spsc_queue&& q) noexcept = delete;
+    spsc_queue& operator=(const spsc_queue&) = delete;
+    spsc_queue& operator=(spsc_queue&&) = delete;
+
     ~spsc_queue() noexcept  {
         while (_h != _t) {
             auto& slot = _data[_h & (capacity - 1)];
@@ -181,6 +186,11 @@ protected:
     static_assert(alignof(slot_t) == CACHE_LINE_SIZE, "slot_t must be cache-line aligned");
 public:
     mpsc_queue() = default;
+
+    mpsc_queue(const mpsc_queue&) = delete;
+    mpsc_queue(mpsc_queue&& q) noexcept = delete;
+    mpsc_queue& operator=(const mpsc_queue&) = delete;
+    mpsc_queue& operator=(mpsc_queue&&) = delete;
 
     ~mpsc_queue() noexcept {
         const size_t t = _t.load(std::memory_order_relaxed);
@@ -450,7 +460,6 @@ public:
         return false;
     }
 
-
     template <typename T_ = T, typename... Args,
         std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>::value>* = nullptr>
     bool try_emplace(Args&&... args) noexcept {
@@ -482,6 +491,7 @@ public:
         T tmp(std::forward<Args>(args)...);
         return try_emplace(std::move(tmp));
     }
+#endif
 
     inplace_t<T> try_pop() noexcept {
         inplace_t<T> res;
@@ -503,7 +513,6 @@ public:
 
         return res;
     }
-#endif
 
     // only for approximating the size
     size_t size() const noexcept {

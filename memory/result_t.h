@@ -32,13 +32,13 @@ namespace lite_fnds {
         }
 
         template <typename... Args,
-            std::enable_if_t<
+            std::enable_if_t<conjunction_v<negation<is_self_constructing<error_t, Args&&...>>,
 #if LFNDS_HAS_EXCEPTIONS
-            std::is_constructible<E, Args &&...>::value
+            std::is_constructible<E, Args &&...>
 #else
-            std::is_nothrow_constructible<E, Args &&...>::value
+            std::is_nothrow_constructible<E, Args &&...>
 #endif
-            >* = nullptr>
+            >>* = nullptr>
         constexpr explicit error_t(Args &&... args)
             noexcept(std::is_nothrow_constructible<E, Args &&...>::value) : _error(std::forward<Args>(args)...) {
         }
@@ -170,7 +170,7 @@ namespace lite_fnds {
         result_t() = delete;
 
         template <typename T_, std::enable_if_t<conjunction_v<
-            negation<std::is_void<T_>>, negation<is_error_t<T_>>,
+            negation<std::is_void<T_>>, negation<is_error_t<T_>>, negation<is_self_constructing<result_t, T_>>,
 #if LFNDS_HAS_EXCEPTIONS
             std::is_constructible<T, T_&&>
 #else

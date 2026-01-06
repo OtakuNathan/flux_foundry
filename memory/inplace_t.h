@@ -29,16 +29,15 @@ namespace lite_fnds {
 
         ~inplace_storage_base() noexcept = default;
 
-        template <typename... Args,
-            typename = std::enable_if_t<disjunction_v<
+        template <typename ... Args,
+            typename = std::enable_if_t<conjunction_v<is_self_constructing<inplace_storage_base, Args&&...>,
+                    disjunction<
 #if LFNDS_HAS_EXCEPTIONS
-                std::is_constructible<T, Args &&...>,
-                is_aggregate_constructible<T, Args &&...>
+                std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
 #else
-                std::is_nothrow_constructible<T, Args &&...>,
-                is_nothrow_aggregate_constructible<T, Args &&...>
+                std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
 #endif
-        > > >
+        >>>>
         explicit inplace_storage_base(Args &&... args)
             noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) :
             _has_value{false} {
@@ -202,14 +201,16 @@ namespace lite_fnds {
             destroy();
         }
 
-        template <typename... Args,
-            typename = std::enable_if_t<disjunction_v<
+        template <typename ... Args,
+                typename = std::enable_if_t<conjunction_v<
+                    negation<is_self_constructing<inplace_storage_base, Args&&...>>,
+                    disjunction<
 #if LFNDS_HAS_EXCEPTIONS
-                std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
+                        std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
 #else
-                std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
+                        std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
 #endif
-        > > >
+        >>>>
         explicit inplace_storage_base(Args &&... args)
             noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) :
             _has_value{false} {
@@ -603,4 +604,4 @@ namespace lite_fnds {
     }
 }
 
-#endif //TASK_SYSTEM_INPLACE_T_HPP
+#endif

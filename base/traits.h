@@ -57,6 +57,8 @@ namespace lite_fnds {
     struct pad_t {
         static_assert((cache_line_size & (cache_line_size - 1)) == 0, 
             "cache_line_size must be power of two");
+        static_assert((cache_line_size - (n % cache_line_size)) % cache_line_size != 0,
+            "you may not need pad_t, please remove it.");
         uint8_t pad[(cache_line_size - (n % cache_line_size)) % cache_line_size];
     };
 
@@ -124,6 +126,15 @@ namespace lite_fnds {
 
     template <typename ... Ts>
     constexpr bool disjunction_v = disjunction<Ts...>::value;
+
+    template<typename...>
+    struct type_list {};
+
+    template <typename T, typename ... Args>
+    struct is_self_constructing : std::false_type {};
+
+    template <typename T, typename U>
+    struct is_self_constructing <T, U> : std::is_same<T, std::decay_t<U>> {};
 
     namespace swap_adl_tests {
         struct tag {};
@@ -198,6 +209,12 @@ namespace lite_fnds {
 
     template <typename R, typename... Args>
     struct is_nothrow_swappable<R (*)(Args...)> : std::true_type { };
+
+    template <typename... Us>
+    struct is_swappable <type_list<Us...>> : conjunction<is_swappable<Us>...> { };
+
+    template <typename... Us>
+    struct is_nothrow_swappable <type_list<Us...>> : conjunction<is_nothrow_swappable<Us>...> { };
 #else
     using std::conjunction;
     using std::conjunction_v;

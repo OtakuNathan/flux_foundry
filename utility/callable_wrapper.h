@@ -44,7 +44,7 @@ namespace lite_fnds {
             invoker_t invoker_ = nullptr;
 
             template <typename callable,
-                typename = std::enable_if_t<!std::is_same<callable, callable_storage_t>::value>>
+                typename = std::enable_if_t<!is_self_constructing<callable_storage_t, callable>::value>>
             callable_storage_t(callable&& f)
                 noexcept(noexcept(std::declval<base&>().
                     template emplace<callable>(std::declval<callable&&>()))) {
@@ -54,7 +54,7 @@ namespace lite_fnds {
             template <typename T, bool sbo_enable>
             void fill_vtable() noexcept {
                 this->_vtable = callable_vfns<T, sbo_enable>::table_for();
-                invoker_ = callable_vfns<T, sbo_enable>::call;
+                this->invoker_ = callable_vfns<T, sbo_enable>::call;
             }
 
             using base::base;
@@ -72,6 +72,7 @@ namespace lite_fnds {
 
                     rhs._vtable->copy_construct(this->_data, rhs._data);
                     this->_vtable = rhs._vtable;
+                    this->invoker_ = rhs.invoker_;
                 }
             }
 
@@ -197,7 +198,7 @@ namespace lite_fnds {
         template <typename callable,
             typename callable_t = std::decay_t<callable>,
             typename = std::enable_if_t<conjunction_v<
-            negation<std::is_same<callable_t, callable_wrapper>>,
+            negation<is_self_constructing<callable_wrapper, callable_t>>,
             callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>>>>
         callable_wrapper(callable&& f)
             noexcept(noexcept(std::declval<callable_wrapper&>().emplace(std::declval<callable&&>()))) {
@@ -209,7 +210,7 @@ namespace lite_fnds {
             std::enable_if_t<conjunction_v<
             std::is_convertible<callable_t, R(*)(Args...)>,
         callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
-            negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
+            negation<is_self_constructing<callable_wrapper, callable_t>>>>* = nullptr>
         void emplace(callable&& f) noexcept {
             storage_.emplace_first(std::forward<callable>(f));
         }
@@ -219,7 +220,7 @@ namespace lite_fnds {
             std::enable_if_t<conjunction_v<
             negation<std::is_convertible<callable_t, R(*)(Args...)>>,
         callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
-            negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
+            negation<is_self_constructing<callable_wrapper, callable_t>>>>* = nullptr>
             void emplace(callable&& f)
             noexcept(noexcept(std::declval<storage_t&>().emplace_second(std::declval<callable&&>()))) {
             storage_.emplace_second(std::forward<callable>(f));
@@ -238,11 +239,12 @@ namespace lite_fnds {
         template <typename callable,
             typename callable_t = std::decay_t<callable>,
             typename = std::enable_if_t<conjunction_v<
-            callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>,
-            negation<std::is_same<callable_t, callable_wrapper>>>>>
+            negation<is_self_constructing<callable_wrapper, callable>>,
+            callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>>
+        >>
         callable_wrapper& operator=(callable&& f)
             noexcept(noexcept(std::declval<callable_wrapper&>().
-                template emplace<callable_t>(std::declval<callable&&>()))) {
+                template emplace<callable>(std::declval<callable&&>()))) {
             callable_wrapper tmp(std::forward<callable>(f));
             swap(tmp);
             return *this;
@@ -335,7 +337,7 @@ namespace lite_fnds {
         template <typename callable,
             typename callable_t = std::decay_t<callable>,
             typename = std::enable_if_t<conjunction_v<
-            negation<std::is_same<callable_t, callable_wrapper>>,
+            negation<is_self_constructing<callable_wrapper, callable_t>>,
             callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>>>>
         callable_wrapper(callable&& f)
             noexcept(noexcept(std::declval<callable_wrapper&>().emplace(std::declval<callable&&>()))) {
@@ -347,7 +349,7 @@ namespace lite_fnds {
             std::enable_if_t<conjunction_v<
             std::is_convertible<callable_t, R(*)(Args...)>,
         callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>,
-            negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
+            negation<is_self_constructing<callable_wrapper, callable_t>>>>* = nullptr>
         void emplace(callable&& f) noexcept {
             storage_.emplace_first(std::forward<callable>(f));
         }
@@ -357,7 +359,7 @@ namespace lite_fnds {
             std::enable_if_t<conjunction_v<
             negation<std::is_convertible<callable_t, R(*)(Args...)>>,
             callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>,
-            negation<std::is_same<callable_t, callable_wrapper>>>>* = nullptr>
+            negation<is_self_constructing<callable_wrapper, callable_t>>>>* = nullptr>
         void emplace(callable&& f)
             noexcept(noexcept(std::declval<storage_t&>().emplace_second(std::declval<callable&&>()))) {
             storage_.emplace_second(std::forward<callable>(f));
@@ -376,11 +378,12 @@ namespace lite_fnds {
         template <typename callable,
             typename callable_t = std::decay_t<callable>,
             typename = std::enable_if_t<conjunction_v<
-            callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>,
-            negation<std::is_same<callable_t, callable_wrapper>>>>>
+                negation<is_self_constructing<callable_wrapper, callable_t>>,
+                callable_handle_impl::is_callable_and_compatible<const callable_t, R, Args...>
+            >>>
             callable_wrapper& operator=(callable&& f)
             noexcept(noexcept(std::declval<callable_wrapper&>().
-                template emplace<callable_t>(std::declval<callable&&>()))) {
+                template emplace<callable>(std::declval<callable&&>()))) {
             callable_wrapper tmp(std::forward<callable>(f));
             swap(tmp);
             return *this;

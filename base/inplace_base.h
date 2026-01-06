@@ -224,7 +224,6 @@ namespace lite_fnds {
 #endif
     };
 
-
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T)>
     struct raw_inplace_storage_base : raw_inplace_storage_operations<T> {
         static_assert (sizeof(T) <= len, "the length provided is not sufficient for storing object");
@@ -247,8 +246,10 @@ namespace lite_fnds {
         constexpr raw_inplace_storage_base() = default;
         ~raw_inplace_storage_base() = default;
 
-        template <typename ... Args, std::enable_if_t<disjunction_v<
-                std::is_constructible<T, Args&&...>, is_aggregate_constructible<T, Args&&...>>>* = nullptr>
+        template <typename ... Args, std::enable_if_t<conjunction_v<
+                negation<is_self_constructing<raw_inplace_storage_base, Args&&...>>,
+                disjunction<std::is_constructible<T, Args&&...>, is_aggregate_constructible<T, Args&&...>>>
+           >* = nullptr>
         explicit raw_inplace_storage_base(Args&& ... args)
             noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
             this->construct(std::forward<Args>(args)...);

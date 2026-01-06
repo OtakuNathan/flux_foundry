@@ -89,7 +89,7 @@ namespace lite_fnds {
         
         template <typename U,
             typename T = std::decay_t<U>,
-            typename = std::enable_if_t<conjunction_v<negation<std::is_same<T, task_wrapper>>, is_compatible<T>>>>
+            typename = std::enable_if_t<conjunction_v<negation<is_self_constructing<task_wrapper, T>>, is_compatible<T>>>>
         explicit task_wrapper(U&& rhs) 
             noexcept(noexcept(std::declval<task_wrapper&>().template emplace<T>(std::forward<U>(rhs)))) {
             this->template emplace<T>(std::forward<U>(rhs));
@@ -129,7 +129,6 @@ namespace lite_fnds {
             }
             return *this;
         }
-
 
         void operator()() noexcept {
             assert(this->_vtable);
