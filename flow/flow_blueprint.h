@@ -4,7 +4,7 @@
 #include <utility>
 #include <tuple>
 
-#include "../utility/compressed_pair.h"
+#include "../memory/flat_storage.h"
 #include "../base/traits.h"
 #include "../memory/result_t.h"
 
@@ -20,6 +20,19 @@ namespace lite_fnds {
 #else
         static constexpr size_t MAX_ZIP_N = 2;
 #endif
+
+        template <typename T, size_t... I, typename ... Ts>
+        auto flat_storage_prepend_impl(T&& n, flat_storage<Ts...>&& t, std::index_sequence<I...>) {
+            return flat_storage<std::decay_t<T>, Ts...>(std::forward<T>(n), get<I>(std::move(t))...);
+        }
+
+        // actually this is designed to store bp nodes, because tuple_cat is toooooo complicated.
+        template <typename T, typename ... Ts>
+        auto flat_storage_prepend(T&& n, flat_storage<Ts...>&& t) {
+            return flat_storage_prepend_impl(std::forward<T>(n), std::move(t),
+                                             std::make_index_sequence<sizeof ... (Ts)>{});
+        }
+
         enum class flow_node_type {
             flow_node_calc,
             flow_node_control,
@@ -249,14 +262,14 @@ namespace lite_fnds {
         constexpr bool is_end_node_v = is_end_node<T>::value;
 
         // blueprint
-        template <typename I, typename O, typename... Nodes>
+        template <typename I, typename O, typename ... Nodes>
         struct flow_blueprint {
             using I_t = I;
             using O_t = O;
             static constexpr size_t node_count = sizeof ... (Nodes);
         };
 
-        template <typename I, typename O, typename Head, typename... Tail>
+        template <typename I, typename O, typename Head, typename ... Tail>
         struct flow_blueprint<I, O, Head, Tail...> {
             static_assert(conjunction_v<std::is_nothrow_move_constructible<Head>,
                                   std::is_nothrow_move_constructible<Tail>...>,
@@ -266,13 +279,13 @@ namespace lite_fnds {
             using O_t = O;
             static constexpr size_t node_count = 1 + sizeof ... (Tail);
 
-            using storage_t = std::tuple<Head, Tail...>;
+            using storage_t = flat_storage<Head, Tail...>;//std::tuple<Head, Tail...>;
             storage_t nodes_;
 
             flow_blueprint() = default;
 
             explicit flow_blueprint(storage_t &&s)
-            noexcept(std::is_nothrow_move_constructible<storage_t>::value)
+                noexcept(std::is_nothrow_move_constructible<storage_t>::value)
                     : nodes_(std::move(s)) {
             }
 
@@ -299,102 +312,83 @@ namespace lite_fnds {
         template <typename T>
         constexpr bool is_blueprint_v = is_blueprint<T>::value;
 
-        template <size_t N, size_t... Ns>
-        struct remove_first_idx : remove_first_idx<N - 1, N - 1, Ns...> {};
-
-        template <size_t... idx>
-        struct remove_first_idx<1, idx...> {
-            using seq = std::index_sequence<idx...>;
-        };
-
-        template <std::size_t ... I, class Tuple>
-        auto remove_first_impl(Tuple &&t, std::index_sequence<I...>)
-        -> std::tuple<std::tuple_element_t<I, std::decay_t<Tuple>>...> {
-            return {std::get<I>(std::forward<Tuple>(t))...};
+        template <std::size_t ... I, typename ... Ts>
+        auto remove_first_impl(flat_storage<Ts...> &&t, std::index_sequence<I...>)
+            -> flat_storage<flat_storage_element_t<I + 1, flat_storage<Ts...>>...> {
+            return make_flat_storage(get<I + 1>(std::move(t))...);
         }
 
         template <typename ... Ts>
-        auto remove_first(std::tuple<Ts...> &&t)
-        -> decltype(remove_first_impl(
-                std::forward<std::tuple<Ts...>>(t), typename remove_first_idx<sizeof ... (Ts)>::seq{})) {
-            return remove_first_impl(std::forward<std::tuple<Ts...>>(t),
-                                     typename remove_first_idx<sizeof...(Ts)>::seq{});
+        auto remove_first(flat_storage<Ts...> &&t) ->
+            decltype(remove_first_impl(std::declval<flat_storage<Ts...>>(),
+                                       std::declval<std::make_index_sequence<sizeof ... (Ts) - 1>>())) {
+            return remove_first_impl(std::move(t), std::make_index_sequence<sizeof ... (Ts) - 1>{});
         }
 
         template <typename G_I, typename G_O, typename G,
                 typename I, typename O, typename F_I, typename F_O, typename F, size_t N, typename ... Others>
-        auto
-        operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...> bp, flow_calc_node<G_I, G_O, G> b) {
+        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
             static_assert(is_invocable_with<G, O>::value,
                           "calc node is not invocable with current blueprint output type");
-
-            auto first = std::move(std::get<0>(bp.nodes_));
-            auto merged = first | std::move(b);
-
-            auto tail = remove_first(std::move(bp.nodes_));
-            auto nodes = std::tuple_cat(std::make_tuple(std::move(merged)), std::move(tail));
+            auto merged = get<0>(std::move(bp.nodes_)) | std::move(b);
+            auto nodes = flat_storage_prepend(std::move(merged), remove_first(std::move(bp.nodes_)));
 
             return flow_blueprint<I, G_O, decltype(merged), Others...>(std::move(nodes));
         }
 
         template <typename G_I, typename G_O, typename G,
                 typename I, typename O, typename F_I, typename F_O, typename F, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...> bp,
-                       flow_calc_node<G_I, G_O, G> b) {
+        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
             static_assert(is_invocable_with<G, O>::value,
                           "calc node is not invocable with current blueprint output type");
             return flow_blueprint<I, G_O, flow_calc_node<G_I, G_O, G>, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...>(
-                    std::tuple_cat(std::make_tuple(std::move(b)), std::move(bp.nodes_))
+                    flat_storage_prepend(std::move(b), std::move(bp.nodes_))
             );
         }
 
         template <typename P_I, typename P_O, typename P,
                 typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...> bp,
-                       flow_control_node<P_I, P_O, P> b) {
+        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_control_node<P_I, P_O, P>&& b) {
             return flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, flow_calc_node<F_I, F_O, F, N>, Others...>(
-                    std::tuple_cat(std::make_tuple(std::move(b)), std::move(bp.nodes_))
+                    flat_storage_prepend(std::move(b), std::move(bp.nodes_))
             );
         }
 
         template <typename P_I, typename P_O, typename P,
                 typename I, typename O, typename ... Others>
-        auto
-        operator|(flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...> bp, flow_control_node<P_I, P_O, P>) {
+        auto operator|(flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...>&& bp, flow_control_node<P_I, P_O, P>&&) {
             return bp;
         }
 
         template <typename P_I, typename P_O, typename P, typename I,
                 typename O, typename P_, typename P_I_, typename P_O_, typename ... Others>
-        auto operator|(flow_blueprint<I, O, flow_control_node<P_, P_I_, P_O_>, Others...> bp,
-                       flow_control_node<P_I, P_O, P> b) {
-            auto tail = remove_first(std::move(bp.nodes_));
+        auto operator|(flow_blueprint<I, O, flow_control_node<P_, P_I_, P_O_>, Others...>&& bp,
+                       flow_control_node<P_I, P_O, P>&& b) {
             return flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...>(
-                    std::tuple_cat(std::make_tuple(std::move(b)), std::move(tail))
+                    flat_storage_prepend(std::move(b), remove_first(std::move(bp.nodes_)))
             );
         }
 
         template <typename F, typename F_I, typename F_O,
-                typename I, typename O, typename P_I, typename P_O, typename P, typename... Others>
-        auto
-        operator|(flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...> bp, flow_calc_node<F_I, F_O, F> a) {
+                typename I, typename O, typename P_I, typename P_O, typename P, typename ... Others>
+        auto operator|(flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...>&& bp, flow_calc_node<F_I, F_O, F>&& a) {
             static_assert(is_invocable_with<F, O>::value,
                           "calc node is not invocable with current blueprint output type");
-            auto nodes = std::tuple_cat(std::make_tuple(std::move(a)), std::move(bp.nodes_));
             return flow_blueprint<I, F_O, flow_calc_node<F_I, F_O, F>, flow_control_node<P_I, P_O, P>, Others...>(
-                    std::move(nodes)
+                    flat_storage_prepend(std::move(a), std::move(bp.nodes_))
             );
         }
 
-        template <typename I, typename O, typename F, typename F_I, typename F_O, typename... Others, typename Node>
+        template <typename I, typename O, typename F, typename F_I, typename F_O, typename ... Others, typename Node>
         auto operator|(flow_blueprint<I, O, flow_end_node<F_I, F_O, F>, Others...>, Node &&) = delete;
 
         template <typename F, typename F_I, typename F_O, typename I, typename O, typename ... Nodes>
-        auto operator|(flow_blueprint<I, O, Nodes...> bp, flow_end_node<F_I, F_O, F> b) {
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, flow_end_node<F_I, F_O, F>&& b) {
             static_assert(is_invocable_with<F, O>::value,
                           "end node is not invocable with current blueprint output type");
             return flow_blueprint<I, O, flow_end_node<F_I, F_O, F>, Nodes...>(
-                    std::tuple_cat(std::make_tuple(std::move(b)), std::move(bp.nodes_)));
+                    flat_storage_prepend(std::move(b), std::move(bp.nodes_))
+            );
         }
     }
 }

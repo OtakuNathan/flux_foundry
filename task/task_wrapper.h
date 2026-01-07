@@ -30,18 +30,18 @@ namespace lite_fnds {
 
         template <typename T, bool sbo_enabled>
         struct task_vfns {
-            static void run(void *p) noexcept {
+            static void run(void* p) noexcept {
                 (*tr_ptr<T, sbo_enabled>(p))();
             }
 
-            static const task_vtable* table_for() noexcept {
-                static const task_vtable vt (
-                        fcopy_construct<T, sbo_enabled>(),
-                        fmove_construct<T, sbo_enabled>(),
-                        fsafe_relocate<T, sbo_enabled>(),
-                        fdestroy<T, sbo_enabled>(),
+            static const basic_vtable* table_for() noexcept {
+                static constexpr task_vtable vt {
+                    fcopy_construct<T, sbo_enabled>(),
+                    fmove_construct<T, sbo_enabled>(),
+                    fsafe_relocate<T, sbo_enabled>(),
+                    fdestroy<T, sbo_enabled>(),
                     &task_vfns::run
-                );
+                };
                 return &vt;
             }
         };
@@ -75,7 +75,7 @@ namespace lite_fnds {
         void fill_vtable() noexcept {
             static_assert(std::is_object<T>::value && !std::is_reference<T>::value,
                 "T must be a non-reference object type.");
-            static_assert(is_compatible<T>::value, 
+            static_assert(is_compatible<T>::value,
                 "the given type is not compatible with task_wrapper container. T must be void() noexcept.");
 
             this->_vtable = task_handle_impl::task_vfns<T, sbo_enable>::table_for();
@@ -86,7 +86,6 @@ namespace lite_fnds {
         task_wrapper& operator=(const task_wrapper&) = delete;
         ~task_wrapper() noexcept = default;
 
-        
         template <typename U,
             typename T = std::decay_t<U>,
             typename = std::enable_if_t<conjunction_v<negation<is_self_constructing<task_wrapper, T>>, is_compatible<T>>>>

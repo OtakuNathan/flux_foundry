@@ -77,7 +77,7 @@ namespace lite_fnds {
         using O_t = typename bp_t::O_t;
         using storage_t = typename bp_t::storage_t;
 
-        using first_node_t = std::tuple_element_t<0, storage_t>;
+        using first_node_t = flat_storage_element_t<0, storage_t>;
         static_assert(flow_impl::is_end_node_v<first_node_t>, "A valid blueprint must end with an end");
 
         using bp_ptr = std::shared_ptr<bp_t>;
@@ -110,19 +110,19 @@ namespace lite_fnds {
         struct ipc {
             template <typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
             static void run(flow_runner &self, param_t &&in) noexcept {
-                using node_t = std::tuple_element_t<I, storage_t>;
+                using node_t = flat_storage_element_t<I, storage_t>;
                 using node_i_t = typename node_t::I_t;
                 using error_type = typename node_i_t::error_type;
 
                 UNLIKELY_IF(self.controller->is_force_canceled()) {
-                    using end_node_t = std::tuple_element_t<0, storage_t>;
+                    using end_node_t = flat_storage_element_t<0, storage_t>;
                     using end_in_t = typename end_node_t::I_t;
                     using end_err_t = typename end_in_t::error_type;
                     ipc<0>::run(self, end_in_t(error_tag, cancel_error<end_err_t>::make(cancel_kind::hard)));
                     return;
                 }
 
-                auto &node = std::get<I>(self.bp->nodes_);
+                auto &node = get<I>(self.bp->nodes_);
                 using is_ctrl = flow_impl::is_control_node_t<node_t>;
                 UNLIKELY_IF(self.controller->is_soft_canceled()) {
                     dispatch(is_ctrl{}, node, self, node_i_t(error_tag, cancel_error<error_type>::make(cancel_kind::soft)));
@@ -134,7 +134,7 @@ namespace lite_fnds {
 
             template <typename param_t, size_t I_ = I, std::enable_if_t<I_ == 0>* = nullptr>
             static void run(flow_runner& self, param_t &&param) noexcept {
-                std::get<0>(self.bp->nodes_).f(std::forward<param_t>(param));
+                get<0>(self.bp->nodes_).f(std::forward<param_t>(param));
             }
         private:
             template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
@@ -164,10 +164,12 @@ namespace lite_fnds {
 
     // one-short runner.
     namespace fast_runner_impl {
+        template <typename> struct F : std::false_type {};
+
         template <typename flow_bp>
         struct bp_storage {
             static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
-            static_assert(false, "a flat bp storage should have a raw pointer or a unique_ptr or a shared_ptr or a reference.");
+            static_assert(!F<bp_storage>::value, "a flat bp storage should have a raw pointer or a unique_ptr or a shared_ptr or a reference.");
         };
 
         template <typename flow_bp>
@@ -286,7 +288,7 @@ namespace lite_fnds {
             std::unique_ptr<flow_bp> p;
 
             explicit bp_storage(flow_bp&& p_)
-                noexcept : p(std::make_unique<flow_bp>(std::move(p_))) {}
+                : p(std::make_unique<flow_bp>(std::move(p_))) {}
 
             FORCE_INLINE flow_bp* operator->() const {
                 return p.get();
@@ -306,7 +308,7 @@ namespace lite_fnds {
         using bp_t = typename flow_bp_storage::bp_t;
         using I_t = typename bp_t::I_t;
 
-        using first_node_t = std::tuple_element_t<0, typename bp_t::storage_t>;
+        using first_node_t = flat_storage_element_t<0, typename bp_t::storage_t>;
         static_assert(flow_impl::is_end_node_v<first_node_t>, "A valid blueprint must end with an end");
 
         using storage_t = typename bp_t::storage_t;
@@ -330,14 +332,14 @@ namespace lite_fnds {
         struct ipc {
             template <typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
             static void run(flow_fast_runner &self, param_t &&in) noexcept {
-                using node_t = std::tuple_element_t<I, storage_t>;
+                using node_t = flat_storage_element_t<I, storage_t>;
                 dispatch(flow_impl::is_control_node_t<node_t>{},
-                         std::get<I>(self.bp->nodes_), self, std::forward<param_t>(in));
+                         get<I>(self.bp->nodes_), self, std::forward<param_t>(in));
             }
 
             template <typename param_t, size_t I_ = I, std::enable_if_t<I_ == 0>* = nullptr>
             static void run(flow_fast_runner& self, param_t &&param) noexcept {
-                std::get<0>(self.bp->nodes_).f(std::forward<param_t>(param));
+                get<0>(self.bp->nodes_).f(std::forward<param_t>(param));
             }
         private:
             template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>

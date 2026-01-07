@@ -73,7 +73,7 @@ namespace lite_fnds {
         };
 
         template <typename I, typename O, typename... Nodes, typename F>
-        auto operator|(flow_blueprint<I, O, Nodes...> bp, transform_node<F> a) {
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, transform_node<F>&& a) {
             static_assert(is_nothrow_invocable_with<F, typename O::value_type>::value,
                 "The callable F is not compatible with current blueprint, "
                 "and must be nothrow-invocable.");
@@ -113,7 +113,7 @@ namespace lite_fnds {
         };
 
         template <typename I, typename O, typename... Nodes, typename F>
-        auto operator|(flow_blueprint<I, O, Nodes...> bp, then_node<F> a) {
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, then_node<F>&& a) {
 #if LFNDS_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O>::value,
                 "callable F is not compatible with current blueprint");
@@ -142,8 +142,7 @@ namespace lite_fnds {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
-                        LIKELY_IF(in.has_value())
-                        {
+                        LIKELY_IF(in.has_value()) {
                             return F_O(value_tag, std::move(in).value());
                         }
                         return f(std::move(in));
@@ -158,7 +157,7 @@ namespace lite_fnds {
         };
 
         template <typename I, typename O, typename ... Nodes, typename F>
-        auto operator|(flow_blueprint<I, O, Nodes ...> bp, error_node<F> a) {
+        auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, error_node<F>&& a) {
 #if LFNDS_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O>::value,
                 "The callable F in error is not compatible with current blueprint.");
@@ -257,7 +256,7 @@ namespace lite_fnds {
         };
 
         template <typename I, typename O, typename... Nodes, typename Executor>
-        auto operator|(flow_blueprint<I, O, Nodes...> bp, via_node<Executor> a) {
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, via_node<Executor>&& a) {
             auto node = via_node<Executor>::template make<O>(std::move(a));
             return std::move(bp) | std::move(node);
         }
@@ -298,7 +297,7 @@ namespace lite_fnds {
 
         template <typename I, typename O, typename... Nodes,
             typename F, std::enable_if_t<!std::is_void<F>::value, int> = 0>
-        auto operator|(flow_blueprint<I, O, Nodes...> bp, end_node<F> a) {
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
 
 #if LFNDS_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O>::value,
@@ -318,7 +317,7 @@ namespace lite_fnds {
 
         template <typename I, typename O, typename... Nodes,
             typename F, std::enable_if_t<std::is_void<F>::value, int> = 0>
-        auto operator|(flow_blueprint<I, O, Nodes...> bp, end_node<F> a) {
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
             auto node = end_node<void>::make<O, O>(std::move(a));
             return std::move(bp) | std::move(node);
         }
@@ -335,7 +334,7 @@ namespace lite_fnds {
         };
 
         using node_type = flow_impl::flow_calc_node<R, R, decltype(identity)>;
-        using storage_t = std::tuple<node_type>;
+        using storage_t = flat_storage<node_type>;
 
         return flow_impl::flow_blueprint<R, R, node_type>(
             storage_t(node_type(std::move(identity)))

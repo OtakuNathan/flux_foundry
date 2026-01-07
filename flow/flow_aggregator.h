@@ -32,7 +32,7 @@
  *
  * Example 5: Wait for any (first-wins)
  *   while (!agg.is_any_ready()) { yield(); }
- *   if (agg.is_slot_ready<0>()) { handle(std::get<0>(agg.value())); }
+ *   if (agg.is_slot_ready<0>()) { handle(get<0>(agg.value())); }
  *
  * Flow provides mechanism, you provide policy.
  */
@@ -43,7 +43,7 @@ namespace lite_fnds {
         static_assert(conjunction_v<is_result_t<Ts>...>,
             "All the types in the template param pack must be result_t<T, E>");
         constexpr static size_t N = sizeof...(Ts);
-        using storage_t = std::tuple<std::decay_t<Ts>...>;
+        using storage_t = flat_storage<std::decay_t<Ts>...>;
     private:
         struct Data {
             alignas(CACHE_LINE_SIZE) std::atomic<size_t> ready_count;
@@ -102,7 +102,7 @@ namespace lite_fnds {
         template <size_t I>
         struct delegate {
         private:
-            using elem_type = std::tuple_element_t<I, storage_t>;
+            using elem_type = flat_storage_element_t<I, storage_t>;
             std::shared_ptr<Data> data;
              
         public:
@@ -126,7 +126,7 @@ namespace lite_fnds {
                     return false;
                 }
 
-                elem_type& e = std::get<I>(data->val);
+                elem_type& e = get<I>(data->val);
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif

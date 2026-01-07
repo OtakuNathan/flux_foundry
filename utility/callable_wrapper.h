@@ -32,10 +32,12 @@ namespace lite_fnds {
             constexpr static bool value = decltype(test<callable>(0))::value;
         };
 
+        constexpr static size_t callable_storage_size = CACHE_LINE_SIZE - 4 * sizeof(std::nullptr_t);
+
         template <typename wrapper>
         struct callable_storage_t :
-            raw_type_erase_base<callable_storage_t<wrapper>, CACHE_LINE_SIZE - 4 * sizeof(std::nullptr_t)> {
-            using base = raw_type_erase_base<callable_storage_t<wrapper>, CACHE_LINE_SIZE - 4 * sizeof(std::nullptr_t)>;
+            raw_type_erase_base<callable_storage_t<wrapper>, callable_storage_size> {
+            using base = raw_type_erase_base<callable_storage_t<wrapper>, callable_storage_size>;
             using callable_vtable = basic_vtable;
 
             template <typename T, bool sbo_enabled>
@@ -151,11 +153,11 @@ namespace lite_fnds {
             }
 
             static const basic_vtable* table_for() noexcept {
-                static const basic_vtable vt{
-                        fcopy_construct<T, sbo_enabled>(),
-                        fmove_construct<T, sbo_enabled>(),
-                        fsafe_relocate<T, sbo_enabled>(),
-                        fdestroy<T, sbo_enabled>()
+                static constexpr basic_vtable vt {
+                    fcopy_construct<T, sbo_enabled>(),
+                    fmove_construct<T, sbo_enabled>(),
+                    fsafe_relocate<T, sbo_enabled>(),
+                    fdestroy<T, sbo_enabled>()
                 };
                 return &vt;
             }
@@ -291,11 +293,11 @@ namespace lite_fnds {
             }
 
             static const basic_vtable* table_for() noexcept {
-                static const basic_vtable vt{
-                        fcopy_construct<T, sbo_enabled>(),
-                        fmove_construct<T, sbo_enabled>(),
-                        fsafe_relocate<T, sbo_enabled>(),
-                        fdestroy<T, sbo_enabled>()
+                static constexpr basic_vtable vt {
+                    fcopy_construct<T, sbo_enabled>(),
+                    fmove_construct<T, sbo_enabled>(),
+                    fsafe_relocate<T, sbo_enabled>(),
+                    fdestroy<T, sbo_enabled>()
                 };
                 return &vt;
             }
