@@ -9,6 +9,8 @@
 #endif
 
 #include "../base/inplace_base.h"
+#include "../memory/lite_ptr.h"
+#include "../memory/aligned_alloc.h"
 #include "flow_blueprint.h"
 
 /**
@@ -45,56 +47,29 @@ namespace lite_fnds {
         constexpr static size_t N = sizeof...(Ts);
         using storage_t = flat_storage<std::decay_t<Ts>...>;
     private:
-        struct Data {
-            alignas(CACHE_LINE_SIZE) std::atomic<size_t> ready_count;
+        enum class slot_state : uint8_t {
+            empty,
+            occupied,
+            full,
+        };
+
+        struct alignas(CACHE_LINE_SIZE) Data {
+            std::atomic<size_t> ready_count;
 
             // Tips: if this is checked very frequently, each flag should be aligned by 64
-            std::atomic<bool> slot_ready[N];
+            std::atomic<slot_state> slot_ready[N];
             storage_t val;
 
             Data() 
                 : ready_count { 0 }
                 , val { Ts(error_tag, typename Ts::error_type {})... } {
                 for (size_t i = 0; i < N; ++i) {
-                    slot_ready[i].store(false, std::memory_order_relaxed);
+                    slot_ready[i].store(slot_state::empty, std::memory_order_relaxed);
                 }
             }
 
-            static std::shared_ptr<Data> make_shared() {
-#ifndef _WIN32
-                void* _p = nullptr;
-                if (posix_memalign(&_p, CACHE_LINE_SIZE, sizeof(Data)) != 0) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-                    throw std::bad_alloc();
-#else
-                    return nullptr;
-#endif
-                }
-                std::unique_ptr<void, decltype(free)*> p(_p, free);
-#else
-                std::unique_ptr<void, decltype(_aligned_free)*> p(
-                    _aligned_malloc(sizeof(Data), CACHE_LINE_SIZE), _aligned_free);
-#endif
-
-                if (!p) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-                    throw std::bad_alloc();
-#else
-                    return nullptr;
-#endif
-                }
-
-                new (p.get()) Data();
-
-                return std::shared_ptr<Data>(static_cast<Data*>(p.release()), 
-                    [](Data* p) noexcept {
-                        p->~Data();
-#ifdef _WIN32
-                        _aligned_free(p);
-#else
-                        free(p);
-#endif
-                });
+            static lite_ptr<Data> make_shared() {
+                return make_lite_ptr<Data>();
             }
         };
 
@@ -103,12 +78,12 @@ namespace lite_fnds {
         struct delegate {
         private:
             using elem_type = flat_storage_element_t<I, storage_t>;
-            std::shared_ptr<Data> data;
+            lite_ptr<Data> data;
              
         public:
             delegate() = delete;
 
-            explicit delegate(std::shared_ptr<Data> d) noexcept
+            explicit delegate(lite_ptr<Data> d) noexcept
                 : data(std::move(d)) {
             }
 
@@ -122,7 +97,9 @@ namespace lite_fnds {
             >* = nullptr>
             bool emplace(Us&&... args) noexcept {
                 // if this slot is already used. return false;
-                if (data->slot_ready[I].load(std::memory_order_acquire)) {
+                slot_state expected = slot_state::empty;
+                if (!data->slot_ready[I].compare_exchange_strong(expected, slot_state::occupied,
+                                                                std::memory_order_release, std::memory_order_relaxed)) {
                     return false;
                 }
 
@@ -137,7 +114,7 @@ namespace lite_fnds {
                 }
 #endif
                 
-                data->slot_ready[I].store(true, std::memory_order_release);
+                data->slot_ready[I].store(slot_state::full, std::memory_order_release);
                 data->ready_count.fetch_add(1, std::memory_order_release);
                 return true;
             }
@@ -167,7 +144,7 @@ namespace lite_fnds {
         template <size_t I>
         bool is_slot_ready() const noexcept {
             static_assert(I < N, "flow_aggregator index out of range");
-            return this->data->slot_ready[I].load(std::memory_order_acquire);
+            return this->data->slot_ready[I].load(std::memory_order_acquire) == slot_state::full;
         }
         
         // You should only create a delegate for each slot once
@@ -193,7 +170,7 @@ namespace lite_fnds {
             return std::move(this->data->val);
         }
     private:
-        std::shared_ptr<Data> data;
+        lite_ptr<Data> data;
     };
 
     template <typename ... BPs>

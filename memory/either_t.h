@@ -9,11 +9,8 @@
 // empty state only exists during raw_either_storage_base default construction
 
 namespace lite_fnds {
-	template <size_t N>
-	struct in_place_index {};
-
-	using first_t = in_place_index<0>;
-	using second_t = in_place_index<1>;
+    using first_t = in_place_index<0>;
+    using second_t = in_place_index<1>;
 
 	constexpr static first_t to_first{};
 	constexpr static second_t to_second{};
@@ -35,7 +32,7 @@ namespace lite_fnds {
 			T first;
 			U second;
 
-			constexpr storage() noexcept {}
+			storage() noexcept {}
 			~storage() noexcept {}
 		} _data;
         
@@ -173,7 +170,7 @@ namespace lite_fnds {
 			T first;
 			U second;
 
-			constexpr storage() noexcept {}
+			storage() noexcept {}
 			~storage() noexcept {}
 		} _data;
         either_state _state;
@@ -312,7 +309,7 @@ namespace lite_fnds {
 			T first;
 			U second;
 
-			constexpr storage() noexcept {}
+			storage() noexcept {}
 			~storage() noexcept {}
 		} _data;
         either_state _state;
@@ -452,7 +449,7 @@ namespace lite_fnds {
 			T first;
 			U second;
 
-			constexpr storage() noexcept {}
+			storage() noexcept {}
 		} _data;
 		either_state _state;
 
@@ -587,7 +584,7 @@ namespace lite_fnds {
 			struct {} first;
 			U second;
 
-			constexpr storage() noexcept {}
+			storage() noexcept {}
 		} _data;
         either_state _state;
 
@@ -670,7 +667,7 @@ namespace lite_fnds {
 			struct {} first;
 			U second;
 
-			constexpr storage() noexcept {}
+			storage() noexcept {}
 			~storage() noexcept {}
 		} _data;
 		either_state _state;

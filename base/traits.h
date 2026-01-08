@@ -74,6 +74,9 @@ namespace lite_fnds {
     template <typename T>
     constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
+    template <size_t N>
+    struct in_place_index {};
+
 #if __cplusplus >= 201703L
     using std::invoke_result;
     using std::invoke_result_t;

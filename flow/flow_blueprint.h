@@ -2,7 +2,6 @@
 #define LITE_FNDS_FLOW_BLUEPRINT_H
 
 #include <utility>
-#include <tuple>
 
 #include "../memory/flat_storage.h"
 #include "../base/traits.h"
@@ -279,7 +278,7 @@ namespace lite_fnds {
             using O_t = O;
             static constexpr size_t node_count = 1 + sizeof ... (Tail);
 
-            using storage_t = flat_storage<Head, Tail...>;//std::tuple<Head, Tail...>;
+            using storage_t = flat_storage<Head, Tail...>;
             storage_t nodes_;
 
             flow_blueprint() = default;

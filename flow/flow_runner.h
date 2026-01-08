@@ -2,12 +2,11 @@
 #define LITE_FNDS_FLOW_RUNNER_H
 
 #include <atomic>
-#include <memory>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <stdexcept>
 
+#include "../memory/lite_ptr.h"
 #include "../task/task_wrapper.h"
 #include "flow_blueprint.h"
 
@@ -80,8 +79,8 @@ namespace lite_fnds {
         using first_node_t = flat_storage_element_t<0, storage_t>;
         static_assert(flow_impl::is_end_node_v<first_node_t>, "A valid blueprint must end with an end");
 
-        using bp_ptr = std::shared_ptr<bp_t>;
-        using controller_ptr = std::shared_ptr<flow_controller>;
+        using bp_ptr = lite_ptr<bp_t>;
+        using controller_ptr = lite_ptr<flow_controller>;
     private:
         controller_ptr controller;
         bp_ptr bp;
@@ -89,7 +88,7 @@ namespace lite_fnds {
         flow_runner() = delete;
 
         explicit flow_runner(bp_ptr bp_, controller_ptr ctrl = controller_ptr())
-            : controller(ctrl ? std::move(ctrl) : std::make_shared<flow_controller>())
+            : controller(ctrl ? std::move(ctrl) : make_lite_ptr<flow_controller>())
               , bp(std::move(bp_)) {
         }
 
@@ -157,8 +156,8 @@ namespace lite_fnds {
     };
 
     template <typename I_t, typename O_t, typename... Nodes>
-    auto make_runner(std::shared_ptr<flow_impl::flow_blueprint<I_t, O_t, Nodes...>> bp,
-        std::shared_ptr<flow_controller> ctrl = nullptr) noexcept {
+    auto make_runner(lite_ptr<flow_impl::flow_blueprint<I_t, O_t, Nodes...>> bp,
+        lite_ptr<flow_controller> ctrl = {}) noexcept {
         return flow_runner<flow_impl::flow_blueprint<I_t, O_t, Nodes...>>(std::move(bp), std::move(ctrl));
     }
 
@@ -223,7 +222,7 @@ namespace lite_fnds {
         };
 
         template <typename flow_bp>
-        struct bp_storage <std::shared_ptr<flow_bp>> {
+        struct bp_storage <lite_ptr<flow_bp>> {
             static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
 
             static constexpr std::size_t node_count = flow_bp::node_count;
@@ -234,8 +233,8 @@ namespace lite_fnds {
             using O_t = typename bp_t::O_t;
             using storage_t = typename bp_t::storage_t;
 
-            std::shared_ptr<flow_bp> p;
-            explicit bp_storage(std::shared_ptr<flow_bp> p_)
+            lite_ptr<flow_bp> p;
+            explicit bp_storage(lite_ptr<flow_bp> p_)
                 noexcept : p(std::move(p_)) {}
 
             FORCE_INLINE flow_bp* operator->() const {
@@ -379,8 +378,8 @@ namespace lite_fnds {
     }
 
     template <typename bp_t>
-    auto make_fast_runner(std::shared_ptr<bp_t> bp) noexcept {
-        using bp_storage = fast_runner_impl::bp_storage<std::shared_ptr<bp_t>>;
+    auto make_fast_runner(lite_ptr<bp_t> bp) noexcept {
+        using bp_storage = fast_runner_impl::bp_storage<lite_ptr<bp_t>>;
         return flow_fast_runner<bp_storage>(bp_storage(bp));
     }
 } // namespace lite_fnds

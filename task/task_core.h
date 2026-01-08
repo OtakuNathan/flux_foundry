@@ -3,12 +3,12 @@
 
 #include <type_traits>
 #include <utility>
-#include <tuple>
 #include <cassert>
 #include <memory>
 
 #include "../base/traits.h"
 #include "../memory/result_t.h"
+#include "../memory/flat_storage.h"
 
 namespace lite_fnds {
     namespace task_impl_private {
@@ -71,12 +71,12 @@ namespace lite_fnds {
             using object_storage = std::conditional_t<
                 disjunction_v<is_shared_ptr<obj_param_t>, std::is_pointer<obj_param_t> >,
                 obj_param_t, std::add_pointer_t<obj_param_t> >;
-            using param_type = std::tuple<std::decay_t<Args>...>;
+            using param_type = flat_storage<std::decay_t<Args>...>;
 
             using result_type = uniform_result_t<R>;
         private:
             using callable_t = std::decay_t<Callable>;
-            using data_type = std::tuple<callable_t, param_type, object_storage>;
+            using data_type = flat_storage<callable_t, param_type, object_storage>;
             data_type _data;
 
         public:
@@ -166,12 +166,12 @@ namespace lite_fnds {
 
             template<typename _param_type = param_type>
             std::enable_if_t<sizeof ...(Args) != 0, _param_type &> get_params() noexcept {
-                return std::get<data_index::data_params>(_data);
+                return get<data_index::data_params>(_data);
             }
 
             template<typename _param_type = param_type>
             std::enable_if_t<(sizeof...(Args) != 0), const _param_type &> get_params() const noexcept {
-                return std::get<data_index::data_params>(_data);
+                return get<data_index::data_params>(_data);
             }
 
             result_type operator()() noexcept {
@@ -184,10 +184,10 @@ namespace lite_fnds {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
-                    auto& obj = std::get<data_index::data_object>(_data);
-                    auto& _callable = std::get<data_index::data_callable>(_data);
-                    auto& params = std::get<data_index::data_params>(_data);
-                    ((*obj).*_callable)(unpack_param(std::get<idx>(params))...);
+                    auto& obj = get<data_index::data_object>(_data);
+                    auto& _callable = get<data_index::data_callable>(_data);
+                    auto& params = get<data_index::data_params>(_data);
+                    ((*obj).*_callable)(unpack_param(get<idx>(params))...);
                     return result_type(value_tag);
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
@@ -201,16 +201,16 @@ namespace lite_fnds {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
-                    auto& obj = std::get<data_index::data_object>(_data);
-                    auto& _callable = std::get<data_index::data_callable>(_data);
-                    auto& params = std::get<data_index::data_params>(_data);
+                    auto& obj = get<data_index::data_object>(_data);
+                    auto& _callable = get<data_index::data_callable>(_data);
+                    auto& params = get<data_index::data_params>(_data);
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
-                    return make_success_result<R>(((*obj).*_callable)(unpack_param(std::get<idx>(params))...));
+                    return make_success_result<R>(((*obj).*_callable)(unpack_param(get<idx>(params))...));
                 } catch (...) {
                     return make_error_result<R>(std::current_exception());
                 }
 #else
-                    return ((*obj).*_callable)(unpack_param(std::get<idx>(params))...);
+                    return ((*obj).*_callable)(unpack_param(get<idx>(params))...);
 #endif
             }
         };
@@ -222,12 +222,12 @@ namespace lite_fnds {
 #endif
         public:
             using callable_result_t = R;
-            using param_type = std::tuple<std::decay_t<Args>...>;
+            using param_type = flat_storage<std::decay_t<Args>...>;
             using result_type = uniform_result_t<R>;
 
         private:
             using callable_t = std::decay_t<Callable>;
-            using data_type = std::tuple<callable_t, param_type>;
+            using data_type = flat_storage<callable_t, param_type>;
         public:
             // not copyable or copy assignable
             task_impl(const task_impl &) = delete;
@@ -288,12 +288,12 @@ namespace lite_fnds {
 
             template<typename _param_type = param_type>
             std::enable_if_t<sizeof...(Args) != 0, _param_type &> get_params() noexcept {
-                return std::get<data_index::data_params>(_data);
+                return get<data_index::data_params>(_data);
             }
 
             template<typename _param_type = param_type>
             std::enable_if_t<(sizeof...(Args) != 0), const _param_type &> get_params() const noexcept {
-                return std::get<data_index::data_params>(_data);
+                return get<data_index::data_params>(_data);
             }
 
             result_type operator()() noexcept {
@@ -305,9 +305,9 @@ namespace lite_fnds {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
-                    auto &callable = std::get<data_index::data_callable>(_data);
-                    auto &params = std::get<data_index::data_params>(_data);
-                    callable(unpack_param(std::get<idx>(params))...);
+                    auto &callable = get<data_index::data_callable>(_data);
+                    auto &params = get<data_index::data_params>(_data);
+                    callable(unpack_param(get<idx>(params))...);
                     return result_type(value_tag);
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
@@ -321,15 +321,15 @@ namespace lite_fnds {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
-                    auto &callable = std::get<data_index::data_callable>(_data);
-                    auto &params = std::get<data_index::data_params>(_data);
+                    auto &callable = get<data_index::data_callable>(_data);
+                    auto &params = get<data_index::data_params>(_data);
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
-                    return make_success_result<R>(callable(unpack_param(std::get<idx>(params))...));
+                    return make_success_result<R>(callable(unpack_param(get<idx>(params))...));
                 } catch (...) {
                     return make_error_result<R>(std::current_exception());
                 }
 #else
-                return callable(unpack_param(std::get<idx>(params))...);
+                return callable(unpack_param(get<idx>(params))...);
 #endif
             }
 

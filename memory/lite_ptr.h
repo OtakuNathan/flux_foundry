@@ -1,0 +1,193 @@
+//
+// Created by Nathan on 08/01/2026.
+//
+
+#ifndef LF_TEST_REF_COUNT_H
+#define LF_TEST_REF_COUNT_H
+
+#include <atomic>
+#include <cassert>
+#include <new>
+
+#include "../base/inplace_base.h"
+#include "flat_storage.h"
+#include "aligned_alloc.h"
+
+namespace lite_fnds {
+
+    template <typename T>
+    struct default_deleter {
+        void operator()(T* ptr) noexcept {
+            if (ptr) {
+                ptr->~T();
+            }
+        }
+    };
+
+    using in_place_t = in_place_index<0>;
+    constexpr static in_place_index<0> in_place;
+
+    template <typename T, typename F = default_deleter<T>, size_t align = alignof(T)>
+    class lite_ptr {
+        static_assert(align >= alignof(T), "align must be >= alignof(T)");
+        static_assert((align & (align - 1)) == 0, "align must be power of two");;
+
+        using op = raw_inplace_storage_base<T>;
+
+        struct cb_t {
+            alignas(align) unsigned char data[sizeof(T)];
+            compressed_pair<std::atomic<size_t>, F> cb;
+
+            template <typename G, typename ... Args>
+            cb_t(G&& g, Args&& ... args)
+                noexcept(conjunction_v<std::is_nothrow_constructible<T, Args&&...>,
+                        std::is_nothrow_constructible<F, G&&>>)
+                : cb(1, std::forward<G>(g)) {
+                op::construct_at(data, std::forward<Args>(args)...);
+            }
+
+            ~cb_t() noexcept {
+                cb.second()(reinterpret_cast<T*>(data));
+            }
+        };
+
+        struct guard {
+            cb_t* cb;
+            guard(cb_t* cb_) : cb(cb_) {}
+            ~guard() noexcept {
+                aligned_free(cb);
+            }
+        };
+
+        cb_t* cb;
+    public:
+        lite_ptr() noexcept : cb(nullptr) {}
+
+        template <typename ... Args, typename F_ = F,
+                std::enable_if_t<conjunction_v<std::is_same<F_, default_deleter<T>>,
+                        std::is_constructible<T, Args&&...>>>* = nullptr>
+        lite_ptr(in_place_t, Args&& ... args)
+            noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, default_deleter<T>&&, Args&&...>>)
+            : cb {nullptr} {
+            guard g(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), sizeof(cb_t))));
+            assert(g.cb && "out of memory");
+            if (!g.cb) {
+                std::abort();
+            }
+            new (g.cb) cb_t(default_deleter<T>(), std::forward<Args>(args)...);
+            cb = g.cb;
+            g.cb = nullptr;
+        }
+
+        template <typename G, typename ... Args, typename F_ = F,
+                std::enable_if_t<conjunction_v<
+                        negation<std::is_same<F_, default_deleter<T>>>,
+                        std::is_constructible<F_, G&&>,
+                        std::is_constructible<T, Args&&...>>>* = nullptr>
+        lite_ptr(in_place_t, G&& g, Args&& ... args)
+            noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, G&&, Args&&...>>)
+            : cb {nullptr} {
+            guard g_(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), sizeof(cb_t))));
+            assert(g_.cb && "out of memory");
+            if (!g_.cb) {
+                std::abort();
+            }
+            new (g_.cb) cb_t(std::forward<G>(g), std::forward<Args>(args)...);
+            cb = g_.cb;
+            g_.cb = nullptr;
+        }
+
+        lite_ptr(const lite_ptr& rhs) noexcept : cb{} {
+            rhs.retain();
+            if (rhs.cb) {
+                cb = rhs.cb;
+            }
+        }
+
+        lite_ptr(lite_ptr&& rhs) noexcept : cb{} {
+            cb = rhs.cb;
+            rhs.cb = nullptr;
+        }
+
+        lite_ptr& operator=(const lite_ptr& rhs) noexcept {
+            if (this != &rhs) {
+                release();
+                rhs.retain();
+                if (rhs.cb) {
+                    cb = rhs.cb;
+                }
+            }
+            return *this;
+        }
+
+        lite_ptr& operator=(lite_ptr&& rhs) noexcept {
+            if (this != &rhs) {
+            release();
+            cb = rhs.cb;
+            rhs.cb = nullptr;
+            }
+            return *this;
+        }
+
+        T* get() const noexcept {
+            return cb ? reinterpret_cast<T*>(cb->data) : nullptr;
+        }
+
+        explicit operator bool() const noexcept {
+            return cb != nullptr;
+        }
+
+        void swap(lite_ptr& rhs) noexcept {
+            using std::swap;
+            swap(cb, rhs.cb);
+        }
+
+        ~lite_ptr() noexcept {
+            release();
+        }
+
+        T& operator*() const noexcept {
+            assert(cb && "attempting to dereferencing nullptr");
+            return *reinterpret_cast<T*>(cb->data);
+        }
+
+        T* operator->() const noexcept {
+            assert(cb && "attempting to accessing nullptr");
+            return reinterpret_cast<T*>(cb->data);
+        }
+
+        void release() noexcept {
+            auto ccb = cb;
+            cb = nullptr;
+            if (ccb && ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+                std::atomic_thread_fence(std::memory_order_acquire);
+                ccb->~cb_t();
+                aligned_free(ccb);
+            }
+        }
+
+        void retain() const noexcept {
+            if (cb) {
+                cb->cb.first().fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+
+        size_t use_count() const noexcept {
+            return !cb ? 0 : cb->cb.first().load(std::memory_order_relaxed);
+        }
+    };
+
+    template <typename T, typename F, size_t align>
+    void swap(lite_ptr<T, F, align>& lhs , lite_ptr<T, F, align>& rhs) noexcept {
+        lhs.swap(rhs);
+    }
+
+    template <typename T, typename ... Args,
+            std::enable_if_t<std::is_constructible<lite_ptr<T>, in_place_t, Args&&...>::value>* = nullptr>
+    lite_ptr<T> make_lite_ptr(Args&&... args)
+        noexcept(std::is_nothrow_constructible<lite_ptr<T>, in_place_t, Args&&...>::value) {
+        return lite_ptr<T>(in_place, std::forward<Args>(args)...);
+    }
+}
+
+#endif //LF_TEST_REF_COUNT_H

@@ -239,29 +239,16 @@ namespace lite_fnds {
         compressed_pair &operator=(compressed_pair &&rhs)
         noexcept(conjunction_v<std::is_nothrow_move_assignable<A_>, std::is_nothrow_move_assignable<B_> >) = default;
 
-        template<typename T = A_, typename U = B_,
+        template<typename T, typename U,
 #if LFNDS_HAS_EXCEPTIONS
-                typename = std::enable_if_t<conjunction_v<std::is_copy_constructible<T>, std::is_copy_constructible<U> > >
+                typename = std::enable_if_t<conjunction_v<std::is_constructible<A_, T&&>, std::is_constructible<B_, U&&> > >
 #else
-                typename = std::enable_if_t<conjunction_v<std::is_nothrow_copy_constructible<T>, std::is_nothrow_copy_constructible<U>>>
+                typename = std::enable_if_t<conjunction_v<std::is_nothrow_constructible<A_, T&&>, std::is_nothrow_constructible<B_, U&&> > >
 #endif
         >
-        compressed_pair(const A_ &a, const B_ &b)
-        noexcept(conjunction_v<std::is_nothrow_copy_constructible<T>, std::is_nothrow_copy_constructible<U> >)
-                : _base0(a), _base1(b) {
-        }
-
-        template<typename T = A_, typename U = B_,
-#if LFNDS_HAS_EXCEPTIONS
-                typename = std::enable_if_t<conjunction_v<std::is_move_constructible<T>, std::is_move_constructible<U> > >
-#else
-                typename = std::enable_if_t<conjunction_v<
-        std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<U>>>
-#endif
-        >
-        compressed_pair(A_ &&a, B_ &&b)
-        noexcept(conjunction_v<std::is_nothrow_move_constructible<T>, std::is_nothrow_move_constructible<U> >)
-                : _base0(std::move(a)), _base1(std::move(b)) {
+        compressed_pair(T&& a, U&& b)
+        noexcept(conjunction_v<std::is_nothrow_constructible<A_, T&&>, std::is_nothrow_constructible<B_, U&&>>)
+                : _base0(std::forward<T>(a)), _base1(std::forward<U>(b)) {
         }
 
         typename _base0::reference_type first() noexcept {
