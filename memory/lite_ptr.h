@@ -27,6 +27,14 @@ namespace lite_fnds {
     using in_place_t = in_place_index<0>;
     constexpr static in_place_index<0> in_place;
 
+    // THREAD SAFETY GUARANTEES (same as std::shared_ptr):
+    // - Multiple lite_ptr instances pointing to the same object can be used
+    //   concurrently from different threads (refcount is atomic)
+    // - Concurrent access to the SAME lite_ptr instance requires external
+    //   synchronization (the cb pointer itself is NOT atomic)
+    // - If you need atomic operations on the pointer itself, use std::atomic<lite_ptr>
+    //   or external synchronization
+
     template <typename T, typename F = default_deleter<T>, size_t align = alignof(T)>
     class lite_ptr {
         static_assert(align >= alignof(T), "align must be >= alignof(T)");
@@ -97,15 +105,11 @@ namespace lite_fnds {
             g_.cb = nullptr;
         }
 
-        lite_ptr(const lite_ptr& rhs) noexcept : cb{} {
+        lite_ptr(const lite_ptr& rhs) noexcept : cb{rhs.cb} {
             rhs.retain();
-            if (rhs.cb) {
-                cb = rhs.cb;
-            }
         }
 
-        lite_ptr(lite_ptr&& rhs) noexcept : cb{} {
-            cb = rhs.cb;
+        lite_ptr(lite_ptr&& rhs) noexcept : cb{rhs.cb} {
             rhs.cb = nullptr;
         }
 
@@ -188,6 +192,43 @@ namespace lite_fnds {
         noexcept(std::is_nothrow_constructible<lite_ptr<T>, in_place_t, Args&&...>::value) {
         return lite_ptr<T>(in_place, std::forward<Args>(args)...);
     }
+
+    // Comparison operators
+    template <typename T, typename F, size_t align>
+    bool operator==(const lite_ptr<T, F, align>& lhs, const lite_ptr<T, F, align>& rhs) noexcept {
+        return lhs.get() == rhs.get();
+    }
+
+    template <typename T, typename F, size_t align>
+    bool operator!=(const lite_ptr<T, F, align>& lhs, const lite_ptr<T, F, align>& rhs) noexcept {
+        return !(lhs == rhs);
+    }
+
+    template <typename T, typename F, size_t align>
+    bool operator<(const lite_ptr<T, F, align>& lhs, const lite_ptr<T, F, align>& rhs) noexcept {
+        return lhs.get() < rhs.get();
+    }
+
+    template <typename T, typename F, size_t align>
+    bool operator==(const lite_ptr<T, F, align>& ptr, std::nullptr_t) noexcept {
+        return !ptr;
+    }
+
+    template <typename T, typename F, size_t align>
+    bool operator==(std::nullptr_t, const lite_ptr<T, F, align>& ptr) noexcept {
+        return !ptr;
+    }
+
+    template <typename T, typename F, size_t align>
+    bool operator!=(const lite_ptr<T, F, align>& ptr, std::nullptr_t) noexcept {
+        return static_cast<bool>(ptr);
+    }
+
+    template <typename T, typename F, size_t align>
+    bool operator!=(std::nullptr_t, const lite_ptr<T, F, align>& ptr) noexcept {
+        return static_cast<bool>(ptr);
+    }
+
 }
 
 #endif //LF_TEST_REF_COUNT_H

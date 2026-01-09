@@ -99,56 +99,60 @@ namespace lite_fnds {
 
             task_impl(Callable, std::remove_pointer_t<obj_param_t> &&, Args &&...) = delete;
 
-            template<typename OP = obj_param_t,
+            template <typename ... P, typename OP = obj_param_t,
 #if LFNDS_HAS_EXCEPTIONS
-                std::enable_if_t<is_shared_ptr<OP>::value>* = nullptr
+                std::enable_if_t<conjunction_v<is_shared_ptr<OP>,
+                    std::is_move_constructible<callable_t>,
+                    std::is_constructible<param_type, P&&...>>>* = nullptr
 #else
                 std::enable_if_t<conjunction_v<is_shared_ptr<OP>,
                     std::is_nothrow_move_constructible<callable_t>,
-                    std::is_nothrow_constructible<param_type, Args&&...> >>* = nullptr
+                    std::is_nothrow_constructible<param_type, P&&...>>>* = nullptr
 #endif
             >
-            explicit task_impl(callable_t pmf, OP obj, Args &&... args)
+            explicit task_impl(callable_t pmf, OP obj, P&&... args)
                 noexcept(conjunction_v<
                     std::is_nothrow_move_constructible<callable_t>,
-                    std::is_nothrow_constructible<param_type, Args &&...> >)
-                : _data{std::move(pmf), param_type{std::forward<Args>(args)...}, std::move(obj)} {
+                    std::is_nothrow_constructible<param_type, P &&...> >)
+                : _data{std::move(pmf), param_type{std::forward<P>(args)...}, std::move(obj)} {
                 assert(obj && pmf);
             }
 
-            template<typename OP = obj_param_t,
+            template <typename... P, typename OP = obj_param_t,
 #if LFNDS_HAS_EXCEPTIONS
-                std::enable_if_t<!is_shared_ptr<OP>::value>* = nullptr
+                std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
+                    std::is_move_constructible<callable_t>,
+                    std::is_constructible<param_type, P&&...>>>* = nullptr
 #else
                 std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
                     std::is_nothrow_move_constructible<callable_t>,
-                    std::is_nothrow_constructible<param_type, Args&&...> >>* = nullptr
+                    std::is_nothrow_constructible<param_type, P&&...>>>* = nullptr
 #endif
             >
-            explicit task_impl(callable_t pmf, std::remove_pointer_t<obj_param_t> &obj, Args &&... args)
+            explicit task_impl(callable_t pmf, std::remove_pointer_t<obj_param_t>& obj, P&&... args)
                 noexcept(conjunction_v<
                     std::is_nothrow_move_constructible<callable_t>,
-                    std::is_nothrow_constructible<param_type, Args &&...> >) : _data{
-                std::move(pmf), param_type{std::forward<Args>(args)...}, std::addressof(obj)
-            } {
+                    std::is_nothrow_constructible<param_type, P&&...> >) 
+                : _data{std::move(pmf), param_type{std::forward<P>(args)...}, std::addressof(obj)} {
                 assert(pmf);
             }
 
-            template<typename OP = obj_param_t,
+            template <typename ... P, typename OP = obj_param_t
 #if LFNDS_HAS_EXCEPTIONS
-                std::enable_if_t<!is_shared_ptr<OP>::value>* = nullptr
+                std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
+                    std::is_move_constructible<callable_t>,
+                    std::is_constructible<param_type, P&&...> >>* = nullptr
 #else
                 std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
                     std::is_nothrow_move_constructible<callable_t>,
-                    std::is_nothrow_constructible<param_type, Args&&...> >>* = nullptr
+                    std::is_nothrow_constructible<param_type, P&&...> >>* = nullptr
 #endif
             >
-            explicit task_impl(callable_t pmf, std::remove_pointer_t<obj_param_t> *obj, Args &&... args)
+            explicit task_impl(callable_t pmf, std::remove_pointer_t<obj_param_t> *obj, P &&... args)
                 noexcept(conjunction_v<
                     std::is_nothrow_move_constructible<callable_t>,
-                    std::is_nothrow_constructible<param_type, Args &&...> >) : _data{
-                std::move(pmf), param_type{std::forward<Args>(args)...}, obj
-            } {
+                    std::is_nothrow_constructible<param_type, P &&...> >) 
+                : _data{std::move(pmf), param_type{std::forward<P>(args)...}, obj} {
                 assert(obj && pmf);
             }
 
@@ -210,12 +214,12 @@ namespace lite_fnds {
                     return make_error_result<R>(std::current_exception());
                 }
 #else
-                    return ((*obj).*_callable)(unpack_param(get<idx>(params))...);
+                return make_success_result<R>(((*obj).*_callable)(unpack_param(get<idx>(params))...));
 #endif
             }
         };
 
-        template<typename Callable, typename R, typename... Args>
+        template<typename Callable, typename R, typename ... Args>
         class task_impl<false, Callable, R, Args...> {
 #if !LFNDS_HAS_EXCEPTIONS
             static_assert(is_result_t<R>::value, "The invoke result of Callable with the given params must be a result_t.");
@@ -255,35 +259,43 @@ namespace lite_fnds {
                 }
             }
 
-            template<typename T = callable_t,
+            template <typename ... P, typename T = callable_t,
 #if LFNDS_HAS_EXCEPTIONS
-                std::enable_if_t<std::is_pointer<T>::value>* = nullptr>
+                std::enable_if_t<conjunction_v<
+                    std::is_pointer<T>,
+                    std::is_move_constructible<T>,
+                    std::is_constructible<param_type, P&&...>>>* = nullptr
 #else
-                typename = std::enable_if_t<conjunction_v<
+                std::enable_if_t<conjunction_v<
                     std::is_pointer<T>,
                     std::is_nothrow_move_constructible<T>,
-                    std::is_nothrow_constructible<param_type, Args &&...>>>>
+                    std::is_nothrow_constructible<param_type, P &&...>>>* = nullptr
 #endif
-            explicit task_impl(T func, Args &&... args)
+            >
+            explicit task_impl(T func, P &&... args)
                 noexcept(conjunction_v<std::is_nothrow_move_constructible<T>, std::is_nothrow_constructible<param_type,
-                    Args &&...> >)
-                : _data{std::move(func), param_type(std::forward<Args>(args)...)} {
+                    P &&...> >)
+                : _data{std::move(func), param_type(std::forward<P>(args)...)} {
                 assert(func);
             }
 
-            template<typename T = callable_t,
+            template <typename ... P, typename T = callable_t,
 #if LFNDS_HAS_EXCEPTIONS
-                std::enable_if_t<negation_v<std::is_pointer<T>>>* = nullptr>
-#else
-                typename = std::enable_if_t<conjunction_v<
+                std::enable_if_t<conjunction_v<
                     negation<std::is_pointer<T>>,
                     std::is_nothrow_move_constructible<T>,
-                    std::is_nothrow_constructible<param_type, Args &&...>>>>
+                    std::is_nothrow_constructible<param_type, P&&...>>>* = nullptr
+#else
+                std::enable_if_t<conjunction_v<
+                    negation<std::is_pointer<T>>,
+                    std::is_nothrow_move_constructible<T>,
+                    std::is_nothrow_constructible<param_type, P &&...>>>* = nullptr
 #endif
-            explicit task_impl(T func, Args &&... args)
-                noexcept(conjunction_v<std::is_nothrow_move_constructible<T>, std::is_nothrow_constructible<param_type,
-                    Args &&...> >)
-                : _data{std::move(func), param_type(std::forward<Args>(args)...)} {
+                >
+            explicit task_impl(T func, P &&... args)
+                noexcept(conjunction_v<std::is_nothrow_move_constructible<T>, 
+                    std::is_nothrow_constructible<param_type, P &&...> >)
+                : _data{std::move(func), param_type(std::forward<P>(args)...)} {
             }
 
             template<typename _param_type = param_type>
@@ -329,7 +341,7 @@ namespace lite_fnds {
                     return make_error_result<R>(std::current_exception());
                 }
 #else
-                return callable(unpack_param(get<idx>(params))...);
+                return make_success_result<R>(callable(unpack_param(get<idx>(params))...));
 #endif
             }
 
@@ -342,7 +354,7 @@ namespace lite_fnds {
             struct type_getter : type_identity<T_> { };
 
             template<typename T_>
-            struct type_getter<T_, true> : type_identity<typename T_::element_type> { };
+            struct type_getter<T_, true> : type_identity<typename T_::element_type&> { };
 
             using raw = std::remove_cv_t<std::remove_reference_t<Obj> >;
             using type = typename std::conditional_t<

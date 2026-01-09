@@ -181,7 +181,7 @@ namespace lite_fnds {
 		using opt = raw_inplace_storage_operations<T>;
 		using opu = raw_inplace_storage_operations<U>;
 
-		explicit raw_either_storage_base() noexcept : 
+		explicit raw_either_storage_base() noexcept :
 			_state { either_state::empty } {
         }
 		raw_either_storage_base(const raw_either_storage_base &) = default;
@@ -809,12 +809,12 @@ namespace lite_fnds {
 			noexcept(conjunction_v<std::is_nothrow_destructible<T_>, std::is_nothrow_constructible<U_, Args&&...>,
 			         std::integral_constant<bool,
 						noexcept(opu::emplace_at(static_cast<U_*>(nullptr), std::forward<Args>(args)...))>>) {
+            U_ tmp(std::forward<Args>(args)...);
 			if (!this->has_first()) {
-				opu::emplace_at(std::addressof(this->_data.second), std::forward<Args>(args)...);
+                opu::emplace_at(std::addressof(this->_data.second), std::move(tmp));
 				return;
 			}
 
-			U_ tmp(std::forward<Args>(args)...);
 			opt::destroy_at(std::addressof(this->_data.first));
 			opu::construct_at(std::addressof(this->_data.second), std::move(tmp));
 			this->_state = either_state::second;
@@ -823,15 +823,16 @@ namespace lite_fnds {
 		template <typename T_ = T, typename U_ = U, typename... Args,
 			std::enable_if_t<conjunction_v<std::is_constructible<U_, Args&&...>,
 				negation<std::is_nothrow_move_constructible<U_>>>>* = nullptr>
-		void emplace_second(Args &&... args)
+		void emplace_at(Args &&... args)
 			noexcept(conjunction_v<std::is_nothrow_destructible<T_>, std::is_nothrow_constructible<U_, Args&&...>,
 				 std::integral_constant<bool, noexcept(opu::emplace_at(static_cast<U_*>(nullptr), std::forward<Args>(args)...))>>) {
+
+            U tmp(std::forward<Args>(args)...);
 			if (!this->has_first()) {
-				opu::emplace_at(std::addressof(this->_data.second), std::forward<Args>(args)...);
+                opu::emplace_at(std::addressof(this->_data.second), tmp);
 				return;
 			}
 
-			U tmp(std::forward<Args>(args)...);
 			opt::destroy_at(std::addressof(this->_data.first));
 			opu::construct_at(std::addressof(this->_data.second), tmp);
 			this->_state = either_state::second;
