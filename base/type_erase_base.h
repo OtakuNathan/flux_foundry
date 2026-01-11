@@ -7,11 +7,13 @@
 #include "inplace_base.h"
 
 /**
-* This class is designed to be used as a base of type_erasing tools,
-* To properly use this, you have to make your vtable ONLY inherit basic_vtable,
-* besides, you have to provide your do_customize
-* template function and make it noexcept (and it should be)
-*/
+ * This class is designed to serve as a base for type erasure facilities using CRTP.
+ * * Requirements for the Derived class:
+ * 1. Must define a static `stub` function. This is used to initialize `invoker_`
+ * (which stores the hot-path function pointer) representing an empty/uninitialized state.
+ * 2. Must implement a `do_customize` template function. This function configures the
+ * vtable and invoker for a specific concrete type T, and it must be `noexcept`.
+ */
 
 namespace lite_fnds {
     constexpr static size_t sbo_size = 64;
@@ -139,25 +141,35 @@ namespace lite_fnds {
         static constexpr size_t buf_size = size;
 
         raw_type_erase_base() noexcept
-            : invoker_{nullptr}, manager_ { nullptr } {
+            : invoker_{ derived::stub }, manager_ { nullptr } {
         }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+
         raw_type_erase_base(const raw_type_erase_base& rhs)
-            : invoker_ { nullptr }
-            , manager_ { nullptr }
-        {
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+        noexcept
+#endif
+            : invoker_ { derived::stub } , manager_ { nullptr } {
             if (rhs.manager_) {
                 auto res = rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy);
                 if (res != lifespan_op_error::success) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
                     throw std::runtime_error("the object is not copy constructible");
+#else
+                    assert(false && "the object is not copy constructible");
+                    std::abort();
+#endif
                 }
                 this->manager_ = rhs.manager_;
                 this->invoker_ = rhs.invoker_;
             }
         }
 
-        raw_type_erase_base& operator=(const raw_type_erase_base& rhs) {
+        raw_type_erase_base& operator=(const raw_type_erase_base& rhs)
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+        noexcept
+#endif
+        {
             if (this == &rhs) {
                 return *this;
             }
@@ -165,14 +177,9 @@ namespace lite_fnds {
             this->swap(tmp);
             return *this;
         }
-#else
-        raw_type_erase_base(const raw_type_erase_base& rhs) = delete;
-        raw_type_erase_base& operator=(const raw_type_erase_base& rhs) = delete;
-#endif //  LFNDS_HAS_EXCEPTIONS
 
         raw_type_erase_base(raw_type_erase_base&& rhs) noexcept
-            : invoker_ { nullptr }
-            , manager_ { nullptr } {
+            : invoker_ { derived::stub } , manager_ { nullptr } {
             if (rhs.manager_) {
                 rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
                 this->invoker_ = rhs.invoker_;
@@ -292,7 +299,7 @@ namespace lite_fnds {
                 manager_(nullptr, data_, type_erase_lifespan_op::destroy);
                 manager_ = nullptr;
             }
-            invoker_ = nullptr;
+            invoker_ = derived::stub;
         }
 
         ~raw_type_erase_base() noexcept {

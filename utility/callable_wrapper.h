@@ -51,6 +51,18 @@ namespace lite_fnds {
         using base = raw_type_erase_base<callable_wrapper<R(Args...)>, 16, 
             alignof(std::max_align_t), R(void*, Args...)>;
 
+
+        static R stub(void*, Args... args) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+            throw std::bad_function_call();
+#else
+            assert(false && "attempting to call an uninitialized callable wrapper.");
+            std::abort();
+#endif
+        }
+
+        friend struct raw_type_erase_base<callable_wrapper<R(Args...)>, 16,
+            alignof(std::max_align_t), R(void*, Args...)>;
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
         result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) noexcept {
             try {
@@ -71,40 +83,6 @@ namespace lite_fnds {
 #endif
     public:
         callable_wrapper() noexcept = default;
-        ~callable_wrapper() noexcept = default;
-
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-        callable_wrapper(const callable_wrapper&) = default;
-        callable_wrapper& operator=(const callable_wrapper& rhs) = default;
-        callable_wrapper(callable_wrapper&&) noexcept = default;
-        callable_wrapper& operator=(callable_wrapper&& rhs) noexcept = default;
-#else
-        callable_wrapper(const callable_wrapper& rhs) noexcept
-        {
-            if (rhs.manager_) {
-#ifdef _DEBUG
-                assert(rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy) == lifespan_op_error::success 
-                    && "the underlying type is not copy constructible.");
-#else
-                if (rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy) == lifespan_op_error::unsupported) {
-                    std::abort();
-                }
-#endif
-                this->manager_ = rhs.manager_;
-                this->invoker_ = rhs.invoker_;
-            }
-        }
-
-        callable_wrapper& operator=(const callable_wrapper& rhs) noexcept
-        {
-            if (this == &rhs) {
-                return *this;
-            }
-            callable_wrapper tmp(rhs);
-            this->swap(tmp);
-            return *this;
-        }
-#endif
 
         template <typename T, bool sbo_enabled>
         void do_customize() noexcept {
@@ -119,7 +97,7 @@ namespace lite_fnds {
                 callable_handle_impl::is_callable_and_compatible<callable_t, R, Args...>>>>
         callable_wrapper(callable&& f)
             noexcept(noexcept(std::declval<base&>(). template emplace<callable>(std::declval<callable&&>()))) {
-            this->emplace<callable>(std::forward<callable>(f));
+            this->template emplace<callable>(std::forward<callable>(f));
         }
 
         template <typename callable,
@@ -141,13 +119,6 @@ namespace lite_fnds {
             noexcept
 #endif
         {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-            UNLIKELY_IF(!*this) {
-                throw std::bad_function_call();
-            }
-#else
-            assert(*this && "attempting to call an uninitialized callable wrapper.");
-#endif
             return this->invoker_(this->data_, std::forward<Args>(args)...);
         }
 
@@ -172,6 +143,18 @@ namespace lite_fnds {
         using base = raw_type_erase_base<callable_wrapper<R(Args...) const>, 16, 
             alignof(std::max_align_t), R(const void*, Args...)>;
 
+        static R stub(const void*, Args... args) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+            throw std::bad_function_call();
+#else
+            assert(false && "attempting to call an uninitialized callable wrapper.");
+            std::abort();
+#endif
+        }
+
+        friend struct raw_type_erase_base<callable_wrapper<R(Args...) const>, 16,
+            alignof(std::max_align_t), R(const void*, Args...)>;
+
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
         result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) const noexcept {
             try {
@@ -192,40 +175,6 @@ namespace lite_fnds {
 #endif
     public:
         callable_wrapper() noexcept = default;
-        ~callable_wrapper() noexcept = default;
-
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-        callable_wrapper(const callable_wrapper&) = default;
-        callable_wrapper& operator=(const callable_wrapper& rhs) = default;
-        callable_wrapper(callable_wrapper&&) noexcept = default;
-        callable_wrapper& operator=(callable_wrapper&& rhs) noexcept = default;
-#else
-        callable_wrapper(const callable_wrapper& rhs) noexcept
-        {
-            if (rhs.manager_) {
-#ifdef _DEBUG
-                assert(rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy) == lifespan_op_error::success
-                    && "the underlying type is not copy constructible.");
-#else
-                if (rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy) == lifespan_op_error::unsupported) {
-                    std::abort();
-                }
-#endif
-                this->manager_ = rhs.manager_;
-                this->invoker_ = rhs.invoker_;
-            }
-        }
-
-        callable_wrapper& operator=(const callable_wrapper& rhs) noexcept
-        {
-            if (this == &rhs) {
-                return *this;
-            }
-            callable_wrapper tmp(rhs);
-            this->swap(tmp);
-            return *this;
-        }
-#endif
 
         template <typename T, bool sbo_enabled>
         void do_customize() noexcept {
@@ -260,13 +209,6 @@ namespace lite_fnds {
             noexcept
 #endif
         {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
-            UNLIKELY_IF(!*this) {
-                throw std::bad_function_call();
-            }
-#else
-            assert(*this && "attempting to call an uninitialized callable wrapper.");
-#endif
             return this->invoker_(this->data_, std::forward<Args>(args)...);
         }
 
@@ -281,7 +223,6 @@ namespace lite_fnds {
     void swap(callable_wrapper<callable>& a, callable_wrapper<callable>& b) noexcept {
         a.swap(b);
     }
-
 }
 
 #endif

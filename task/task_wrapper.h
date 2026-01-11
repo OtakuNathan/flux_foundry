@@ -41,10 +41,26 @@ namespace lite_fnds {
         public:
             constexpr static bool value = decltype(test<F>(0))::value;
         };
-    public:
 
+        static void stub(void*) noexcept {
+            assert(false && "calling empty task");
+            std::abort();
+        }
+
+        friend struct raw_type_erase_base<task_wrapper<sbo_size_, align_>, sbo_size_, align_, void(void*)>;
+    public:
         static constexpr size_t sbo_size = sbo_size_;
         static constexpr size_t align = align_;
+
+        task_wrapper() noexcept = default;
+
+        task_wrapper(const task_wrapper&) = delete;
+        task_wrapper& operator=(const task_wrapper&) = delete;
+
+        task_wrapper(task_wrapper&&) = default;
+        task_wrapper& operator=(task_wrapper&&) = default;
+
+        ~task_wrapper() noexcept = default;
 
         template <typename T, bool sbo_enabled>
         void do_customize() noexcept {
@@ -56,13 +72,6 @@ namespace lite_fnds {
             this->manager_ = life_span_manager<T, sbo_enabled>::manage;
         }
 
-        task_wrapper() noexcept = default;
-        task_wrapper(const task_wrapper&) = delete;
-        task_wrapper& operator=(const task_wrapper&) = delete;
-        task_wrapper(task_wrapper&&) = default;
-        task_wrapper& operator=(task_wrapper&&) = default;
-        ~task_wrapper() noexcept = default;
-
         template <typename U,
             typename T = std::decay_t<U>,
             typename = std::enable_if_t<conjunction_v<negation<is_self_constructing<task_wrapper, T>>, is_compatible<T>>>>
@@ -72,7 +81,6 @@ namespace lite_fnds {
         }
 
         void operator()() noexcept {
-            assert(this->invoker_);
             this->invoker_(this->data_);
         }
     };
