@@ -63,7 +63,18 @@ namespace lite_fnds {
     }
 
     template <typename T, bool sbo_enabled,
+        std::enable_if_t<conjunction_v<
+            std::integral_constant<bool, sbo_enabled>,
+            std::is_trivially_copy_constructible<T>
+        >>* = nullptr>
+    lifespan_op_error copy_construct_impl(void* dst, const void* src) {
+        memcpy(dst, src, sizeof(T));
+        return lifespan_op_error::success;
+    }
+
+    template <typename T, bool sbo_enabled,
             std::enable_if_t<conjunction_v<std::integral_constant<bool, sbo_enabled>,
+            negation<std::is_trivially_copy_constructible<T>>,
             std::is_copy_constructible<T>>>* = nullptr>
     lifespan_op_error copy_construct_impl(void* dst, const void* src) {
         ::new (dst) T(*tr_ptr<T, sbo_enabled>(src));
@@ -79,7 +90,22 @@ namespace lite_fnds {
     }
 
     template <typename T, bool sbo_enabled,
-        std::enable_if_t<sbo_enabled>* = nullptr>
+        std::enable_if_t<conjunction_v<
+            std::integral_constant<bool, sbo_enabled>,
+            std::is_trivially_move_constructible<T>
+        >>* = nullptr>
+    lifespan_op_error move_construct_impl(void* dst, void* src) {
+        memcpy(dst, src, sizeof(T));
+        return lifespan_op_error::success;
+    }
+
+
+    template <typename T, bool sbo_enabled,
+        std::enable_if_t<conjunction_v<
+            std::integral_constant<bool, sbo_enabled>,
+            negation<std::is_trivially_move_constructible<T>>,
+            std::is_move_constructible<T>>
+        >* = nullptr>
     lifespan_op_error move_construct_impl(void* dst, void* src) {
         new (dst) T(std::move(*tr_ptr<T, sbo_enabled>(src)));
         return lifespan_op_error::success;

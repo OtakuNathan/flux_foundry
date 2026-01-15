@@ -77,7 +77,7 @@ namespace lite_fnds {
         lite_ptr(in_place_t, Args&& ... args)
             noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, default_deleter<T>&&, Args&&...>>)
             : cb {nullptr} {
-            guard g(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), sizeof(cb_t))));
+            guard g(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1))));
             assert(g.cb && "out of memory");
             if (!g.cb) {
                 std::abort();
@@ -95,7 +95,7 @@ namespace lite_fnds {
         lite_ptr(in_place_t, G&& g, Args&& ... args)
             noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, G&&, Args&&...>>)
             : cb {nullptr} {
-            guard g_(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), sizeof(cb_t))));
+            guard g_(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1))));
             assert(g_.cb && "out of memory");
             if (!g_.cb) {
                 std::abort();
