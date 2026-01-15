@@ -1,92 +1,57 @@
-# lite_fnds
+# lite_fnds & Flow+
 
-**lite_fnds** — a lightweight C++14 foundations library for zero-overhead, composable system components.
+**lite_fnds** is a lightweight, hardware-aware C++ foundation library designed to provide predictable performance for latency-sensitive systems. **Flow+** is an asynchronous task orchestration framework built upon these primitives, utilizing a static DSL (Domain Specific Language) to simplify the construction of complex execution pipelines.
 
-This project started as a personal experiment to understand the fundamentals of C++ systems programming — and has grown into a small but expressive collection of low-level building blocks: memory primitives, lock-free concurrency pieces, task abstractions, and a static “Flow” pipeline engine.
+The primary goal of this project is to explore the limits of zero-overhead abstractions in C++ and to minimize resource contention in high-concurrency environments through deterministic memory management and layout optimization.
+
+## 📊 Performance Benchmarks
+**Note**: The following benchmarks measure the **pure dispatch latency** and **abstraction overhead** of the framework. The test pipeline consists of 20+ lightweight integer arithmetic nodes to expose the minimal cost per stage. In real-world "heavy" workloads (e.g., I/O or heavy compute), the framework's overhead effectively becomes negligible (approaching zero impact).
+
+**Scenario**: $10^7$ iterations, 20-stage pipeline, integer increment logic.
+
+| Execution Mode | Total Time ($10^7$ ops) | Avg Latency per Node | Description                                                              |
+| :--- | :--- | :--- |:-------------------------------------------------------------------------|
+| **Standard Runner** | ~2.2 s | ~220 ns | Dynamic construction of blueprint, suitable for flexible runtime graphs. |
+| **Fast Runner** | **~1.5 s** | **~150 ns** | Zero-virtual-call. Pure template expansion overhead.                     |
+
+> *Note: Benchmarks were run on consumer-grade x86_64 hardware. Actual performance may vary depending on the CPU architecture, compiler version, and optimization flags.*
 
 ---
 
-## 🧩 Modules
+## 🛠️ Core Components
 
-| Category | Components |
-|-----------|-------------|
-| **Base** | `inplace_base`, `traits`, `type_erase_base` |
-| **Memory** | `inplace_t`, `either_t`, `result_t`, `static_mem_pool`, `hazard_ptr` |
-| **Concurrency** | `spsc_queue`, `mpsc_queue`, `mpmc_queue` |
-| **Utility** | `compressed_pair`, `callable_wrapper`, `static_list` |
-| **Task** | `task_core`, `future_task`, `task_wrapper` |
-| **Flow** | `flow_blueprint`, `flow_node`, `flow_runner` `flow_aggregator` |
+### 1. Deterministic Memory Management
+To mitigate the non-determinism often found in standard allocators, this library provides:
+* **`lite_ptr<T>`**: A lightweight reference-counted smart pointer. It optimizes memory ordering (using a `release-fence-acquire` sequence) and ensures the control block is co-located with the object to improve cache locality.
+* **`static_mem_pool`**: A tiered, pre-allocated memory pool that ensures O(1) allocation and deallocation, avoiding system calls on the hot path.
+* **`hazard_ptr`**: Implements a lock-free memory reclamation strategy for lock-free data structures, effectively solving the ABA problem.
+* **`inplace_t<T>`**: A helper for manual object lifetime management, supporting exception-safe placement new and aggregate initialization.
+
+### 2. Concurrency & Synchronization
+Engineered to reduce false sharing and thread contention:
+* **Lock-Free Queues**: Includes SPSC, MPSC, and MPMC queue implementations. These utilize CAS-based slot reservation and sequence tracking to maintain throughput.
+* **Hardware Alignment**: Critical structures (such as `hazard_record`) are strictly aligned to `CACHE_LINE_SIZE` (64 bytes).
+* **`simple_executor`**: A lightweight scheduler based on an MPSC queue. It employs `thread_local` state tracking to prevent deadlocks caused by task reentrancy, making it suitable for high-frequency micro-tasks.
+
+### 3. Tasks & Type Erasure
+* **`task_wrapper_sbo`**: A type-erasure container optimized for 64-byte cache lines. It uses SBO (Small Object Optimization) to avoid heap allocation for lambdas; trivial types are further optimized into `memcpy` operations.
+* **`future_task`**: An asynchronous task wrapper compatible with `std::future`, enforcing strict `noexcept` move semantics to ensure stability.
+
+### 4. Flow+ Pipeline
+A template-based DSL for composing asynchronous logic:
+* **Static Folding**: Pipelines constructed via the `|` operator are flattened at compile-time, minimizing runtime abstraction overhead.
+* **Functional Nodes**:
+* `transform`: Data processing.
+* `via`: Context switching to a specific Executor.
+* `on_error` / `catch_exception`: Unified error handling paths.
+* **Error Propagation**: Built on `result_t` (similar to `std::expected`), allowing the system to function correctly even in environments where C++ exceptions are disabled.
 
 ---
 
-# 🚀 Flow — Static Execution Blueprints (Core Highlight)
+## 💻 Usage Example
 
-`lite_fnds::flow` is a **zero-overhead, compile-time optimized execution pipeline**, designed around three ideas:
+The following example demonstrates how to define and execute a flow that includes computation, thread switching, and error handling:
 
-## **1. Blueprint — Pipelines as Static Structures**
-
-Instead of building dynamic chains (`std::function`/virtual dispatch),  
-Flow compiles the entire pipeline **into a static blueprint**:
-
-- All nodes exist as a `std::tuple`
-- Node types are known at compile time
-- The pipeline is fully type-checked and exception-safe
-- No heap allocations
-- No dynamic polymorphism
-
-A blueprint is simply:
-
-```cpp
-auto bp = make_blueprint<int>()
-        | transform(...)
-        | then(...)
-        | on_error(...)
-        | via(...)
-        | end(...);
-```
-
-## **2. Node Fusion — Compile-Time Optimization**
-
-Flow distinguishes two kinds of nodes:
-* calc nodes (value transformations)
-* control nodes (thread dispatch, scheduling, fan-out)
-
-During blueprint construction, Flow performs automatic fusion:
-* Multiple calc nodes merge into one giant callable (zero dispatch overhead)
-* Control nodes override previous control points to avoid nonsensical chains
-* The final blueprint is minimized and efficient
-
-This means:
-- A pipeline:
- <br/> `calc + calc + calc + control + calc + calc + control ... + 1 end`
- <br/> becomes 
- <br/> `calc + control + calc + ... + 1 end`.
-
-Execution stays fast and stack-friendly.
-
-## **3. Runner — A Tiny Execution Engine**
-
-A flow_runner only stores:
-* pointer to the blueprint
-* pointer to the controller (for cancellation)
-
-It is extremely lightweight:
-
-```cpp
-auto runner = make_runner(bp);
-runner(42);  // start execution
-```
-
-✔ Soft & Hard cancellation
-* Soft cancel: finishes the current stage and terminates at the next control boundary
-* Hard cancel: jumps directly to the end node with a cancel error
-
-✔ End node = result sink
-* `end(...)` is the only place side-effects are guaranteed.
-* You can branch/fan-out here safely without corrupting blueprint semantics.
-
-✔ Exception-safe pipeline
-Any exception inside a node is captured as std::exception_ptr and forwarded.
 ```cpp
 #include <iostream>
 
@@ -121,6 +86,7 @@ int main(int argc, char *argv[]) {
     fake_executor executor;
 
     int v = 100;
+    // 1. Define the Blueprint
     auto bp = make_blueprint<int>()
          | via(&executor)
          | transform([&v] (int x) noexcept{
@@ -158,6 +124,8 @@ int main(int argc, char *argv[]) {
 
     using bp_t = decltype(bp);
     std::shared_ptr<bp_t> bp_ptr = std::make_shared<bp_t>(std::move(bp));
+    
+    // 2. Create Runner and Execute
     auto runner = make_runner(bp_ptr);
 
     runner(10);
@@ -185,21 +153,15 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-⚙️ Build
-Almost header-only — no special build steps.
- * Requires C++14
- * No dependencies other than the C++ Standard Library
+## ⚙️ Design Philosophy
+* **Pay only for what you use**: Features like monitoring or exception support are injected via policy templates, incurring zero overhead when disabled.
+* **Hardware-First**: Data structures prioritize cache line alignment, branch prediction hints (LIKELY_IF), and precise memory ordering.
+* **Robustness**: While full C++ exception support is available, the core library is designed to compile and run reliably in -fno-exceptions modes.
 
-💡 Design Philosophy
+## 📦 Requirements
+* **Compiler**: C++17 or later (GCC, Clang, MSVC).
+* **Architecture**: Optimized primarily for x86_64 and ARMv8 (includes specific optimizations like _mm_pause).
+* **Integration**: Header-only library; simply include the headers in your project.
 
-lite_fnds aims to stay:
-
-* ***Lightweight*** — minimal runtime overhead and zero heap allocation where possible
-* ***Safe*** — strong ownership, clear invariants, explicit lifetime control
-* ***Composable*** — modules work independently or combine naturally
-* ***Predictable*** — no surprising behavior, strong noexcept discipline
-* ***Executable*** — Flow blueprints encode logic at compile time, runners execute with minimal runtime cost
-
-📄 License
-
+## 📄 License
 MIT License © 2025 Nathan
