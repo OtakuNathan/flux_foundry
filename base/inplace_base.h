@@ -5,89 +5,9 @@
 #include <cstddef>
 #include <new>
 #include <utility>
-#include "traits.h"
+#include "type_utility.h"
 
 namespace lite_fnds {
-    // ctor deleter
-    template <typename T, bool EnableCopy, bool EnableMove>
-    struct ctor_delete_base;
-
-    template <typename T>
-    struct ctor_delete_base <T, true, true> {
-        ctor_delete_base() = default;
-        ctor_delete_base(const ctor_delete_base&) = default;
-        ctor_delete_base(ctor_delete_base&&) noexcept = default;
-        ctor_delete_base& operator=(const ctor_delete_base&) = default;
-        ctor_delete_base& operator=(ctor_delete_base&&) noexcept = default;
-    };
-
-    template <typename T>
-    struct ctor_delete_base<T, true, false> {
-        ctor_delete_base() = default;
-        ctor_delete_base(const ctor_delete_base&) = default;
-        ctor_delete_base(ctor_delete_base&&) = delete;
-        ctor_delete_base& operator=(const ctor_delete_base&) = default;
-        ctor_delete_base& operator=(ctor_delete_base&&) noexcept = default;
-    };
-
-    template <typename T>
-    struct ctor_delete_base<T, false, true> {
-        ctor_delete_base() = default;
-        ctor_delete_base(const ctor_delete_base&) = delete;
-        ctor_delete_base(ctor_delete_base&&) noexcept = default;
-        ctor_delete_base& operator=(const ctor_delete_base&) = default;
-        ctor_delete_base& operator=(ctor_delete_base&&) noexcept = default;
-    };
-
-    template <typename T>
-    struct ctor_delete_base<T, false, false> {
-        ctor_delete_base() = default;
-        ctor_delete_base(const ctor_delete_base&) = delete;
-        ctor_delete_base(ctor_delete_base&&) noexcept = delete;
-        ctor_delete_base& operator=(const ctor_delete_base&) = default;
-        ctor_delete_base& operator=(ctor_delete_base&&) noexcept = default;
-    };
-
-    // assign deleter
-    template <typename T, bool EnableCopy, bool EnableMove>
-    struct assign_delete_base;
-
-    template  <typename T>
-    struct assign_delete_base <T, true, true> {
-        assign_delete_base() = default;
-        assign_delete_base(const assign_delete_base&) = default;
-        assign_delete_base(assign_delete_base&&) noexcept = default;
-        assign_delete_base& operator=(const assign_delete_base&) = default;
-        assign_delete_base& operator=(assign_delete_base&&) noexcept = default;
-    };
-
-    template <typename T>
-    struct assign_delete_base<T, true, false> {
-        assign_delete_base() = default;
-        assign_delete_base(const assign_delete_base&) = default;
-        assign_delete_base(assign_delete_base&&) noexcept = default;
-        assign_delete_base& operator=(const assign_delete_base&) = default;
-        assign_delete_base& operator=(assign_delete_base&&) noexcept = delete;
-    };
-
-    template <typename T>
-    struct assign_delete_base<T, false, true> {
-        assign_delete_base() = default;
-        assign_delete_base(const assign_delete_base&) = default;
-        assign_delete_base(assign_delete_base&&) noexcept = default;
-        assign_delete_base& operator=(const assign_delete_base&) = delete;
-        assign_delete_base& operator=(assign_delete_base&&) noexcept = default;
-    };
-
-    template <typename T>
-    struct assign_delete_base<T, false, false> {
-        assign_delete_base() = default;
-        assign_delete_base(const assign_delete_base&) = default;
-        assign_delete_base(assign_delete_base&&) noexcept = default;
-        assign_delete_base& operator=(const assign_delete_base&) = delete;
-        assign_delete_base& operator=(assign_delete_base&&) = delete;
-    };
-
     template <typename T>
     struct raw_inplace_storage_operations {
 #if !LFNDS_HAS_EXCEPTIONS
@@ -225,7 +145,7 @@ namespace lite_fnds {
     };
 
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T)>
-    struct raw_inplace_storage_base : raw_inplace_storage_operations<T> {
+    struct TS_EMPTY_BASES raw_inplace_storage_base : raw_inplace_storage_operations<T> {
         static_assert (sizeof(T) <= len, "the length provided is not sufficient for storing object");
         static_assert((align & (align - 1)) == 0, "align must be a power-of-two");
         static_assert(align >= alignof(T), "align must be >= alignof(T)");

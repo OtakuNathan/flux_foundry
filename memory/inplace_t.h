@@ -13,7 +13,7 @@ namespace lite_fnds {
     struct inplace_storage_base;
 
     template <typename T, size_t len, size_t align>
-    struct inplace_storage_base<T, len, align, true> : private raw_inplace_storage_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_base<T, len, align, true> : private raw_inplace_storage_base<T, len, align> {
         static_assert(sizeof(T) <= len, "the length provided is not sufficient for storing object");
         static_assert((align & (align - 1)) == 0, "align must be a power-of-two");
         static_assert(align >= alignof(T), "align must be >= alignof(T)");
@@ -183,7 +183,7 @@ namespace lite_fnds {
     };
 
     template <typename T, size_t len, size_t align>
-    struct inplace_storage_base<T, len, align, false> : private raw_inplace_storage_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_base<T, len, align, false> : private raw_inplace_storage_base<T, len, align> {
         static_assert(sizeof(T) <= len, "the length provided is not sufficient for storing object");
         static_assert((align & (align - 1)) == 0, "align must be a power-of-two");
         static_assert(align >= alignof(T), "align must be >= alignof(T)");
@@ -353,12 +353,12 @@ namespace lite_fnds {
     // copy construct
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T),
         bool = std::is_copy_constructible<T>::value, bool = std::is_trivially_copy_constructible<T>::value>
-    struct inplace_storage_copy_construct_base : inplace_storage_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_copy_construct_base : inplace_storage_base<T, len, align> {
         using inplace_storage_base<T, len, align>::inplace_storage_base;
     };
 
     template <typename T, size_t len, size_t align>
-    struct inplace_storage_copy_construct_base<T, len, align, true, false> : inplace_storage_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_copy_construct_base<T, len, align, true, false> : inplace_storage_base<T, len, align> {
         using inplace_storage_base<T, len, align>::inplace_storage_base;
         inplace_storage_copy_construct_base() = default;
         inplace_storage_copy_construct_base(const inplace_storage_copy_construct_base &rhs)
@@ -376,12 +376,12 @@ namespace lite_fnds {
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T),
         bool = std::is_move_constructible<T>::value,
         bool = std::is_trivially_move_constructible<T>::value>
-    struct inplace_storage_move_construct_base : inplace_storage_copy_construct_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_move_construct_base : inplace_storage_copy_construct_base<T, len, align> {
         using inplace_storage_copy_construct_base<T, len, align>::inplace_storage_copy_construct_base;
     };
 
     template <typename T, size_t len, size_t align>
-    struct inplace_storage_move_construct_base<T, len, align, true,
+    struct TS_EMPTY_BASES inplace_storage_move_construct_base<T, len, align, true,
                 false> : inplace_storage_copy_construct_base<T, len, align> {
         using inplace_storage_copy_construct_base<T, len, align>::inplace_storage_copy_construct_base;
         inplace_storage_move_construct_base() = default;
@@ -401,12 +401,12 @@ namespace lite_fnds {
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T),
         bool = std::is_copy_assignable<T>::value,
         bool = std::is_trivially_copy_assignable<T>::value>
-    struct inplace_storage_copy_assign_base : inplace_storage_move_construct_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_copy_assign_base : inplace_storage_move_construct_base<T, len, align> {
         using inplace_storage_move_construct_base<T, len, align>::inplace_storage_move_construct_base;
     };
 
     template <typename T, size_t len, size_t align>
-    struct inplace_storage_copy_assign_base<T, len, align, true,
+    struct TS_EMPTY_BASES inplace_storage_copy_assign_base<T, len, align, true,
                 false> : inplace_storage_move_construct_base<T, len, align> {
         using inplace_storage_move_construct_base<T, len, align>::inplace_storage_move_construct_base;
         inplace_storage_copy_assign_base() = default;
@@ -419,7 +419,7 @@ namespace lite_fnds {
                     this->destroy();
                 } else {
                     T tmp(rhs.get());
-                    this->emplace(tmp);
+                    this->emplace(std::move(tmp));
                 }
             }
             return *this;
@@ -431,12 +431,12 @@ namespace lite_fnds {
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T),
         bool = std::is_move_constructible<T>::value,
         bool = std::is_trivially_move_assignable<T>::value>
-    struct inplace_storage_move_assign_base : inplace_storage_copy_assign_base<T, len, align> {
+    struct TS_EMPTY_BASES inplace_storage_move_assign_base : inplace_storage_copy_assign_base<T, len, align> {
         using inplace_storage_copy_assign_base<T, len, align>::inplace_storage_copy_assign_base;
     };
 
     template <typename T, size_t len, size_t align>
-    struct inplace_storage_move_assign_base<T, len, align, true,
+    struct TS_EMPTY_BASES inplace_storage_move_assign_base<T, len, align, true,
                 false> : inplace_storage_copy_assign_base<T, len, align> {
         using inplace_storage_copy_assign_base<T, len, align>::inplace_storage_copy_assign_base;
         inplace_storage_move_assign_base() = default;
@@ -458,7 +458,7 @@ namespace lite_fnds {
     };
 
     template <typename T, size_t len = sizeof(T), size_t align = alignof(T)>
-    class inplace_t :
+    class TS_EMPTY_BASES inplace_t :
             inplace_storage_move_assign_base<T, len, align>,
             ctor_delete_base<T, conjunction_v<std::is_copy_constructible<T>, can_strong_replace<T> >,
                 conjunction_v<std::is_move_constructible<T>, can_strong_replace<T> > >,

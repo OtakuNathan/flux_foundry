@@ -50,6 +50,12 @@
 #define FORCE_INLINE inline
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#define TS_EMPTY_BASES __declspec(empty_bases)
+#else
+#define TS_EMPTY_BASES
+#endif
+
 namespace lite_fnds {
     static constexpr size_t CACHE_LINE_SIZE = 64;
 

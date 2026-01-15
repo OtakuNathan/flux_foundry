@@ -22,7 +22,7 @@ namespace lite_fnds {
 	template <typename T, typename U,
 			bool = std::is_trivially_destructible<T>::value,
 			bool = std::is_trivially_destructible<U>::value>
-	struct raw_either_storage_base {
+	struct TS_EMPTY_BASES raw_either_storage_base {
 		static_assert(conjunction_v<std::is_nothrow_destructible<T>, std::is_nothrow_destructible<U>>,
 			"T and U must be nothrow destructible");
 		static_assert(can_strong_move_or_copy_constructible<U>::value,
@@ -161,7 +161,7 @@ namespace lite_fnds {
 	};
 
 	template <typename T, typename U>
-	struct raw_either_storage_base <T, U, true, false> {
+	struct TS_EMPTY_BASES raw_either_storage_base <T, U, true, false> {
 		static_assert(conjunction_v<std::is_nothrow_destructible<T>, std::is_nothrow_destructible<U>>,
 			"T and U must be nothrow destructible");
 		static_assert(can_strong_move_or_copy_constructible<U>::value,
@@ -299,7 +299,7 @@ namespace lite_fnds {
 	};
 
 	template <typename T, typename U>
-	struct raw_either_storage_base <T, U, false, true> {
+	struct TS_EMPTY_BASES raw_either_storage_base <T, U, false, true> {
 		static_assert(conjunction_v<std::is_nothrow_destructible<T>, std::is_nothrow_destructible<U>>,
 			"T and U must be nothrow destructible");
 		static_assert(can_strong_move_or_copy_constructible<U>::value,
@@ -439,7 +439,7 @@ namespace lite_fnds {
 	};
 
 	template <typename T, typename U>
-	struct raw_either_storage_base <T, U, true, true> {
+	struct TS_EMPTY_BASES raw_either_storage_base <T, U, true, true> {
 		static_assert(conjunction_v<std::is_nothrow_destructible<T>, std::is_nothrow_destructible<U>>,
 			"T and U must be nothrow destructible");
 		static_assert(can_strong_move_or_copy_constructible<U>::value,
@@ -574,14 +574,14 @@ namespace lite_fnds {
 	};
 
 	template <typename U>
-	struct raw_either_storage_base <void, U, false, true> {
+	struct TS_EMPTY_BASES raw_either_storage_base <void, U, false, true> {
 		static_assert(std::is_nothrow_destructible<U>::value,
 			"U must be nothrow destructible");
 		static_assert(can_strong_move_or_copy_constructible<U>::value,
 			"The second type U must be nothrow copy constructible or be nothrow move constructible.");
 
 		union storage {
-			struct {} first;
+			struct {}  first;
 			U second;
 
 			storage() noexcept {}
@@ -657,14 +657,14 @@ namespace lite_fnds {
 	};
 
 	template <typename U>
-	struct raw_either_storage_base <void, U, false, false> {
+	struct TS_EMPTY_BASES raw_either_storage_base <void, U, false, false> {
 		static_assert(std::is_nothrow_destructible<U>::value,
 			"U must be nothrow destructible");
 		static_assert(can_strong_move_or_copy_constructible<U>::value,
 			"The second type U must be nothrow copy constructible or be nothrow move constructible.");
 
 		union storage {
-			struct {} first;
+			struct {}  first;
 			U second;
 
 			storage() noexcept {}
@@ -740,7 +740,7 @@ namespace lite_fnds {
 	};
 
 	template <typename T, typename U>
-	struct either_storage_base : raw_either_storage_base<T, U> {
+	struct TS_EMPTY_BASES  either_storage_base : raw_either_storage_base<T, U> {
 		using base = raw_either_storage_base<T, U>;
 		using base::base;
 		using opt = typename base::opt;
@@ -945,7 +945,7 @@ namespace lite_fnds {
 	};
 
 	template <typename U>
-	struct either_storage_base <void, U> : raw_either_storage_base<void, U> {
+	struct TS_EMPTY_BASES  either_storage_base <void, U> : raw_either_storage_base<void, U> {
 		using base = raw_either_storage_base<void, U>;
 		using base::base;
 		using opu = typename base::opu;
@@ -1043,12 +1043,12 @@ namespace lite_fnds {
 			std::is_copy_constructible<T>>, std::is_copy_constructible<U>>,
 		bool = conjunction_v<disjunction<std::is_void<T>,
 			std::is_trivially_copy_constructible<T>>, std::is_trivially_copy_constructible<U>>>
-    struct either_storage_copy_construct_base : either_storage_base<T, U> {
+    struct TS_EMPTY_BASES  either_storage_copy_construct_base : either_storage_base<T, U> {
         using either_storage_base<T, U>::either_storage_base;
     };
 
 	template <typename T, typename U>
-	struct either_storage_copy_construct_base <T, U, true, false>: either_storage_base<T, U> {
+	struct TS_EMPTY_BASES  either_storage_copy_construct_base <T, U, true, false>: either_storage_base<T, U> {
         using either_storage_base<T, U>::either_storage_base;
 
         either_storage_copy_construct_base() = default;
@@ -1070,7 +1070,7 @@ namespace lite_fnds {
     };
 
 	template <typename U>
-	struct either_storage_copy_construct_base <void, U, true, false>: either_storage_base<void, U> {
+	struct TS_EMPTY_BASES either_storage_copy_construct_base <void, U, true, false>: either_storage_base<void, U> {
 		using either_storage_base<void, U>::either_storage_base;
 
 		either_storage_copy_construct_base() = default;
@@ -1093,12 +1093,12 @@ namespace lite_fnds {
 			std::is_move_constructible<T>>, std::is_move_constructible<U>>,
 		bool = conjunction_v<disjunction<std::is_void<T>,
 			std::is_trivially_move_constructible<T>>, std::is_trivially_move_constructible<U>>>
-    struct either_storage_move_construct_base : either_storage_copy_construct_base <T, U> {
+    struct TS_EMPTY_BASES either_storage_move_construct_base : either_storage_copy_construct_base <T, U> {
         using either_storage_copy_construct_base<T, U>::either_storage_copy_construct_base;
     };
 
 	template <typename T, typename U>
-	struct either_storage_move_construct_base <T, U, true, false> : either_storage_copy_construct_base <T, U> {
+	struct TS_EMPTY_BASES either_storage_move_construct_base <T, U, true, false> : either_storage_copy_construct_base <T, U> {
 		using either_storage_copy_construct_base<T, U>::either_storage_copy_construct_base;
 
         either_storage_move_construct_base() = default;
@@ -1122,7 +1122,7 @@ namespace lite_fnds {
     };
 
 	template <typename U>
-	struct either_storage_move_construct_base <void, U, true, false> : either_storage_copy_construct_base <void, U> {
+	struct TS_EMPTY_BASES either_storage_move_construct_base <void, U, true, false> : either_storage_copy_construct_base <void, U> {
 		using either_storage_copy_construct_base<void, U>::either_storage_copy_construct_base;
 
 		either_storage_move_construct_base() = default;
@@ -1146,12 +1146,12 @@ namespace lite_fnds {
 	template <typename T, typename U,
 		bool = disjunction_v<std::is_void<T>, can_strong_replace<T>>,
 		bool = conjunction_v<std::is_trivially_copy_assignable<T>, std::is_trivially_copy_assignable<U>>>
-	struct either_storage_copy_assign_base : either_storage_move_construct_base <T, U> {
+	struct TS_EMPTY_BASES either_storage_copy_assign_base : either_storage_move_construct_base <T, U> {
         using either_storage_move_construct_base<T, U>::either_storage_move_construct_base;
     };
 
 	template <typename T, typename U>
-    struct either_storage_copy_assign_base <T, U, true, false> : either_storage_move_construct_base <T, U> {
+    struct TS_EMPTY_BASES either_storage_copy_assign_base <T, U, true, false> : either_storage_move_construct_base <T, U> {
         using either_storage_move_construct_base<T, U>::either_storage_move_construct_base;
         either_storage_copy_assign_base() = default;
         either_storage_copy_assign_base(const either_storage_copy_assign_base &rhs) = default;
@@ -1169,12 +1169,12 @@ namespace lite_fnds {
     template <typename T, typename U,
 		bool = disjunction_v<std::is_void<T>, can_strong_replace<T>>,
 	    bool = conjunction_v<std::is_trivially_move_assignable<T>, std::is_trivially_move_assignable<U>> >
-    struct either_storage_move_assign_base : either_storage_copy_assign_base<T, U> {
+    struct TS_EMPTY_BASES either_storage_move_assign_base : either_storage_copy_assign_base<T, U> {
 	    using either_storage_copy_assign_base<T, U>::either_storage_copy_assign_base;
     };
 
     template <typename T, typename U>
-    struct either_storage_move_assign_base<T, U, true, false> : either_storage_copy_assign_base<T, U> {
+    struct TS_EMPTY_BASES either_storage_move_assign_base<T, U, true, false> : either_storage_copy_assign_base<T, U> {
 	    using either_storage_copy_assign_base<T, U>::either_storage_copy_assign_base;
 
 	    either_storage_move_assign_base() = default;
@@ -1230,10 +1230,10 @@ namespace lite_fnds {
 
     // assign deleter
     template <typename T, typename U, bool EnableCopy, bool EnableMove>
-    struct either_assign_delete_base;
+    struct TS_EMPTY_BASES either_assign_delete_base;
 
 	template <typename T, typename U>
-    struct either_assign_delete_base <T, U, true, true> {
+    struct TS_EMPTY_BASES either_assign_delete_base <T, U, true, true> {
         either_assign_delete_base() = default;
         either_assign_delete_base(const either_assign_delete_base&) = default;
         either_assign_delete_base(either_assign_delete_base&&) noexcept = default;
@@ -1242,7 +1242,7 @@ namespace lite_fnds {
     };
 
 	template <typename T, typename U>
-    struct either_assign_delete_base<T, U, true, false> {
+    struct TS_EMPTY_BASES either_assign_delete_base<T, U, true, false> {
         either_assign_delete_base() = default;
         either_assign_delete_base(const either_assign_delete_base&) = default;
         either_assign_delete_base(either_assign_delete_base&&) noexcept = default;
@@ -1251,7 +1251,7 @@ namespace lite_fnds {
     };
 
 	template <typename T, typename U>
-    struct either_assign_delete_base<T, U, false, true> {
+    struct TS_EMPTY_BASES either_assign_delete_base<T, U, false, true> {
         either_assign_delete_base() = default;
         either_assign_delete_base(const either_assign_delete_base&) = default;
         either_assign_delete_base(either_assign_delete_base&&) noexcept = default;
@@ -1260,7 +1260,7 @@ namespace lite_fnds {
     };
 
 	template <typename T, typename U>
-    struct either_assign_delete_base<T, U, false, false> {
+    struct TS_EMPTY_BASES either_assign_delete_base<T, U, false, false> {
         either_assign_delete_base() = default;
         either_assign_delete_base(const either_assign_delete_base&) = default;
         either_assign_delete_base(either_assign_delete_base&&) noexcept = default;
@@ -1269,7 +1269,7 @@ namespace lite_fnds {
     };
 
 	template <typename T, typename U>
-	struct either_t :
+	struct TS_EMPTY_BASES either_t :
 		private either_storage_move_assign_base<T, U>,
 		private either_ctor_delete_base<T, U,
 #if LFNDS_HAS_EXCEPTIONS
@@ -1610,7 +1610,7 @@ namespace lite_fnds {
 	};
 
 	template <typename U>
-	struct either_t <void, U> :
+	struct TS_EMPTY_BASES either_t <void, U> :
 		private either_storage_move_assign_base<void, U>,
 		private either_ctor_delete_base<void, U,
 #if LFNDS_HAS_EXCEPTIONS

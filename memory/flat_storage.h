@@ -8,12 +8,6 @@
 
 #include "../base/inplace_base.h"
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#define TS_EMPTY_BASES __declspec(empty_bases)
-#else
-#define TS_EMPTY_BASES
-#endif
-
 namespace lite_fnds {
     template<typename T, size_t index, bool _is_empty = std::is_empty<T>::value && !std::is_final<T>::value>
     struct TS_EMPTY_BASES flat_storage_leaf :
