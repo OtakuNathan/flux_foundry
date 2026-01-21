@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 * **Robustness**: While full C++ exception support is available, the core library is designed to compile and run reliably in -fno-exceptions modes.
 
 ## 📦 Requirements
-* **Compiler**: C++17 or later (GCC, Clang, MSVC).
+* **Compiler**: C++14 or later (GCC, Clang, MSVC).
 * **Architecture**: Optimized primarily for x86_64 and ARMv8 (includes specific optimizations like _mm_pause).
 * **Integration**: Header-only library; simply include the headers in your project.
 

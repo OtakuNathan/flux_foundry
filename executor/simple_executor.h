@@ -5,6 +5,7 @@
 #ifndef LITE_FNDS_SIMPLE_EXECUTOR_H
 #define LITE_FNDS_SIMPLE_EXECUTOR_H
 
+#include <cassert>
 #include <atomic>
 #include "../utility/yield.h"
 #include "../utility/concurrent_queues.h"
@@ -22,11 +23,12 @@ namespace lite_fnds {
         std::atomic<uint8_t> flag_{static_cast<uint8_t>(control_flag::idle)};
         mpsc_queue<task_wrapper_sbo, capacity> q;
 
-        static bool& is_worker_thread() noexcept {
-            thread_local bool is_worker_thread = false;
-            return is_worker_thread;
+        static simple_executor*& current() noexcept {
+            thread_local simple_executor* executor = nullptr;
+            return executor;
         }
     public:
+        simple_executor() noexcept {}
 
         void dispatch(task_wrapper_sbo&& sbo) noexcept {
             if (flag_.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)) {
@@ -35,13 +37,16 @@ namespace lite_fnds {
             }
 
             for (; !q.try_emplace(std::move(sbo)); yield()) {
-                if (is_worker_thread()) {
+                if (current() == this) {
                     sbo();
                     break;
                 }
             }
         }
 
+        // Contract:
+        // - `run()` must be called by at most one thread at a time for this executor instance.
+        // - `run()` must NOT be re-entered or nested on the same thread (e.g., calling `run()` from a task).
         void run() noexcept {
             auto curr = static_cast<uint8_t>(control_flag::idle);
             if (!flag_.compare_exchange_strong(curr, static_cast<uint8_t>(control_flag::running),
@@ -49,7 +54,8 @@ namespace lite_fnds {
                 return;
             }
 
-            is_worker_thread() = true;
+            assert(current() == nullptr && "simple_executor::run() must not be nested/re-entered on the same thread");
+            current() = this;
             for (; !(flag_.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)); yield()) {
                 auto p = q.try_pop();
                 if (p.has_value()) {
@@ -59,18 +65,16 @@ namespace lite_fnds {
 
             // clear pending queue.
             while (auto p = q.try_pop()) {
-                if (p.has_value()) {
-                    p.get()();
-                }
+                p.get()();
             }
 
-            is_worker_thread() = false;
+            current() = nullptr;
+            flag_.store(static_cast<uint8_t>(control_flag::idle), std::memory_order_relaxed);
         }
 
         void shutdown() noexcept {
             flag_.fetch_or(static_cast<uint8_t>(control_flag::shutdown), std::memory_order_relaxed);
         }
-
     };
 }
 

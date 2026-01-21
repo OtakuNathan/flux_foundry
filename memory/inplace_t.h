@@ -30,7 +30,8 @@ namespace lite_fnds {
         ~inplace_storage_base() noexcept = default;
 
         template <typename ... Args,
-            typename = std::enable_if_t<conjunction_v<is_self_constructing<inplace_storage_base, Args&&...>,
+            typename = std::enable_if_t<conjunction_v<
+                    negation<is_self_constructing<inplace_storage_base, Args&&...>>,
                     disjunction<
 #if LFNDS_HAS_EXCEPTIONS
                 std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
@@ -488,7 +489,7 @@ namespace lite_fnds {
 
     public:
         using value_type = T;
-        using inplace_storage_move_assign_base<T, len, align>::inplace_storage_move_assign_base;
+        using base::base;
 
         inplace_t() = default;
         ~inplace_t() = default;
