@@ -28,7 +28,7 @@ namespace lite_fnds {
             return executor;
         }
     public:
-        simple_executor() noexcept {}
+        simple_executor() noexcept = default;
 
         void dispatch(task_wrapper_sbo&& sbo) noexcept {
             if (flag_.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)) {
@@ -36,7 +36,8 @@ namespace lite_fnds {
                 std::abort();
             }
 
-            for (; !q.try_emplace(std::move(sbo)); yield()) {
+            backoff_strategy<> backoff;
+            for (; !q.try_emplace(std::move(sbo)); backoff.yield()) {
                 if (current() == this) {
                     sbo();
                     break;
@@ -56,10 +57,13 @@ namespace lite_fnds {
 
             assert(current() == nullptr && "simple_executor::run() must not be nested/re-entered on the same thread");
             current() = this;
-            for (; !(flag_.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)); yield()) {
+            for (backoff_strategy<> backoff; !(flag_.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)); ) {
                 auto p = q.try_pop();
                 if (p.has_value()) {
                     p.get()();
+                    backoff.reset();
+                } else {
+                    backoff.yield();
                 }
             }
 

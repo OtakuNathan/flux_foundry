@@ -64,7 +64,8 @@ namespace lite_fnds {
         uint64_t pop_from_list(std::atomic<uint64_t>& head) noexcept {
             uint64_t seq = 0, offset = 0;
             uint64_t h_ = head.load(std::memory_order_acquire);
-            for (;;yield()) {
+            backoff_strategy<> backoff;
+            for (;; backoff.yield()) {
                 if (h_ == empty_tag) {
                     return empty_tag;
                 }
@@ -90,7 +91,8 @@ namespace lite_fnds {
 
         uint64_t append_to_list(std::atomic<uint64_t>& head, uint64_t fptr) noexcept {
             uint64_t h_ = head.load(std::memory_order_acquire);;
-            for (;; yield()) {
+            backoff_strategy<> backoff;
+            for (;; backoff.yield()) {
 #ifdef TSAN_CLEAR
                 nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
 #else
