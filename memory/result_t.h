@@ -399,7 +399,7 @@ namespace lite_fnds {
     template <typename R>
     constexpr bool is_result_t_v = is_result_t<R>::value;
 
-    template <class T, class E>
+    template <typename T, class E>
     void swap(result_t<T,E>& a, result_t<T,E>& b)
         noexcept(noexcept(std::declval<result_t<T, E>&>().swap(std::declval<result_t<T, E>&>()))) {
         a.swap(b);

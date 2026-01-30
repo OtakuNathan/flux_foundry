@@ -163,7 +163,7 @@ namespace lite_fnds {
         void release() noexcept {
             auto ccb = cb;
             cb = nullptr;
-            if (ccb && ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+            UNLIKELY_IF(ccb && ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
                 std::atomic_thread_fence(std::memory_order_acquire);
                 ccb->~cb_t();
                 aligned_free(ccb);

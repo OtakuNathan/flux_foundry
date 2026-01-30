@@ -3,9 +3,22 @@
 
 #include "../task/task_wrapper.h"
 #include "flow_blueprint.h"
+#include "flow_awaitable.h"
 
 namespace lite_fnds {
     namespace flow_impl {
+        template <typename Executor>
+        struct check_executor {
+            template <typename U>
+            static auto detect(int) -> std::integral_constant<bool,
+                noexcept(std::declval<U&>()->dispatch(std::declval<task_wrapper_sbo>()))>;
+
+            template <typename...>
+            static auto detect(...) -> std::false_type;
+
+            static constexpr bool value = decltype(detect<Executor>(0))::value;
+        };
+
         template <typename F_O, typename E, typename F, typename F_I>
         result_t<F_O, E> call(std::false_type, std::false_type, F& f, F_I&& in) 
             noexcept(is_nothrow_invocable_with<F&, F_I&&>::value
@@ -97,8 +110,7 @@ namespace lite_fnds {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
-                        LIKELY_IF(in.has_value())
-                        {
+                        LIKELY_IF(in.has_value()) {
                             return f(std::move(in));
                         }
                         return F_O(error_tag, std::move(in).error());
@@ -206,7 +218,7 @@ namespace lite_fnds {
         };
 
         template <typename I, typename O, typename ... Nodes, typename F, typename Exception>
-        auto operator|(flow_blueprint<I, O, Nodes ...> bp, exception_catch_node<F, Exception> a) {
+        auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, exception_catch_node<F, Exception>&& a) {
             static_assert(std::is_base_of<std::exception, Exception>::value,
                 "The callable F must take a class inherits std::exception.");
 
@@ -228,21 +240,10 @@ namespace lite_fnds {
         // via
         template <typename Executor>
         struct via_node {
-            template <typename X>
-            struct check {
-                template <typename U>
-                static auto detect(int) -> std::integral_constant<bool,
-                    noexcept(std::declval<U&>()->dispatch(std::declval<task_wrapper_sbo>()))>;
-
-                template <typename...>
-                static auto detect(...) -> std::false_type;
-
-                static constexpr bool value = decltype(detect<X>(0))::value;
-            };
-
-            static_assert(check<Executor>::value,
+            static_assert(check_executor<Executor>::value,
                 "Executor must be pointer-like and support "
-                "noexcept exec->dispatch(task_wrapper_sbo).");
+                "noexcept exec->dispatch(task_wrapper_sbo)."
+                " Besides, please never ever use inline executor to dispatch await operation");
 
             Executor e;
 
@@ -251,7 +252,7 @@ namespace lite_fnds {
                 auto wrapper = [e = std::move(node.e)](task_wrapper_sbo&& sbo) noexcept {
                     e->dispatch(std::move(sbo));
                 };
-                return flow_control_node<F_I, F_I, decltype(wrapper)>(std::move(wrapper));
+                return flow_via_node<F_I, F_I, decltype(wrapper)>(std::move(wrapper));
             }
         };
 
@@ -259,6 +260,44 @@ namespace lite_fnds {
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, via_node<Executor>&& a) {
             auto node = via_node<Executor>::template make<O>(std::move(a));
             return std::move(bp) | std::move(node);
+        }
+
+        // async
+        template <typename Executor, typename Awaitable>
+        struct async_node {
+            static_assert(check_executor<Executor>::value,
+                "Executor must be pointer-like and support "
+                "noexcept exec->dispatch(task_wrapper_sbo)."
+                " Besides, please never ever use inline executor to dispatch await operation");
+
+            static_assert(is_awaitable_v<Awaitable>,
+                "Awaitable must be an valid awaitable(see lite_fnds::awaitable_base)");
+
+            Executor e;
+
+            template <typename F_I, typename F_O>
+            static auto make(async_node&& node) noexcept {
+                auto wrapper = [e = std::move(node.e)](task_wrapper_sbo&& sbo) noexcept {
+                    e->dispatch(std::move(sbo));
+                };
+
+                return flow_async_node<F_I, F_O, decltype(wrapper), awaitable_factory<Awaitable, F_I>> {
+                    std::move(wrapper), awaitable_factory<Awaitable, F_I>()
+                };
+            }
+        };
+
+        template <typename I, typename O, typename... Nodes, typename Executor, typename Awaitable>
+        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, async_node<Executor, Awaitable>&& a) {
+            using F_O = typename Awaitable::async_result_type;
+
+            static_assert(is_result_t_v<F_O>,
+                "Awaitable must provide a result_t<T, E> as it's async result");
+
+            static_assert(std::is_constructible<Awaitable, O&&>::value,
+                "awaitable must could be constructible with the current output.");
+
+            return std::move(bp) | async_node<Executor, Awaitable>::template make<O, F_O>(std::move(a));
         }
 
         // end
@@ -329,7 +368,7 @@ namespace lite_fnds {
         std::is_nothrow_constructible<result_t<T, E>, decltype(value_tag), T&&>>) {
         using R = result_t<T, E>;
 
-        auto identity = [](R t) noexcept {
+        auto identity = [](R&& t) noexcept {
             return t;
         };
 
@@ -370,6 +409,14 @@ namespace lite_fnds {
     inline auto via(Executor&& exec) noexcept {
         using E = std::decay_t<Executor>;
         return flow_impl::via_node<E> { std::forward<Executor>(exec) };
+    }
+
+    // CRITICAL: Max payload size is controlled by the SBO buffer (e.g., 64 bytes).
+    // Ensure that the async result(result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
+    template <typename Awaitable, typename Executor>
+    inline auto await(Executor&& exec) noexcept {
+        using E = std::decay_t<Executor>;
+        return flow_impl::async_node<E, Awaitable> { std::forward<Executor>(exec) };
     }
 
     template <typename F>

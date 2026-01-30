@@ -6,14 +6,15 @@
 #include "../base/traits.h"
 #include "../memory/padded_t.h"
 #include "../memory/inplace_t.h"
-#include "yield.h"
+#include "back_off.h"
 
 namespace lite_fnds {
 template <typename T, size_t capacity>
 struct spsc_queue {
     static_assert(std::is_nothrow_move_constructible<T>::value,
         "T must be nothrow move constructible");
-    static_assert((capacity & (capacity - 1)) == 0, "capacity must be power of 2");
+    static_assert(capacity > 0 && (capacity & (capacity - 1)) == 0,
+        "capacity must be power of 2");
 
 protected:
     struct alignas(CACHE_LINE_SIZE) slot_t {
@@ -153,7 +154,7 @@ struct mpsc_queue {
         "T must be nothrow move constructible");
     static_assert(std::is_nothrow_destructible<T>::value,
         "T must be nothrow destructible");
-    static_assert((capacity & (capacity - 1)) == 0,
+    static_assert(capacity > 0 && (capacity & (capacity - 1)) == 0,
         "capacity must be power of 2");
 
     using value_type = T;
@@ -336,7 +337,8 @@ struct mpmc_queue {
 private:
     static_assert(conjunction_v<std::is_nothrow_move_constructible<T>, std::is_nothrow_destructible<T>>,
         "T should be nothrow move constructible and nothrow destructible.");
-    static_assert(!(capacity & (capacity - 1)), "capacity shouble be power of 2");
+    static_assert(capacity > 0 && (capacity & (capacity - 1)) == 0,
+        "capacity must be power of 2");
 
     struct alignas(CACHE_LINE_SIZE) slot_t {
         std::atomic<size_t> sequence;
@@ -537,7 +539,8 @@ template <typename T, size_t capacity>
 struct spmc_deque {
     static_assert(conjunction_v<std::is_nothrow_move_constructible<T>, std::is_nothrow_destructible<T>>,
         "T should be nothrow move constructible and nothrow destructible.");
-    static_assert(!(capacity & (capacity - 1)), "capacity shouble be power of 2");
+    static_assert(capacity > 0 && (capacity & (capacity - 1)) == 0,
+        "capacity must be power of 2");
 
     // bits [0:1]: state
     enum STATE {

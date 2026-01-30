@@ -224,7 +224,14 @@ namespace lite_fnds {
 
     template <typename... Us>
     struct is_nothrow_swappable <type_list<Us...>> : conjunction<is_nothrow_swappable<Us>...> { };
+
+    template <typename ... >
+    struct void_ { using type = void; };
+
+    template <typename ...  Ts>
+    using void_t = typename void_<Ts...>::type;
 #else
+    using std::void_t;
     using std::conjunction;
     using std::conjunction_v;
     using std::disjunction;

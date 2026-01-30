@@ -563,20 +563,20 @@ namespace lite_fnds {
         lhs.swap(rhs);
     }
 
-    template <class Box>
+    template <typename Box>
     struct box_swap_nothrow_ok_impl : public conjunction<
                 std::is_nothrow_move_constructible<typename Box::value_type>,
                 std::integral_constant<bool, noexcept(std::declval<Box &>().emplace(
                     std::declval<typename Box::value_type &&>()))> > {
     };
 
-    template <class B1, class B2>
+    template <typename B1, typename B2>
     struct box_pair_nothrow_swappable
             : conjunction<std::is_same<typename B1::value_type, typename B2::value_type>,
                 box_swap_nothrow_ok_impl<B1>, box_swap_nothrow_ok_impl<B2> > {
     };
 
-    template <class T, size_t L1, size_t A1, size_t L2, size_t A2,
+    template <typename T, size_t L1, size_t A1, size_t L2, size_t A2,
         std::enable_if_t<conjunction_v<
             disjunction<std::integral_constant<bool, L1 != L2>, std::integral_constant<bool, A1 != A2> >,
             box_pair_nothrow_swappable<inplace_t<T, L1, A1>, inplace_t<T, L2, A2> > > >* = nullptr>

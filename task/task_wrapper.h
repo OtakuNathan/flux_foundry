@@ -26,7 +26,7 @@ namespace lite_fnds {
             }
         };
 
-        template <class F>
+        template <typename F>
         struct is_compatible {
         private:
             template <typename C>

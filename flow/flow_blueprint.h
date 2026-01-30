@@ -5,21 +5,11 @@
 
 #include "../memory/flat_storage.h"
 #include "../base/traits.h"
-#include "../memory/result_t.h"
+
+#include "flow_def.h"
 
 namespace lite_fnds {
-
     namespace flow_impl {
-#if defined(__clang__)
-        static constexpr size_t MAX_ZIP_N = 2;
-#elif defined(__GNUC__)
-        static constexpr size_t MAX_ZIP_N = 2;
-#elif defined(_MSC_VER)
-        static constexpr size_t MAX_ZIP_N = 8;
-#else
-        static constexpr size_t MAX_ZIP_N = 2;
-#endif
-
         template <typename T, size_t... I, typename ... Ts>
         auto flat_storage_prepend_impl(T&& n, flat_storage<Ts...>&& t, std::index_sequence<I...>) {
             return flat_storage<std::decay_t<T>, Ts...>(std::forward<T>(n), get<I>(std::move(t))...);
@@ -31,11 +21,6 @@ namespace lite_fnds {
             return flat_storage_prepend_impl(std::forward<T>(n), std::move(t),
                                              std::make_index_sequence<sizeof ... (Ts)>{});
         }
-
-        enum class flow_node_type {
-            flow_node_calc,
-            flow_node_control,
-        };
 
         // this trait is only used to detect the compatibility of flow_blueprint and a new node.
         template <typename G, typename O>
@@ -137,11 +122,16 @@ namespace lite_fnds {
             return zip_callables(zip_callables(std::forward<F>(f), std::forward<G>(g)), std::forward<Os>(os)...);
         }
 
+        using node_tag_unknown = std::integral_constant<size_t, 0>;
+        using node_tag_calc = std::integral_constant<size_t, 1>;
+        using node_tag_via = std::integral_constant<size_t, 2>;
+        using node_tag_async = std::integral_constant<size_t, 3>;
+        using node_tag_end = std::integral_constant<size_t, 4>;
+
         // flow calc
         template <typename I, typename O, typename F, size_t N = 1>
         struct flow_calc_node {
-            static constexpr auto kind = flow_node_type::flow_node_calc;
-
+            using tag = node_tag_calc;
             using F_t = std::decay_t<F>;
             using I_t = I;
             using O_t = O;
@@ -170,63 +160,57 @@ namespace lite_fnds {
             return flow_calc_node<F_I, G_O, zipped_t, F_N + 1>(zip_callables(std::move(a.f), std::move(b.f)));
         }
 
-        template <class T>
-        struct is_calc_node_impl : std::false_type {
-        };
-
-        template <typename F_I, typename F_O, typename F, size_t N>
-        struct is_calc_node_impl<flow_calc_node<F_I, F_O, F, N>> : std::true_type {
-        };
-
-        template <class T>
-        struct is_calc_node : is_calc_node_impl<T> {};
-
-        template <class T>
-        constexpr bool is_calc_node_v = is_calc_node<T>::value;
-
         /// flow control
         template <typename I, typename O, typename P>
-        struct flow_control_node {
-            static constexpr auto kind = flow_node_type::flow_node_control;
+        struct flow_via_node {
+            using tag = node_tag_via;
             using I_t = I;
             using O_t = O;
             using P_t = std::decay_t<P>;
 
             P_t p;
 
-            flow_control_node(const flow_control_node &) = default;
+            flow_via_node(const flow_via_node &) = default;
 
-            flow_control_node(flow_control_node &&) = default;
+            flow_via_node(flow_via_node &&) = default;
 
-            flow_control_node &operator=(const flow_control_node &) = default;
+            flow_via_node &operator=(const flow_via_node &) = default;
 
-            flow_control_node &operator=(flow_control_node &&) = default;
+            flow_via_node &operator=(flow_via_node &&) = default;
 
-            explicit flow_control_node(P_t f_)
+            explicit flow_via_node(P_t f_)
             noexcept(std::is_nothrow_move_constructible<P_t>::value)
                     : p(std::move(f_)) {
             }
         };
 
-        template <typename T>
-        struct is_control_node_impl : std::false_type { };
+        /// flow async node
+        template <typename I, typename O, typename Executor, typename DelegateFactory>
+        struct flow_async_node {
+            using tag = node_tag_async;
+            using I_t = I;
+            using O_t = O;
+            using E_t = std::decay_t<Executor>;
+            using Df_t = std::decay_t<DelegateFactory>;
 
-        template <typename I, typename O, typename P>
-        struct is_control_node_impl<flow_control_node<I, O, P>> : std::true_type { };
+            compressed_pair<E_t, Df_t> data;
 
-        template <typename T>
-        struct is_control_node : is_control_node_impl<T> { };
+            flow_async_node(const flow_async_node&) = default;
+            flow_async_node(flow_async_node&&) = default;
 
-        template <typename T>
-        constexpr bool is_control_node_v = is_control_node<T>::value;
+            flow_async_node& operator=(const flow_async_node&) = default;
+            flow_async_node& operator=(flow_async_node&&) = default;
 
-        template <typename T>
-        using is_control_node_t = typename is_control_node<T>::type;
+            explicit flow_async_node(E_t e_, Df_t df_) 
+                noexcept(conjunction_v<std::is_nothrow_move_constructible<E_t>, std::is_nothrow_move_constructible<Df_t>>)
+                : data(std::move(e_), std::move(df_)) {
+            }
+        };
 
         /// flow end
         template <typename I, typename O, typename F>
         struct flow_end_node {
-            static constexpr auto kind = flow_node_type::flow_node_calc;
+            using tag = node_tag_end;
 
             using F_t = std::decay_t<F>;
             using I_t = I;
@@ -243,22 +227,10 @@ namespace lite_fnds {
             flow_end_node &operator=(flow_end_node &&) = default;
 
             explicit flow_end_node(F_t f_)
-            noexcept(std::is_nothrow_move_constructible<F_t>::value)
+                noexcept(std::is_nothrow_move_constructible<F_t>::value)
                     : f(std::move(f_)) {
             }
         };
-
-        template <class T>
-        struct is_end_node_impl : std::false_type { };
-
-        template <typename F_I, typename F_O, typename F>
-        struct is_end_node_impl<flow_end_node<F_I, F_O, F>> : std::true_type { };
-
-        template <typename T>
-        struct is_end_node : public is_end_node_impl<T>{ };
-
-        template <typename T>
-        constexpr bool is_end_node_v = is_end_node<T>::value;
 
         // blueprint
         template <typename I, typename O, typename ... Nodes>
@@ -324,6 +296,7 @@ namespace lite_fnds {
             return remove_first_impl(std::move(t), std::make_index_sequence<sizeof ... (Ts) - 1>{});
         }
 
+        // calc | calc
         template <typename G_I, typename G_O, typename G,
                 typename I, typename O, typename F_I, typename F_O, typename F, size_t N, typename ... Others>
         auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
@@ -345,42 +318,88 @@ namespace lite_fnds {
             );
         }
 
+        // calc | via
         template <typename P_I, typename P_O, typename P,
                 typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_control_node<P_I, P_O, P>&& b) {
-            return flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, flow_calc_node<F_I, F_O, F, N>, Others...>(
+        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_via_node<P_I, P_O, P>&& b) {
+            return flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, flow_calc_node<F_I, F_O, F, N>, Others...>(
                     flat_storage_prepend(std::move(b), std::move(bp.nodes_))
             );
         }
 
-        template <typename P_I, typename P_O, typename P,
-                typename I, typename O, typename ... Others>
-        auto operator|(flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...>&& bp, flow_control_node<P_I, P_O, P>&&) {
-            return bp;
+        // calc | async
+        template <typename A_I, typename A_O, typename A_E, typename A_DF,
+            typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
+        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_async_node<A_I, A_O, A_E, A_DF>&& b)
+        {
+            static_assert(is_invocable_with<A_DF, O>::value,
+                "async node's delegate factory doesn't accept with the current blueprint's output type");
+            return flow_blueprint<I, A_O, flow_async_node<A_I, A_O, A_E, A_DF>, flow_calc_node<F_I, F_O, F, N>, Others...>(
+                flat_storage_prepend(std::move(b), std::move(bp.nodes_)));
         }
 
-        template <typename P_I, typename P_O, typename P, typename I,
-                typename O, typename P_, typename P_I_, typename P_O_, typename ... Others>
-        auto operator|(flow_blueprint<I, O, flow_control_node<P_, P_I_, P_O_>, Others...>&& bp,
-                       flow_control_node<P_I, P_O, P>&& b) {
-            return flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...>(
+        // via | via
+        template <typename P_I, typename P_O, typename P,
+            typename I, typename O, typename P_I_, typename P_O_, typename P_, typename... Others>
+        auto operator|(flow_blueprint<I, O, flow_via_node<P_I_, P_O_, P_>, Others...>&& bp,
+                       flow_via_node<P_I, P_O, P>&& b) {
+            return flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, Others...>(
                     flat_storage_prepend(std::move(b), remove_first(std::move(bp.nodes_)))
             );
         }
 
+        // calc | via
         template <typename F, typename F_I, typename F_O,
                 typename I, typename O, typename P_I, typename P_O, typename P, typename ... Others>
-        auto operator|(flow_blueprint<I, O, flow_control_node<P_I, P_O, P>, Others...>&& bp, flow_calc_node<F_I, F_O, F>&& a) {
+        auto operator|(flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, Others...>&& bp, flow_calc_node<F_I, F_O, F>&& a) {
             static_assert(is_invocable_with<F, O>::value,
                           "calc node is not invocable with current blueprint output type");
-            return flow_blueprint<I, F_O, flow_calc_node<F_I, F_O, F>, flow_control_node<P_I, P_O, P>, Others...>(
+            return flow_blueprint<I, F_O, flow_calc_node<F_I, F_O, F>, flow_via_node<P_I, P_O, P>, Others...>(
                     flat_storage_prepend(std::move(a), std::move(bp.nodes_))
             );
         }
 
+        // via | async
+        template <typename A_I, typename A_O, typename A_E, typename A_DF,
+            typename I, typename O, typename V_I, typename V_O, typename V_P, typename... Others>
+        auto operator|(flow_blueprint<I, O, flow_via_node<V_I, V_O, V_P>, Others...>&& bp, flow_async_node<A_I, A_O, A_E, A_DF>&& b) {
+            static_assert(is_invocable_with<A_DF, O>::value,
+                "async node's delegate factory is not invocable with current blueprint output type");
+            return flow_blueprint<I, A_O, flow_async_node<A_I, A_O, A_E, A_DF>, flow_via_node<V_I, V_O, V_P>, Others...>(
+                flat_storage_prepend(std::move(b), std::move(bp.nodes_)));
+        }
+
+        // async | calc
+        template <typename A_I, typename A_O, typename A_E, typename A_DF,
+            typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
+        auto operator|(flow_blueprint<I, O, flow_async_node<A_I, A_O, A_E, A_DF>, Others...>&& bp, flow_calc_node<F_I, F_O, F, N>&& b) {
+            static_assert(is_invocable_with<F, O>::value,
+                "calc node is not invocable with current blueprint output type");
+            return flow_blueprint<I, F_O, flow_calc_node<F_I, F_O, F, N>, flow_async_node<A_I, A_O, A_E, A_DF>, Others...>(
+                flat_storage_prepend(std::move(b), std::move(bp.nodes_)));
+        }
+
+        // async | async
+        template <typename A_I, typename A_O, typename A_E, typename A_DF,
+            typename I, typename O, typename A_I_, typename A_O_, typename A_E_, typename A_DF_, size_t N, typename... Others>
+        auto operator|(flow_blueprint<I, O, flow_async_node<A_I_, A_O_, A_E_, A_DF_>, Others...>&& bp, flow_async_node<A_I, A_O, A_E, A_DF>&& b)
+        {
+            static_assert(is_invocable_with<A_DF, O>::value,
+                "async node's delegate factory is not invocable with current blueprint output");
+            return flow_blueprint<I, A_O, flow_async_node<A_I, A_O, A_E, A_DF>, flow_async_node<A_I_, A_O_, A_E_, A_DF_>, Others...>(
+                flat_storage_prepend(std::move(b), std::move(bp.nodes_)));
+        }
+
+        // async | via (delete no need, cause async implies via)
+        template <typename A_I, typename A_O, typename A_E, typename A_DF,
+            typename I, typename O, typename P_, typename P_I_, typename P_O_, typename... Others>
+        auto operator|(flow_blueprint<I, O, flow_async_node<A_I, A_O, A_E, A_DF>, Others...>&& bp, flow_via_node<P_, P_I_, P_O_>&& b) = delete;
+
+        // end | others
         template <typename I, typename O, typename F, typename F_I, typename F_O, typename ... Others, typename Node>
         auto operator|(flow_blueprint<I, O, flow_end_node<F_I, F_O, F>, Others...>, Node &&) = delete;
 
+        // others | end
         template <typename F, typename F_I, typename F_O, typename I, typename O, typename ... Nodes>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, flow_end_node<F_I, F_O, F>&& b) {
             static_assert(is_invocable_with<F, O>::value,

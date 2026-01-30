@@ -1,12 +1,12 @@
 #ifndef LITE_FNDS_PAUSE_H
 #define LITE_FNDS_PAUSE_H
 
+#include <thread>
 #if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
 #include <algorithm>
 #elif defined(__aarch64__)
 #else
-#include <thread>
 #endif
 
 namespace lite_fnds {

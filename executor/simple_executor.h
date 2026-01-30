@@ -7,7 +7,7 @@
 
 #include <cassert>
 #include <atomic>
-#include "../utility/yield.h"
+#include "../utility/back_off.h"
 #include "../utility/concurrent_queues.h"
 #include "../task/task_wrapper.h"
 
@@ -82,4 +82,4 @@ namespace lite_fnds {
     };
 }
 
-#endif //SIMPLE_EXECUTOR_H
+#endif // LITE_FNDS_SIMPLE_EXECUTOR_H

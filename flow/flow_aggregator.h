@@ -4,10 +4,6 @@
 #include <cstdlib>
 #include <atomic>
 
-#ifdef _WIN32
-#include <malloc.h>
-#endif
-
 #include "../base/inplace_base.h"
 #include "../memory/lite_ptr.h"
 #include "../memory/aligned_alloc.h"
@@ -68,7 +64,7 @@ namespace lite_fnds {
                 }
             }
 
-            static lite_ptr<Data> make_shared() {
+            static auto make_shared() {
                 return make_lite_ptr<Data>();
             }
         };
@@ -113,7 +109,7 @@ namespace lite_fnds {
                     e.emplace_error(std::current_exception());
                 }
 #endif
-                
+
                 data->slot_ready[I].store(slot_state::full, std::memory_order_release);
                 data->ready_count.fetch_add(1, std::memory_order_release);
                 return true;

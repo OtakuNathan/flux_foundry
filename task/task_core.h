@@ -348,7 +348,7 @@ namespace lite_fnds {
             data_type _data;
         };
 
-        template <class Obj>
+        template <typename Obj>
         struct pmf_invoke_obj {
             template<typename T_, bool = is_shared_ptr_v<T_> >
             struct type_getter : type_identity<T_> { };
