@@ -3,175 +3,244 @@
 
 #include <atomic>
 #include <thread>
+#include <memory>
+#include <vector>
+#include <stdexcept>
+#include <cstdlib>
+#include <cassert>
 
-#include "utility/callable_wrapper.h"
+#include "../base/traits.h"
+#include "../memory/flat_storage.h"
+#include "../utility/callable_wrapper.h"
+#include "../utility/back_off.h"
 #include "../utility/static_list.h"
 
 namespace lite_fnds {
+
 struct hazard_ptr;
 
 template <typename Callable>
 using callable_t = callable_wrapper<Callable>;
 
+constexpr static size_t MAX_SLOT = 128;
+constexpr static size_t HP_PER_THREAD = 2;
+constexpr static size_t RETIRE_BATCH = 64;
+
+namespace detail {
+
 struct hp_mgr {
-public:
-    static constexpr size_t max_slot = 128;
     using deleter_t = callable_t<void(void*)>;
-
-#ifdef USE_HEAP_ALLOCATED
-    struct retire_list_node {
-        void* ptr;
-        deleter_t deleter;
-
-        retire_list_node* next;
-
-        retire_list_node(const retire_list_node&) = delete;
-        retire_list_node& operator=(const retire_list_node&) = delete;
-        
-        template <typename Deleter>
-        retire_list_node(void* p, Deleter _deleter)
-            : ptr(p), deleter(std::move(_deleter)) {
-        }
-    };
-
-    static std::atomic<retire_list_node*> retire_list;
-
-    static void append_to_retire_list(retire_list_node* node) {
-        auto old_head = retire_list.load(std::memory_order_relaxed);
-        do {
-            node->next = old_head;
-        } while (!retire_list.compare_exchange_weak(old_head, node,
-            std::memory_order_release, std::memory_order_acquire));
-    }
-
-    static void sweep_and_reclaim() noexcept {
-        auto list = retire_list.exchange(nullptr, std::memory_order_acq_rel);
-        for (auto p = list; p;) {
-            auto nxt = p->next;
-            if (!is_hazard(p->ptr)) {
-                p->deleter(p->ptr);
-                delete p;
-            } else {
-                p->next = nullptr;
-                append_to_retire_list(p);
-            }
-            p = nxt;
-        }
-    }
-
-    template <typename T>
-    static void retire(T* p) {
-        if (!is_hazard(p)) {
-            delete p;
-        } else {
-            // append a new node to reclaim list
-            std::unique_ptr<retire_list_node> node = std::make_unique<retire_list_node>(p, [](void* p) {
-                      delete static_cast<T*>(p);
-                  });
-            append_to_retire_list(node.get());
-            node.release();
-        }
-    }
-
-    template <typename T, typename Deleter>
-    static void retire(T* p, Deleter deleter) {
-        static_assert(noexcept(std::declval<Deleter>()(std::declval<T*>())), "Deleter(T*) must be noexcept");
-
-        if (!is_hazard(p)) {
-            deleter(p);
-        } else {
-            // append a new node to reclaim list
-            std::unique_ptr<retire_list_node> node
-                = std::make_unique<retire_list_node>(p, [deleter = std::move(deleter)](void* p) {
-                      deleter(static_cast<T*>(p));
-                  });
-
-            append_to_retire_list(node.get());
-            node.release();
-        }
-    }
-#else
-    struct retire_list_node {
-        void* ptr;
-        deleter_t deleter;
-
-        retire_list_node(const retire_list_node&) = delete;
-        retire_list_node& operator=(const retire_list_node&) = delete;
-
-        retire_list_node(retire_list_node&&) noexcept = default;
-        retire_list_node& operator=(retire_list_node&&) noexcept  = default;
-
-        template <typename Deleter>
-        retire_list_node(void* p, Deleter _deleter)
-            : ptr(p)
-            , deleter(std::move(_deleter)) {
-        }
-    };
-
-    static static_list<retire_list_node, max_slot << 1> retire_list;
-
-    static void sweep_and_reclaim() noexcept {
-        for (inplace_t<retire_list_node> node = retire_list.pop(); 
-            node.has_value(); 
-            node = retire_list.pop()) {
-         
-            if (!is_hazard(node.get().ptr)) {
-                node.get().deleter(node.get().ptr);
-            } else {
-                retire_list.emplace(node.steal());
-            }
-        }
-    }
-
-    template <typename T>
-    static void retire(T* p) {
-        if (!is_hazard(p)) {
-            delete p;
-        } else {
-            // append a new node to reclaim list
-            retire_list.emplace(p, [](void* _p) noexcept {
-                delete static_cast<T*>(_p);
-            });
-        }
-    }
-
-    template <typename T, typename Deleter>
-    static void retire(T* p, Deleter deleter) {
-        static_assert(noexcept(std::declval<Deleter>()(std::declval<T*>())), 
-            "Deleter(T*) must be noexcept");
-        if (!is_hazard(p)) {
-            deleter(p);
-        } else {
-            // append a new node to reclaim list
-            retire_list.emplace(p, [deleter = std::move(deleter)](void* p) noexcept {
-                deleter(static_cast<T*>(p));
-            });
-        }
-    }
-
-#endif
+    
     struct alignas(CACHE_LINE_SIZE) hazard_record {
-        std::atomic<std::thread::id> tid;
-        std::atomic<const void*> ptr;
-        pad_t<sizeof(tid) + sizeof(ptr)> pad;
+        std::atomic<std::thread::id> tid{std::thread::id()};
+        std::atomic<const void*> ptr{nullptr};
+        bool used = false;
     };
-    static hazard_record record[max_slot];
-    friend struct hazard_ptr;
 
-    static hazard_record* acquire_slot(const std::thread::id tid) noexcept {
-        for (int i = 0; i < max_slot; ++i) {
-            auto exp = std::thread::id();
-            if (record[i].tid.compare_exchange_strong(exp, tid,
-                    std::memory_order_release, std::memory_order_relaxed)) {
-                return &record[i];
+private:
+    struct retire_record {
+        compressed_pair<void*, deleter_t> p;
+
+        retire_record(const retire_record&) = delete;
+        retire_record& operator=(const retire_record&) = delete;
+        retire_record(retire_record&&) noexcept = default;
+        retire_record& operator=(retire_record&&) noexcept  = default;
+
+        template <typename Deleter>
+        retire_record(void* p_, Deleter _deleter) noexcept
+            : p(p_, std::move(_deleter)) {
+            static_assert(noexcept(std::declval<Deleter>()(nullptr)), "Deleter must be noexcept");
+        }
+    };
+
+    struct retire_list {
+        retire_list* next{nullptr};
+        std::vector<retire_record> retired;
+        retire_list() { retired.reserve(RETIRE_BATCH); }
+    };
+
+public:
+    static hp_mgr& instance() noexcept {
+        static hp_mgr instance;
+        return instance;
+    }
+
+    ~hp_mgr() noexcept { 
+        sweep_and_reclaim_impl(); 
+    }
+
+    hazard_record slots[MAX_SLOT];
+    std::atomic<retire_list*> orphans{nullptr};
+
+    bool sweep_and_reclaim_impl() noexcept {
+        using std::swap;
+        retire_list* orphans_ = this->orphans.exchange(nullptr, std::memory_order_acq_rel);
+        retire_list **it = &orphans_, *p = *it;
+        
+        for (; p;) {
+            auto& records = p->retired;
+            auto count = records.size();
+            for (size_t i = 0; i < count;) {
+                auto& record = records[i];
+                if (is_hazard(record.p.first())) {
+                    ++i;
+                } else {
+                    record.p.second()(record.p.first());
+                    swap(record, records[count - 1]);
+                    --count;
+                }
+            }
+            if (count > 0) {
+                records.resize(count);
+                it = &(*it)->next;
+            } else {
+                *it = p->next;
+                delete p;
+            }
+            p = *it;
+        }
+
+        if (orphans_) {
+            *it = this->orphans.load(std::memory_order_acquire);
+            for (backoff_strategy<> backoff;
+                !this->orphans.compare_exchange_weak(*it, orphans_, std::memory_order_acq_rel, std::memory_order_acquire);
+                backoff.yield()) {}
+        }
+        return orphans_;
+    }
+
+    struct hp_owner {
+        hazard_record *my_slots[HP_PER_THREAD];
+        retire_list    *list;
+        size_t         retire_count;
+
+        hp_owner()
+#if !defined(__cpp_exceptions)
+            noexcept
+#endif
+         : my_slots{}, list{new retire_list}, retire_count{} {
+            auto& mgr = instance();
+            size_t acquired = 0;
+            std::thread::id tid = std::this_thread::get_id();
+            std::thread::id empty_id = std::thread::id();
+
+            for (size_t i = 0; i < MAX_SLOT && acquired < HP_PER_THREAD; ++i) {
+                if (mgr.slots[i].tid.load(std::memory_order_relaxed) != empty_id) continue;
+                if (mgr.slots[i].tid.compare_exchange_strong(empty_id, tid,
+                                            std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                    my_slots[acquired++] = &mgr.slots[i];
+                    mgr.slots[i].ptr.store(nullptr, std::memory_order_release);
+                }
+                empty_id = std::thread::id();
+            }
+
+            if (acquired < HP_PER_THREAD) {
+                while (acquired--) my_slots[acquired]->tid.store(std::thread::id(), std::memory_order_release);
+#if defined(__cpp_exceptions)
+                throw std::runtime_error("Hazard Pointer Slots Exhausted!");
+#else
+                std::abort();
+#endif
+            }
+        }
+
+        hp_owner(const hp_owner&) = delete;
+        hp_owner& operator=(const hp_owner&) = delete;
+        hp_owner(hp_owner&&) noexcept = delete;
+        hp_owner& operator=(hp_owner&&) noexcept  = delete;
+
+        ~hp_owner() noexcept {
+            for (size_t i = 0; i < HP_PER_THREAD; ++i) {
+                if (my_slots[i]) {
+                    my_slots[i]->ptr.store(nullptr, std::memory_order_release);
+                    my_slots[i]->tid.store(std::thread::id(), std::memory_order_release);
+                    my_slots[i]->used = false;
+                }
+            }
+            sweep_and_reclaim();
+            if (list->retired.empty()) {
+                delete list;
+            } else {
+                auto &mgr = instance();
+                list->next = mgr.orphans.load(std::memory_order_acquire);
+                for (backoff_strategy<> backoff;
+                    !mgr.orphans.compare_exchange_weak(list->next, list,
+                        std::memory_order_acq_rel, std::memory_order_acquire);
+                    backoff.yield());
+            }
+        }
+
+        void sweep_and_reclaim() noexcept {
+            auto& records = list->retired;
+            auto count = records.size();
+            for (size_t i = 0; i < count; ) {
+                auto& record = records[i];
+                if (hp_mgr::is_hazard(record.p.first())) {
+                    ++i;
+                } else {
+                    using std::swap;
+                    record.p.second()(record.p.first());
+                    swap(record, records[count - 1]);
+                     --count;
+                }
+            }
+            if (count != records.size()) records.resize(count);
+        }
+
+        static hp_owner& get_tls_owner() {
+            thread_local hp_owner owner;
+            return owner;
+        }
+    };
+
+    static hazard_record* acquire_slot() noexcept {
+        auto& owner = hp_owner::get_tls_owner();
+        for (size_t i = 0; i < HP_PER_THREAD; ++i) {
+            if (!owner.my_slots[i]->used) {
+                owner.my_slots[i]->used = true;
+                return owner.my_slots[i];
             }
         }
         return nullptr;
     }
 
+    static void free_local_slot(hazard_record* record) noexcept {
+        if (record) {
+            record->ptr.store(nullptr, std::memory_order_release);
+            record->used = false;
+        }
+    }
+
+    // Static implementations called by hazard_ptr
+    template <typename T, typename Deleter>
+    static void retire(T* p, Deleter deleter) {
+        auto& owner = hp_owner::get_tls_owner();
+
+        if (!(++owner.retire_count % (RETIRE_BATCH >> 1))) {
+            owner.sweep_and_reclaim();
+            if (owner.list->retired.empty()) {
+                hp_mgr::instance().sweep_and_reclaim_impl();
+            }
+        }
+
+        if (!is_hazard(p)) {
+            deleter(p);
+        } else {
+            auto& vec = owner.list->retired;
+            if (vec.size() == vec.capacity()) {
+                size_t new_cap = vec.capacity() == 0 ? RETIRE_BATCH : vec.capacity() * 2;
+                vec.reserve(new_cap);
+            }
+            vec.emplace_back(p, [deleter = std::move(deleter)](void* _p) noexcept {
+                deleter(static_cast<T*>(_p));
+            });
+        }
+    }
+
     static bool is_hazard(const void* ptr) noexcept {
-        for (size_t i = 0; i < max_slot; ++i) {
-            if (record[i].ptr.load(std::memory_order_acquire) == ptr) {
+        auto& self = instance();
+        for (size_t i = 0; i < MAX_SLOT; ++i) {
+            if (self.slots[i].ptr.load(std::memory_order_acquire) == ptr) {
                 return true;
             }
         }
@@ -179,86 +248,92 @@ public:
     }
 };
 
+} // namespace detail
+
 struct hazard_ptr {
-    using hazard_record = typename hp_mgr::hazard_record;
+private:
+    using hazard_record = typename detail::hp_mgr::hazard_record;
     hazard_record* slot;
 
 public:
-    hazard_ptr() noexcept
-        : slot { hp_mgr::acquire_slot(std::this_thread::get_id()) } {
+    hazard_ptr() noexcept : slot(nullptr) {}
+
+    template <typename T>
+    explicit hazard_ptr(std::atomic<T*>& target)
+#if !defined(__cpp_exceptions)
+        noexcept
+#endif
+        : slot(detail::hp_mgr::acquire_slot()) {
+        protect(target);
     }
 
     ~hazard_ptr() noexcept {
-        release_slot();
+        if (slot) detail::hp_mgr::free_local_slot(slot);
     }
 
     hazard_ptr(const hazard_ptr&) = delete;
     hazard_ptr& operator=(const hazard_ptr&) = delete;
+    hazard_ptr(hazard_ptr&& hp) noexcept = delete;
+    hazard_ptr& operator=(hazard_ptr&& hp) noexcept = delete;
 
-    hazard_ptr(hazard_ptr&& hp) noexcept
-        : slot(hp.slot) {
-        hp.slot = nullptr;
-    }
-
-    hazard_ptr& operator=(hazard_ptr&& hp) noexcept {
-        if (this != &hp) {
-            hazard_ptr tmp(std::move(hp));
-            this->swap(tmp);
-        }
-        return *this;
-    }
-
-    // you must check if the hp is available before calling protect
-    bool available() const noexcept {
-        return slot != nullptr;
-    }
+    bool available() const noexcept { return slot != nullptr; }
 
     hazard_record* acquire_slot() noexcept {
-        return slot ? slot : slot = hp_mgr::acquire_slot(std::this_thread::get_id());
-    }
-
-    void swap(hazard_ptr& rhs) noexcept {
-        using std::swap;
-        swap(slot, rhs.slot);
-    }
-
-    // you must check if the hp is available before calling protect
-    void protect(const void* p) noexcept {
-        assert(slot && "hazard_ptr slot exhausted, increase max_slot or reduce concurrent HP usage");
-        slot->ptr.store(p, std::memory_order_release);
-    }
-
-    void unprotect() noexcept {
-        slot->ptr.store(nullptr, std::memory_order_release);
-    }
-
-    void release_slot() noexcept {
-        if (slot) {
-            unprotect();
-            slot->tid.store(std::thread::id(), std::memory_order_release);
-            slot = nullptr;
-        }
-    }
-
-    static bool is_hazard(const void* p) noexcept {
-        return hp_mgr::is_hazard(p);
+        return slot ? slot : (slot = detail::hp_mgr::acquire_slot());
     }
 
     template <typename T>
-    T* acquire_protected(std::atomic<T*>& target) noexcept {
-        T* p {};
+    T* get() const noexcept {
+        return slot ? static_cast<T*>(const_cast<void*>(slot->ptr.load(std::memory_order_acquire))) : nullptr;
+    }
+
+    template <typename T>
+    T* protect(std::atomic<T*>& target)
+#if !defined(__cpp_exceptions)
+        noexcept
+#endif
+    {
+        if (!slot) {
+            slot = detail::hp_mgr::acquire_slot();
+            if (!slot) {
+#if defined(__cpp_exceptions)
+                throw std::runtime_error("Hazard Pointer Slots Exhausted!");
+#else
+                std::abort();
+#endif
+            }
+        }
+
+        T* p = nullptr;
         do {
             p = target.load(std::memory_order_acquire);
-            protect(p);
+            slot->ptr.store(p, std::memory_order_release);
         } while (p != target.load(std::memory_order_acquire));
         return p;
     }
+
+    void unprotect() noexcept {
+        if (slot) slot->ptr.store(nullptr, std::memory_order_release);
+    }
+
+    template <typename T>
+    static void retire(T* p) {
+        detail::hp_mgr::retire(p, [](T* _p) noexcept { 
+            delete _p; 
+        });
+    }
+
+    template <typename T, typename Deleter>
+    static void retire(T* p, Deleter d) {
+        static_assert(noexcept(std::declval<Deleter>()(std::declval<T*>())), "Deleter must be noexcept");
+        detail::hp_mgr::retire(p, std::move(d));
+    }
+    
+    static bool sweep_and_reclaim() noexcept {
+        return detail::hp_mgr::instance().sweep_and_reclaim_impl();
+    }
 };
 
-inline void swap(hazard_ptr& lhs, hazard_ptr& rhs) noexcept {
-    lhs.swap(rhs);
-}
-
-}
+} // namespace lite_fnds
 
 #endif
