@@ -137,7 +137,7 @@ namespace lite_fnds {
                 assert(pmf);
             }
 
-            template <typename ... P, typename OP = obj_param_t
+            template <typename ... P, typename OP = obj_param_t,
 #if LFNDS_HAS_EXCEPTIONS
                 std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
                     std::is_move_constructible<callable_t>,
@@ -181,8 +181,8 @@ namespace lite_fnds {
             result_type operator()() noexcept {
                 return do_execute(std::index_sequence_for<Args...>(), std::is_same<R, void>());
             }
+
         private:
-#if LFNDS_HAS_EXCEPTIONS
             template <size_t ... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::true_type) noexcept {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS

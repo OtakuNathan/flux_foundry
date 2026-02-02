@@ -59,15 +59,6 @@
 namespace lite_fnds {
     static constexpr size_t CACHE_LINE_SIZE = 64;
 
-    template <size_t n, size_t cache_line_size = CACHE_LINE_SIZE>
-    struct pad_t {
-        static_assert((cache_line_size & (cache_line_size - 1)) == 0, 
-            "cache_line_size must be power of two");
-        static_assert((cache_line_size - (n % cache_line_size)) % cache_line_size != 0,
-            "you may not need pad_t, please remove it.");
-        uint8_t pad[(cache_line_size - (n % cache_line_size)) % cache_line_size];
-    };
-
     template <typename T>
     struct is_shared_ptr_impl : std::false_type {};
 

@@ -27,7 +27,6 @@ constexpr static size_t HP_PER_THREAD = 2;
 constexpr static size_t RETIRE_BATCH = 64;
 
 namespace detail {
-
 struct hp_mgr {
     using deleter_t = callable_t<void(void*)>;
     
@@ -39,12 +38,18 @@ struct hp_mgr {
 
 private:
     struct retire_record {
+        static void stub_free(void*) noexcept { }
+
         compressed_pair<void*, deleter_t> p;
 
         retire_record(const retire_record&) = delete;
         retire_record& operator=(const retire_record&) = delete;
         retire_record(retire_record&&) noexcept = default;
         retire_record& operator=(retire_record&&) noexcept  = default;
+
+        retire_record() noexcept
+            : p(nullptr, stub_free) {
+        }
 
         template <typename Deleter>
         retire_record(void* p_, Deleter _deleter) noexcept

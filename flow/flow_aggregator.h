@@ -7,6 +7,7 @@
 #include "../base/inplace_base.h"
 #include "../memory/lite_ptr.h"
 #include "../memory/aligned_alloc.h"
+#include "../memory/result_t.h"
 #include "flow_blueprint.h"
 
 /**

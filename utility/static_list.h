@@ -5,8 +5,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "../memory/inplace_t.h"
 #include "../base/traits.h"
+#include "../memory/inplace_t.h"
+#include "../memory/padded_t.h"
 #include "back_off.h"
 
 namespace lite_fnds {
@@ -53,11 +54,8 @@ namespace lite_fnds {
             return tag & offset_msk;
         }
 
-        alignas(CACHE_LINE_SIZE) std::atomic<uint64_t> head_;
-        pad_t<sizeof(head_)> _pad1;
-
-        alignas(CACHE_LINE_SIZE) std::atomic<uint64_t> free_;
-        pad_t<sizeof(free_)> _pad2;
+        padded_t<std::atomic<uint64_t>> head_;
+        padded_t<std::atomic<uint64_t>> free_;
 
         node nodes[capacity];
 
@@ -71,10 +69,6 @@ namespace lite_fnds {
                 }
 
                 seq = get_seq(h_), offset = get_offset(h_);
-#if defined(TSAN)
-                TSAN_CONSUME(&nodes[offset]);
-#endif
-
 #ifdef TSAN_CLEAR
                 auto next = nodes[offset].next.load(std::memory_order_relaxed);
 #else
@@ -97,9 +91,6 @@ namespace lite_fnds {
                 nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
 #else
                 nodes[get_offset(fptr)].next = h_;
-#endif
-#if defined(TSAN)
-                TSAN_PUBLISH(&nodes[get_offset(fptr)]);
 #endif
                 if (head.compare_exchange_weak(h_, fptr,
                                                std::memory_order_acq_rel, std::memory_order_acquire)) {
