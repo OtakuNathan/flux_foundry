@@ -45,8 +45,7 @@ namespace lite_fnds {
 #endif
                 this->next_step(std::move(result));
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
-            }
-            catch (...) {
+            } catch (...) {
                 this->next_step(result_t<T, E>(error_tag, std::current_exception()));
             }
 #endif
@@ -90,8 +89,9 @@ namespace lite_fnds {
                 return 0;
             }
 
-            void provide_cancel_handler(flow_async_cancel_handler_t* cancel_handler,
-                flow_async_notify_handler_dropped_t* drop, flow_async_cancel_param_t* param) noexcept {
+            void provide_cancel_handler(detail::flow_async_cancel_handler_t* cancel_handler,
+                detail::flow_async_notify_handler_dropped_t* drop, 
+                detail::flow_async_cancel_param_t* param) noexcept {
                 *cancel_handler = cancel;
                 *drop = notify_cancel_handler_dropped;
                 *param = self;
@@ -158,7 +158,7 @@ namespace lite_fnds {
     template <typename T>
     constexpr bool is_awaitable_v = is_awaitable<T>::value;
 
-    template <typename awaitable, typename F_I>
+    template <typename awaitable>
     struct awaitable_factory {
         template <typename U>
         constexpr static auto detect_submit_async(int)
@@ -167,6 +167,10 @@ namespace lite_fnds {
 
         template <typename U>
         constexpr static auto detect_submit_async(...) -> std::false_type;
+        
+        static_assert(decltype(detect_submit_async<awaitable>(0))::value,
+            "awaitable requirement: Missing or invalid 'submit'.\n"
+            "Expected signature: int submit() noexcept.");
 
         template <typename U>
         constexpr static auto detect_cancel(int) ->
@@ -174,14 +178,25 @@ namespace lite_fnds {
 
         template <typename U>
         constexpr static auto detect_cancel(...) -> std::false_type;
-
-        static_assert(decltype(detect_submit_async<awaitable>(0))::value,
-            "awaitable requirement: Missing or invalid 'submit'.\n"
-            "Expected signature: int submit() noexcept.");
-
+        
         static_assert(decltype(detect_cancel<awaitable>(0))::value,
             "awaitable requirement: Missing 'void cancel() noexcept'.\n"
             "Must be able to cancel pending async operation and release resources.");
+
+ #if !LFNDS_COMPILER_HAS_EXCEPTIONS       
+        template <typename U>
+        constexpr static auto detect_available(int) 
+            -> conjunction<std::is_convertible<decltype(std::declval<U&>().available()), int>,
+            std::integral_constant<bool, noexcept(std::declval<U&>().available())>>;
+
+        template <typename U>
+        constexpr static auto detect_available(...) -> std::false_type;
+
+                
+        static_assert(decltype(detect_available<awaitable>(0))::value,
+            "awaitable requirement: Missing 'bool available() noexcept'.\n"
+            "Must be able to provide whether the awaitable is fully created and initialized.");
+#endif
 
         static_assert(is_awaitable_v<awaitable>,
             "the providing type Awaitable must can be an class that inherits awaitable_base.");
@@ -189,21 +204,33 @@ namespace lite_fnds {
         using node_error_t = typename awaitable::async_result_type::error_type;
         using awaitable_t = awaitable;
 
-        result_t<typename awaitable::access_delegate, node_error_t> operator()(F_I&& param) noexcept {
-            static_assert(std::is_constructible<awaitable, F_I&&>::value, "awaitable must be constructible with the last node's output.");
+        template <typename A = awaitable, typename ... Args,
+#if LFNDS_HAS_EXCEPTIONS
+            std::enable_if_t<std::is_constructible<awaitable, Args&&...>::value>* = nullptr
+#else
+            std::enable_if_t<std::is_nothrow_constructible<awaitable, Args&&...>::value>* = nullptr
+#endif
+        >
+        result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
             try {
-                auto aw = new awaitable(std::move(param));
+                auto aw = new awaitable(std::forward<Args>(param)...);
                 return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
             } catch (...) {
                 return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, std::current_exception());
             }
 #else
-            auto aw = new (std::nothrow) awaitable(std::move(param));
-            if (aw) {
-                return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
+            auto aw = new (std::nothrow) awaitable(std::forward<Args>(param)...);
+            UNLIKELY_IF (!aw) {
+                return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, awaitable_creating_error<node_error_t>::make());
             }
-            return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, awaitable_creating_error<node_error_t>::make());
+
+            UNLIKELY_IF(!aw->available()) {
+                aw->release();
+                return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, awaitable_creating_error<node_error_t>::make());
+            }
+
+            return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
 #endif
         }
     };
@@ -211,8 +238,8 @@ namespace lite_fnds {
     template <typename T>
     struct is_awaitable_factory : std::false_type {};
 
-    template <typename awaitable, typename F_I>
-    struct is_awaitable_factory<awaitable_factory<awaitable, F_I>> : std::true_type {};
+    template <typename awaitable>
+    struct is_awaitable_factory<awaitable_factory<awaitable>> : std::true_type {};
 
     template <typename T>
     constexpr bool is_awaitable_factory_v = is_awaitable_factory<T>::value;

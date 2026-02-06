@@ -43,13 +43,8 @@ namespace lite_fnds {
             "All the types in the template param pack must be result_t<T, E>");
         constexpr static size_t N = sizeof...(Ts);
         using storage_t = flat_storage<std::decay_t<Ts>...>;
+        using slot_state = detail::slot_state;
     private:
-        enum class slot_state : uint8_t {
-            empty,
-            occupied,
-            full,
-        };
-
         struct alignas(CACHE_LINE_SIZE) Data {
             std::atomic<size_t> ready_count;
 
@@ -57,9 +52,7 @@ namespace lite_fnds {
             std::atomic<slot_state> slot_ready[N];
             storage_t val;
 
-            Data() 
-                : ready_count { 0 }
-                , val { Ts(error_tag, typename Ts::error_type {})... } {
+            Data() : ready_count { 0 }, val { Ts(error_tag, typename Ts::error_type {})... } {
                 for (size_t i = 0; i < N; ++i) {
                     slot_ready[i].store(slot_state::empty, std::memory_order_relaxed);
                 }
@@ -182,6 +175,6 @@ namespace lite_fnds {
         static_assert(conjunction_v<flow_impl::is_blueprint<BPs>...>, "BPs should be blueprints");
         return flow_aggregator<typename BPs::O_t...>();
     }
-    }
+}
 
 #endif

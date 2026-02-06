@@ -1,12 +1,20 @@
-﻿#ifndef LITE_FNDS_FLOW_NODES_H
-#define LITE_FNDS_FLOW_NODES_H
+﻿#ifndef LITE_FNDS_FLOW_NODE_H
+#define LITE_FNDS_FLOW_NODE_H
 
+#include "flow_async_aggregator.h"
 #include "../task/task_wrapper.h"
 #include "flow_blueprint.h"
 #include "flow_awaitable.h"
 
 namespace lite_fnds {
     namespace flow_impl {
+        struct identity {
+            template <typename T>
+            constexpr decltype(auto) operator()(T&& t) const noexcept {
+                return std::forward<T>(t);
+            }
+        };
+
         template <typename Executor>
         struct check_executor {
             template <typename U>
@@ -18,6 +26,120 @@ namespace lite_fnds {
 
             static constexpr bool value = decltype(detect<Executor>(0))::value;
         };
+
+        template <typename T, typename... Rest>
+        struct is_all_the_same : std::true_type { };
+
+        template <typename T, typename First, typename... Rest>
+        struct is_all_the_same<T, First, Rest...>
+            : std::integral_constant<bool, std::is_same<T, First>::value && is_all_the_same<T, Rest...>::value> { };
+
+        template <typename F, typename G, typename... Args_>
+        struct check_when_all_success_compatibility {
+            template <typename...>
+            static auto check_success(...) -> std::false_type;
+
+            template <typename F_, typename... As>
+            static auto check_success(int) -> conjunction<
+                std::integral_constant<bool, noexcept(std::declval<F_&>()(std::declval<As>()...))>,
+                is_result_t<invoke_result_t<F_, As...>>>;
+
+            template <typename...>
+            static auto check_fail(...) -> std::false_type;
+
+            template <typename G_>
+            static auto check_fail(int) -> conjunction<
+                std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
+                is_result_t<invoke_result_t<G_, flow_async_agg_err_t>>>;
+
+            template <typename...>
+            static auto check_return_match(...) -> std::false_type;
+
+            template <typename F_, typename G_, typename... As>
+            static auto check_return_match(int) -> std::is_same<invoke_result_t<F_, As...>, invoke_result_t<G_, flow_async_agg_err_t>>;
+
+            static constexpr bool value = conjunction_v<
+                decltype(check_success<F, Args_...>(0)),
+                decltype(check_fail<G>(0)),
+                decltype(check_return_match<F, G, Args_...>(0))>;
+        };
+
+        template <typename F, typename G, typename... Args_>
+        struct check_when_any_success_compatibility {
+            template <typename...>
+            static auto check_success(...) -> std::false_type;
+
+            template <typename F_, typename... As>
+            static auto check_success(int) -> conjunction<
+                std::integral_constant<bool, noexcept(std::declval<F_&>()(std::declval<As>()))>...>;
+
+            template <typename...>
+            static auto check_fail(...) -> std::false_type;
+
+            template <typename G_>
+            static auto check_fail(int) -> conjunction<
+                std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
+                is_result_t<invoke_result_t<G_, flow_async_agg_err_t>>>;
+
+            template <typename...>
+            static auto check_all_returns(...) -> std::false_type;
+
+            template <typename F_, typename G_, typename... As>
+            static auto check_all_returns(int) -> conjunction<
+                is_result_t<invoke_result_t<G_, flow_async_agg_err_t>>,
+                is_all_the_same<
+                    invoke_result_t<G_, flow_async_agg_err_t>,
+                    invoke_result_t<F_, As>...
+                >>;
+
+            static constexpr bool value = conjunction_v<
+                decltype(check_success<F, Args_...>(0)),
+                decltype(check_fail<G>(0)),
+                decltype(check_all_returns<F, G, Args_...>(0))
+            >;
+        };
+
+        template <typename F, typename Pack, size_t ... idx>
+        auto unpack_and_call_impl(F&& f, Pack&& pack, std::index_sequence<idx...>) noexcept {
+            return std::forward<F>(f)(get<idx>(std::forward<Pack>(pack)).value()...);
+        }
+
+        template <typename F, typename ... Ts>
+        auto unpack_and_call(F& f, flat_storage<Ts...>&& pack) noexcept {
+            return unpack_and_call_impl(f, std::move(pack), std::index_sequence_for<Ts...> {});
+        }
+
+        template <typename F, typename Pack>
+        struct visit_jump_table_helper {
+            using R = invoke_result_t<F, typename flat_storage_element_t<0, Pack>::value_type>;
+
+            template <size_t I>
+            static R call(F& f, Pack&& pack) noexcept {
+                return f(get<I>(std::forward<Pack>(pack)).value());
+            }
+        };
+
+        template <typename F, typename Pack, size_t... idx>
+        auto visit_and_call_jump_table_impl(F&& f, Pack&& pack, size_t i, std::index_sequence<idx...>) noexcept {
+            using Helper = visit_jump_table_helper<F, Pack>;
+            using R = typename Helper::R;
+            using FuncPtr = R (*)(F&, Pack&&);
+
+            static constexpr FuncPtr table[] = {
+                &Helper::template call<idx>...
+            };
+
+            if (i >= sizeof...(idx)) {
+                return R(error_tag, typename R::error_type {});
+            }
+
+            return table[i](f, std::forward<Pack>(pack));
+        }
+
+       template <typename F, typename... Ts>
+       auto visit_and_call(F& f, size_t i, flat_storage<Ts...>&& pack) noexcept {
+           return visit_and_call_jump_table_impl(f, std::move(pack), i, std::index_sequence_for<Ts...> {});
+       } 
 
         template <typename F_O, typename E, typename F, typename F_I>
         result_t<F_O, E> call(std::false_type, std::false_type, F& f, F_I&& in) 
@@ -50,7 +172,7 @@ namespace lite_fnds {
             return result_t<F_O, E>(value_tag);
         }
 
-        /// transform
+        // transform
         template <typename F>
         struct transform_node {
             F f;
@@ -127,14 +249,14 @@ namespace lite_fnds {
         template <typename I, typename O, typename... Nodes, typename F>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, then_node<F>&& a) {
 #if LFNDS_HAS_EXCEPTIONS
-            static_assert(is_invocable_with<F, O>::value,
+            static_assert(is_invocable_with<F, O&&>::value,
                 "callable F is not compatible with current blueprint");
 #else
             static_assert(is_nothrow_invocable_with<F, O>::value,
                 "callable F is not compatible with current blueprint"
                 "and must be nothrow-invocable.");
 #endif
-            using F_O = invoke_result_t<F, O>;
+            using F_O = invoke_result_t<F, O&&>;
             static_assert(is_result_t<F_O>::value,
                 "the output of the callable F in then must return a result<T, E>");
 
@@ -171,7 +293,7 @@ namespace lite_fnds {
         template <typename I, typename O, typename ... Nodes, typename F>
         auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, error_node<F>&& a) {
 #if LFNDS_HAS_EXCEPTIONS
-            static_assert(is_invocable_with<F, O>::value,
+            static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in error is not compatible with current blueprint.");
 #else
             static_assert(is_nothrow_invocable_with<F, O>::value,
@@ -179,7 +301,7 @@ namespace lite_fnds {
                 "and must be nothrow-invocable.");
 #endif
 
-            using F_O = invoke_result_t<F, O>;
+            using F_O = invoke_result_t<F, O&&>;
             static_assert(is_result_t<F_O>::value, "The callable F in error must return a result<T, E>");
 
             auto node = error_node<F>::template make<O, F_O>(std::move(a));
@@ -236,7 +358,6 @@ namespace lite_fnds {
             return std::move(bp) | std::move(node);
         }
 #endif
-
         // via
         template <typename Executor>
         struct via_node {
@@ -272,7 +393,6 @@ namespace lite_fnds {
 
             static_assert(is_awaitable_v<Awaitable>,
                 "Awaitable must be an valid awaitable(see lite_fnds::awaitable_base)");
-
             Executor e;
 
             template <typename F_I, typename F_O>
@@ -281,8 +401,8 @@ namespace lite_fnds {
                     e->dispatch(std::move(sbo));
                 };
 
-                return flow_async_node<F_I, F_O, decltype(wrapper), awaitable_factory<Awaitable, F_I>> {
-                    std::move(wrapper), awaitable_factory<Awaitable, F_I>()
+                return flow_async_node<F_I, F_O, decltype(wrapper), flow_impl::identity, awaitable_factory<Awaitable>> {
+                    std::move(wrapper), identity{}, awaitable_factory<Awaitable>{}
                 };
             }
         };
@@ -300,12 +420,110 @@ namespace lite_fnds {
             return std::move(bp) | async_node<Executor, Awaitable>::template make<O, F_O>(std::move(a));
         }
 
+        // when_all_node
+        template <typename Executor, typename F, typename G, typename ... BPs>
+        struct when_all_node {
+            static_assert(conjunction_v<is_runnable_bp<BPs>...>, "BPs should be runnable_bps");
+
+            static_assert(check_when_all_success_compatibility<F, G, typename BPs::O_t::value_type...>::value,
+                "the success proc must have the signature like\n"
+                "result_t<T, E> (output_of_bp1, output_of_bp2, output_of_bp3...) noexcept\n"
+                "in addition, the fail proc must be compatible should have the signature like\n"
+                "result_t<T, E> (flow_async_agg_err_t) noexcept \n"
+                "and the success proc and the fail proc should have the same return type");
+
+            Executor e;
+            F f;
+            G g;
+
+            using F_O = invoke_result_t<G, flow_async_agg_err_t>;
+            using awaitable_t = flow_when_all_awaitable<BPs...>;
+
+            template <typename F_I>
+            static auto make(when_all_node&& node, lite_ptr<BPs> ... bps) noexcept {
+                auto wrapper = [e = std::move(node.e)](task_wrapper_sbo&& sbo) noexcept {
+                    e->dispatch(std::move(sbo));
+                };
+
+                using result_type = typename awaitable_t::result_type;
+                using factory_t = aggregator_awaitable_factory<awaitable_t, BPs...>;
+                auto adaptor = [f = std::move(node.f), g = std::move(node.g)](result_type&& t) noexcept {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+                    try {
+#endif
+                        LIKELY_IF (t.has_value()) {
+                            return unpack_and_call(f, std::move(t.value().get()));
+                        }
+                        return g(std::move(t.error()));
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+                    } catch (...) {
+                        return F_O(error_tag, std::current_exception());
+                    }
+#endif
+                };
+
+                return flow_async_node<F_I, F_O, decltype(wrapper), decltype(adaptor), factory_t> {
+                    std::move(wrapper), std::move(adaptor), factory_t(std::move(bps)...)
+                };
+            }
+        };
+
+        // when_any_node
+        template <typename Executor, typename F, typename G, typename ... BPs>
+        struct when_any_node {
+            static_assert(conjunction_v<is_runnable_bp<BPs>...>, "BPs should be runnable_bps");
+
+            static_assert(check_when_any_success_compatibility<F, G, typename BPs::O_t::value_type...>::value,
+                "the success proc must can be called by\n"
+                "result_t<T, E> (put_of_bp1) noexcept, result_t<T, E> (put_of_bp2) noexcept ...\n"
+                "in addition, the fail proc must be compatible should have the signature like\n"
+                "result_t<T, E> (flow_async_agg_err_t) noexcept \n"
+                "and the success proc and the fail proc should have the same return type");
+
+            Executor e;
+            F f;
+            G g;
+
+            using F_O = invoke_result_t<G, flow_async_agg_err_t>;
+            using awaitable_t = flow_when_any_awaitable<BPs...>;
+
+            template <typename F_I>
+            static auto make(when_any_node&& node, lite_ptr<BPs> ... bps) noexcept {
+                auto wrapper = [e = std::move(node.e)](task_wrapper_sbo&& sbo) noexcept {
+                    e->dispatch(std::move(sbo));
+                };
+
+                using result_type = typename awaitable_t::result_type;
+                using factory_t = aggregator_awaitable_factory<awaitable_t, BPs...>;
+
+                auto adaptor = [f = std::move(node.f), g = std::move(node.g)](result_type&& t) noexcept {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+                    try {
+#endif
+                        LIKELY_IF (t.has_value()) {
+                            auto winner = t.value().winner();
+                            return visit_and_call(f, winner, std::move(t.value().get()));
+                        }
+                        return g(std::move(t.error()));
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+                    } catch (...) {
+                        return F_O(error_tag, std::current_exception());
+                    }
+#endif
+                };
+
+                return flow_async_node<F_I, F_O, decltype(wrapper), decltype(adaptor), factory_t> {
+                    std::move(wrapper), std::move(adaptor), factory_t(std::move(bps)...)
+                };
+            }
+        };
+
         // end
         template <typename F>
         struct end_node {
             F f;
 
-            template <typename F_I, typename F_O>
+            template <typename F_I>
             static auto make(end_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
@@ -315,22 +533,22 @@ namespace lite_fnds {
                         return f(std::move(in));
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
-                        return F_O(error_tag, std::current_exception());
+                        return F_I(error_tag, std::current_exception());
                     }
 #endif
                 };
-                return flow_end_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
+                return flow_end_node<F_I, F_I, decltype(wrapper)>(std::move(wrapper));
             }
         };
 
         template <>
         struct end_node <void> {
-            template <typename F_I, typename F_O>
+            template <typename F_I>
             static auto make(end_node&&) noexcept {
                 auto wrapper = [](F_I&& in) noexcept {
                     return in;
                 };
-                return flow_end_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
+                return flow_end_node<F_I, F_I, decltype(wrapper)>(std::move(wrapper));
             }
         };
 
@@ -339,7 +557,7 @@ namespace lite_fnds {
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
 
 #if LFNDS_HAS_EXCEPTIONS
-            static_assert(is_invocable_with<F, O>::value,
+            static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in end is not compatible with current blueprint.");
 #else
             static_assert(is_nothrow_invocable_with<F, O>::value,
@@ -347,52 +565,48 @@ namespace lite_fnds {
                 "and must be nothrow-invocable.");
 #endif
 
-            using F_O = invoke_result_t<F, O>;
-            static_assert(is_result_t<F_O>::value, "The callable F in end must return a result<T, E>-like type");
+            using F_O = invoke_result_t<F, O&&>;
+            static_assert(std::is_same<O, F_O>::value,
+                "The callable F in end must return a object of the same type as the current Blueprint's output");
 
-            auto node = end_node<F>::template make<O, F_O>(std::move(a));
+            auto node = end_node<F>::template make<O>(std::move(a));
             return std::move(bp) | std::move(node);
         }
 
         template <typename I, typename O, typename... Nodes,
             typename F, std::enable_if_t<std::is_void<F>::value, int> = 0>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
-            auto node = end_node<void>::make<O, O>(std::move(a));
+            auto node = end_node<void>::make<O>(std::move(a));
             return std::move(bp) | std::move(node);
         }
     }
 
     template <typename T, typename E = std::exception_ptr>
-    inline auto make_blueprint() noexcept(conjunction_v<
+    auto make_blueprint() noexcept(conjunction_v<
         std::is_nothrow_move_constructible<T>,
         std::is_nothrow_constructible<result_t<T, E>, decltype(value_tag), T&&>>) {
         using R = result_t<T, E>;
 
-        auto identity = [](R&& t) noexcept {
-            return t;
-        };
-
-        using node_type = flow_impl::flow_calc_node<R, R, decltype(identity)>;
+        using node_type = flow_impl::flow_calc_node<R, R, flow_impl::identity>;
         using storage_t = flat_storage<node_type>;
 
         return flow_impl::flow_blueprint<R, R, node_type>(
-            storage_t(node_type(std::move(identity)))
+            storage_t(node_type(flow_impl::identity{}))
         );
     }
 
-
     template <typename F>
-    inline auto transform(F&& f) noexcept {
+    auto transform(F&& f) noexcept {
         return flow_impl::transform_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
-    inline auto then(F&& f) noexcept {
+    auto then(F&& f) noexcept {
         return flow_impl::then_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
-    inline auto on_error(F&& f) noexcept {
+    auto on_error(F&& f) noexcept {
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
@@ -406,7 +620,7 @@ namespace lite_fnds {
     // CRITICAL: Max payload size is controlled by the SBO buffer (e.g., 64 bytes).
     // Ensure that the captured data (result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Executor>
-    inline auto via(Executor&& exec) noexcept {
+    auto via(Executor&& exec) noexcept {
         using E = std::decay_t<Executor>;
         return flow_impl::via_node<E> { std::forward<Executor>(exec) };
     }
@@ -414,13 +628,41 @@ namespace lite_fnds {
     // CRITICAL: Max payload size is controlled by the SBO buffer (e.g., 64 bytes).
     // Ensure that the async result(result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Awaitable, typename Executor>
-    inline auto await(Executor&& exec) noexcept {
+    auto await(Executor&& executor_to_resume) noexcept {
         using E = std::decay_t<Executor>;
-        return flow_impl::async_node<E, Awaitable> { std::forward<Executor>(exec) };
+        return flow_impl::async_node<E, Awaitable> { std::forward<Executor>(executor_to_resume) };
+    }
+
+    template <typename Executor, typename F, typename G, typename ... BPs>
+    auto await_when_all(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        using E = std::decay_t<Executor>;
+
+        using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, BPs...>;
+        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        using F_O = typename when_all_t::F_O;
+
+        when_all_t when_all{std::forward<Executor>(executor_to_resume),
+            std::forward<F>(on_success), std::forward<G>(on_error)};
+
+        auto node = when_all_t::template make<F_I>(std::move(when_all), std::move(bps)...);
+        return flow_impl::flow_blueprint<F_I, F_O, decltype(node)>(flat_storage<decltype(node)>(std::move(node)));
+    }
+
+    template <typename Executor, typename F, typename G, typename ... BPs>
+    auto await_when_any(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        using E = std::decay_t<Executor>;
+
+        using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, BPs...>;
+        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        using F_O = typename when_any_t::F_O;
+
+        when_any_t when_any{std::forward<Executor>(executor_to_resume), std::forward<F>(on_success), std::forward<G>(on_error)};
+        auto node = when_any_t::template make<F_I>(std::move(when_any), std::move(bps)...);
+        return flow_impl::flow_blueprint<F_I, F_O, decltype(node)>(flat_storage<decltype(node)>(std::move(node)));
     }
 
     template <typename F>
-    inline auto end(F&& f) noexcept {
+    auto end(F&& f) noexcept {
         return flow_impl::end_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 

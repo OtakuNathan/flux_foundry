@@ -11,6 +11,8 @@
 #include "../memory/result_t.h"
 
 namespace lite_fnds {
+    constexpr static size_t callable_wrapper_sbo_size = 48;
+
     namespace callable_handle_impl {
         template <typename callable, typename R, typename ... Args>
         struct is_callable_and_compatible {
@@ -38,7 +40,7 @@ namespace lite_fnds {
     // this is not thread safe
     template <typename R, typename ... Args>
     class callable_wrapper <R(Args...)> : 
-        public raw_type_erase_base<callable_wrapper<R(Args...)>, 16, 
+        public raw_type_erase_base<callable_wrapper<R(Args...)>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(void*, Args...)> {
 
         template <typename T, bool sbo_enabled>
@@ -48,7 +50,7 @@ namespace lite_fnds {
             }
         };
 
-        using base = raw_type_erase_base<callable_wrapper<R(Args...)>, 16, 
+        using base = raw_type_erase_base<callable_wrapper<R(Args...)>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(void*, Args...)>;
 
 
@@ -61,7 +63,7 @@ namespace lite_fnds {
 #endif
         }
 
-        friend struct raw_type_erase_base<callable_wrapper<R(Args...)>, 16,
+        friend struct raw_type_erase_base<callable_wrapper<R(Args...)>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(void*, Args...)>;
 #if LFNDS_COMPILER_HAS_EXCEPTIONS
         result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) noexcept {
@@ -131,7 +133,7 @@ namespace lite_fnds {
 
     template <typename R, typename ... Args>
     class callable_wrapper <R(Args...) const> 
-        : public raw_type_erase_base<callable_wrapper<R(Args...) const>, 16, 
+        : public raw_type_erase_base<callable_wrapper<R(Args...) const>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(const void*, Args...)> {
         template <typename T, bool sbo_enabled>
         struct callable_vfns {
@@ -140,7 +142,7 @@ namespace lite_fnds {
             }
         };
 
-        using base = raw_type_erase_base<callable_wrapper<R(Args...) const>, 16, 
+        using base = raw_type_erase_base<callable_wrapper<R(Args...) const>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(const void*, Args...)>;
 
         static R stub(const void*, Args... args) {
@@ -152,7 +154,7 @@ namespace lite_fnds {
 #endif
         }
 
-        friend struct raw_type_erase_base<callable_wrapper<R(Args...) const>, 16,
+        friend struct raw_type_erase_base<callable_wrapper<R(Args...) const>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(const void*, Args...)>;
 
 #if LFNDS_COMPILER_HAS_EXCEPTIONS

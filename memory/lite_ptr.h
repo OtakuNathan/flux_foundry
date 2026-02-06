@@ -6,6 +6,7 @@
 #define LF_TEST_REF_COUNT_H
 
 #include <atomic>
+#include <stdexcept>
 #include <cassert>
 #include <new>
 
@@ -61,7 +62,7 @@ namespace lite_fnds {
 
         struct guard {
             cb_t* cb;
-            guard(cb_t* cb_) : cb(cb_) {}
+            explicit guard(cb_t* cb_) : cb(cb_) {}
             ~guard() noexcept {
                 aligned_free(cb);
             }
@@ -69,19 +70,33 @@ namespace lite_fnds {
 
         cb_t* cb;
     public:
+        using element_type = T;
+
         lite_ptr() noexcept : cb(nullptr) {}
 
         template <typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<std::is_same<F_, default_deleter<T>>,
-                        std::is_constructible<T, Args&&...>>>* = nullptr>
-        lite_ptr(in_place_t, Args&& ... args)
+#if LFNDS_HAS_EXCEPTIONS
+                        std::is_constructible<T, Args&&...>
+#else
+                        std::is_nothrow_constructible<T, Args&&...>
+#endif
+        >>* = nullptr>
+        explicit lite_ptr(in_place_t, Args&& ... args)
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
             noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, default_deleter<T>&&, Args&&...>>)
+#endif
             : cb {nullptr} {
-            guard g(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1))));
-            assert(g.cb && "out of memory");
-            if (!g.cb) {
-                std::abort();
+            auto cb_ = static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1)));
+            if (!cb_) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+                throw std::bad_alloc();
+#else
+                return;
+#endif
             }
+
+            guard g(cb_);
             new (g.cb) cb_t(default_deleter<T>(), std::forward<Args>(args)...);
             cb = g.cb;
             g.cb = nullptr;
@@ -90,16 +105,26 @@ namespace lite_fnds {
         template <typename G, typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<
                         negation<std::is_same<F_, default_deleter<T>>>,
-                        std::is_constructible<F_, G&&>,
-                        std::is_constructible<T, Args&&...>>>* = nullptr>
+#if LFNDS_HAS_EXCEPTIONS
+                        std::is_constructible<F_, G&&>, std::is_constructible<T, Args&&...>
+#else
+                        std::is_nothrow_constructible<F_, G&&>, std::is_nothrow_constructible<T, Args&&...>
+#endif
+        >>* = nullptr>
         lite_ptr(in_place_t, G&& g, Args&& ... args)
+#if !LFNDS_COMPILER_HAS_EXCEPTIONS
             noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, G&&, Args&&...>>)
+#endif
             : cb {nullptr} {
-            guard g_(static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1))));
-            assert(g_.cb && "out of memory");
-            if (!g_.cb) {
-                std::abort();
+            auto cb_ = static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1)));
+            if (!cb_) {
+#if LFNDS_COMPILER_HAS_EXCEPTIONS
+                throw std::bad_alloc();
+#else
+                return;
+#endif
             }
+            guard g_(cb_);
             new (g_.cb) cb_t(std::forward<G>(g), std::forward<Args>(args)...);
             cb = g_.cb;
             g_.cb = nullptr;
@@ -126,9 +151,9 @@ namespace lite_fnds {
 
         lite_ptr& operator=(lite_ptr&& rhs) noexcept {
             if (this != &rhs) {
-            release();
-            cb = rhs.cb;
-            rhs.cb = nullptr;
+                release();
+                cb = rhs.cb;
+                rhs.cb = nullptr;
             }
             return *this;
         }
@@ -229,6 +254,17 @@ namespace lite_fnds {
         return static_cast<bool>(ptr);
     }
 
+    template <typename R>
+    struct is_lite_ptr_impl : std::false_type { };
+
+    template <typename T>
+    struct is_lite_ptr_impl<lite_ptr<T>> : std::true_type { };
+
+    template <typename R>
+    struct is_lite_ptr : is_lite_ptr_impl<std::decay_t<R>> { };
+
+    template <typename R>
+    constexpr bool is_lite_ptr_v = is_lite_ptr<R>::value;
 }
 
-#endif //LF_TEST_REF_COUNT_H
+#endif //LF_LITE_PTR

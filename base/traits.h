@@ -15,6 +15,21 @@
 #define LFNDS_NO_EXCEPTION_STRICT 0
 #endif
 
+#define LFNDS_CPP_14 201402L
+#define LFNDS_CPP_17 201703L
+#define LFNDS_CPP_20 202002L
+
+#if defined(_MSVC_LANG)
+    #define LFNDS_CPP_VER _MSVC_LANG
+#elif defined(__cplusplus)
+    #define LFNDS_CPP_VER __cplusplus
+#else
+    #define LFNDS_CPP_VER 0L
+#endif
+
+#define LFNDS_CPP_AT_LEAST(ver) (LFNDS_CPP_VER >= LFNDS_CPP_##ver)
+#define LFNDS_CPP_AT_MOST(ver)  (LFNDS_CPP_VER <= LFNDS_CPP_##ver)
+
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
 #  define LFNDS_COMPILER_HAS_EXCEPTIONS 1
 #else
@@ -29,7 +44,7 @@
 #  endif
 #endif
 
-#if __cplusplus >= 202002L
+#if LFNDS_CPP_AT_LEAST(20)
 #  define LIKELY_IF(expr) if ((expr)) [[likely]]
 #  define UNLIKELY_IF(expr) if ((expr)) [[unlikely]]
 #else
@@ -71,10 +86,19 @@ namespace lite_fnds {
     template <typename T>
     constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
+    template <typename...>
+    struct type_list { };
+
+    template <typename T, typename... Args>
+    struct is_self_constructing : std::false_type { };
+
+    template <typename T, typename U>
+    struct is_self_constructing<T, U> : std::is_same<T, std::decay_t<U>> { };
+
     template <size_t N>
     struct in_place_index {};
 
-#if __cplusplus >= 201703L
+#if LFNDS_CPP_AT_LEAST(17)
     using std::invoke_result;
     using std::invoke_result_t;
 #else
@@ -85,19 +109,16 @@ namespace lite_fnds {
     using invoke_result_t = std::result_of_t<F(A...)>;
 #endif
 
-#if __cplusplus >= 202002L
+#if LFNDS_CPP_AT_LEAST(20)
     using std::type_identity;
 #else
     template <typename T>
     struct type_identity { using type = T; };
 #endif
 
-#if __cplusplus <= 201402
+#if LFNDS_CPP_AT_MOST(14)
     template <typename T>
     struct negation : std::integral_constant<bool, !T::value> {};
-
-    template <typename T>
-    constexpr static bool negation_v = negation<T>::value;
 
     template <typename ...>
     struct conjunction : std::true_type {};
@@ -126,15 +147,6 @@ namespace lite_fnds {
 
     template <typename ... Ts>
     constexpr bool disjunction_v = disjunction<Ts...>::value;
-
-    template<typename...>
-    struct type_list {};
-
-    template <typename T, typename ... Args>
-    struct is_self_constructing : std::false_type {};
-
-    template <typename T, typename U>
-    struct is_self_constructing <T, U> : std::is_same<T, std::decay_t<U>> {};
 
     namespace swap_adl_tests {
         struct tag {};
@@ -233,6 +245,9 @@ namespace lite_fnds {
 #endif
 
     template <typename T>
+    constexpr static bool negation_v = negation<T>::value;
+
+    template <typename T>
     struct can_strong_replace
         : disjunction<std::is_nothrow_move_assignable<T>, std::is_nothrow_copy_assignable<T>,
               std::is_nothrow_move_constructible<T>, std::is_nothrow_copy_constructible<T>> {
@@ -255,7 +270,6 @@ namespace lite_fnds {
     public:
         constexpr static bool value = decltype(test<T>(0))::value;
     };
-
     template <typename T, typename ... Args>
     struct is_aggregate_constructible : std::integral_constant<bool, is_aggregate_constructible_impl<T, Args...>::value> {};
 
@@ -268,6 +282,15 @@ namespace lite_fnds {
 
     template <typename T, typename ... Args>
     constexpr bool is_nothrow_aggregate_constructible_v = is_nothrow_aggregate_constructible<T, Args...>::value;
+
+    template <typename ... Ts>
+    struct is_all_the_same : std::true_type { };
+
+    template <typename H, typename ... Ts>
+    struct is_all_the_same<H, Ts...> : conjunction<std::is_same<std::decay_t<H>, std::decay_t<Ts>>...> { };
+
+    template <typename ... Ts>
+    constexpr bool is_all_the_same_v = is_all_the_same<Ts...>::value;
 }
 
 #endif //__TASK_DEFS_H__

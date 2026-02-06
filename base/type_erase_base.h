@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <new>
+#include <cstring>
 #include <stdexcept>
 #include "inplace_base.h"
 

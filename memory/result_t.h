@@ -1,5 +1,5 @@
 ﻿//
-// Created by wufen on 10/6/2025.
+// Created by Nathan on 10/6/2025.
 //
 
 #ifndef LITE_FNDS_RESULTT_H

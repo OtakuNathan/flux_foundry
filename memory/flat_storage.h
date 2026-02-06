@@ -284,9 +284,34 @@ namespace lite_fnds {
 #endif
     >
     void swap(compressed_pair<A_, B_> &a, compressed_pair<A_, B_> &b)
-    noexcept(noexcept(std::declval<compressed_pair<A_, B_> &>().swap(std::declval<compressed_pair<A_, B_> &>()))) {
+        noexcept(noexcept(std::declval<compressed_pair<A_, B_> &>().swap(std::declval<compressed_pair<A_, B_> &>()))) {
         a.swap(b);
     }
+
+    template <typename T, typename U,
+#if LFNDS_HAS_EXCEPTIONS
+        typename = std::enable_if_t<conjunction_v<
+            std::is_constructible<std::decay_t<T>, T&&>, std::is_constructible<std::decay_t<U>, U&&>>
+        >
+#else
+        typename = std::enable_if_t<conjunction_v<
+            std::is_nothrow_constructible<std::decay_t<T>, T&&>, std::is_nothrow_constructible<std::decay_t<U>, U&&>>
+        >
+#endif
+    >
+    auto make_compressed_pair(T&& a, U&& b)
+        noexcept(conjunction_v<std::is_nothrow_constructible<std::decay_t<T>, T&&>, std::is_nothrow_constructible<std::decay_t<U>, U&&>>) {
+        return compressed_pair<std::decay_t<T>, std::decay_t<U>>(std::forward<T>(a), std::forward<U>(b));
+    }
+
+    template <typename T>
+    struct is_compressed_pair : std::false_type { };
+
+    template <typename T, typename U>
+    struct is_compressed_pair <compressed_pair<T, U>> : std::true_type{};
+
+    template <typename T>
+    constexpr static bool is_compressed_pair_v = is_compressed_pair<T>::value;
 
     namespace detail {
         // actually this is a simpler impl of std::tuple, I implemented this because std::tuple on MSVC is like
@@ -434,6 +459,15 @@ namespace lite_fnds {
         noexcept(std::is_nothrow_constructible<flat_storage<std::decay_t<Args>...>, Args&&...>::value) {
         return flat_storage<std::decay_t<Args>...>(std::forward<Args>(args)...);
     }
+
+    template <typename T>
+    struct is_flat_storage : std::false_type { };
+
+    template <typename ... Ts>
+    struct is_flat_storage<flat_storage<Ts...>> : std::true_type { };
+
+    template <typename T>
+    constexpr static bool is_flat_storage_v = is_flat_storage<T>::value;
 }
 
 #endif

@@ -28,6 +28,7 @@ namespace lite_fnds {
 #elif defined(__aarch64__)
                     __asm__ __volatile__("yield");
 #else
+                    std::atomic_signal_fence(std::memory_order_relaxed);
 #endif
                 }
                 count = std::min(count << 1, max_loop);
