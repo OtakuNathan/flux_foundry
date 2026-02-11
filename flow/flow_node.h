@@ -40,17 +40,15 @@ namespace flux_foundry {
             static auto check_success(...) -> std::false_type;
 
             template <typename F_, typename... As>
-            static auto check_success(int) -> conjunction<
-                std::integral_constant<bool, noexcept(std::declval<F_&>()(std::declval<As>()...))>,
-                is_result_t<decltype(std::declval<F_&>()(std::declval<As>()...))>>;
+            static auto check_success(int) -> 
+                is_result_t<decltype(std::declval<F_&>()(std::declval<As>()...))>;
 
             template <typename...>
             static auto check_fail(...) -> std::false_type;
 
             template <typename G_>
-            static auto check_fail(int) -> conjunction<
-                std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
-                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>>;
+            static auto check_fail(int) ->
+                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>;
 
             template <typename...>
             static auto check_return_match(...) -> std::false_type;
@@ -74,15 +72,14 @@ namespace flux_foundry {
 
             template <typename F_, typename... As>
             static auto check_success(int) -> conjunction<
-                std::integral_constant<bool, noexcept(std::declval<F_&>()(std::declval<As>()))>...>;
+                is_result_t<decltype(std::declval<F_&>()(std::declval<As>()))>...>;
 
             template <typename...>
             static auto check_fail(...) -> std::false_type;
 
             template <typename G_>
-            static auto check_fail(int) -> conjunction<
-                std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
-                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>>;
+            static auto check_fail(int) ->
+                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>;
 
             template <typename...>
             static auto check_all_returns(...) -> std::false_type;
@@ -427,13 +424,16 @@ namespace flux_foundry {
         template <typename Executor, typename F, typename G, typename ... BPs>
         struct when_all_node {
             static_assert(conjunction_v<is_runnable_bp<BPs>...>, "BPs should be runnable_bps");
-
             static_assert(check_when_all_success_compatibility<F, G, typename BPs::O_t::value_type...>::value,
                 "the success proc must have the signature like\n"
                 "result_t<T, E> (output_of_bp1, output_of_bp2, output_of_bp3...) noexcept\n"
                 "in addition, the fail proc must be compatible should have the signature like\n"
                 "result_t<T, E> (flow_async_agg_err_t) noexcept \n"
                 "and the success proc and the fail proc should have the same return type");
+            static_assert(noexcept(std::declval<F&>()(std::declval<typename BPs::O_t::value_type>()...)), 
+                "on_success must be noexcept");
+            static_assert(noexcept(std::declval<G&>()(std::declval<flow_async_agg_err_t>())),
+                "on_error must be noexcept");
 
             Executor e;
             F f;
@@ -482,6 +482,12 @@ namespace flux_foundry {
                 "in addition, the fail proc must be compatible should have the signature like\n"
                 "result_t<T, E> (flow_async_agg_err_t) noexcept \n"
                 "and the success proc and the fail proc should have the same return type");
+            static_assert(conjunction_v<
+                std::integral_constant<bool,
+                    noexcept(std::declval<F&>()(std::declval<typename BPs::O_t::value_type>()))>...>,
+                "on_success overloads must be noexcept");
+            static_assert(noexcept(std::declval<G&>()(std::declval<flow_async_agg_err_t>())),
+                "on_error must be noexcept");
 
             Executor e;
             F f;
