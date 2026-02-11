@@ -42,7 +42,7 @@ namespace flux_foundry {
             template <typename F_, typename... As>
             static auto check_success(int) -> conjunction<
                 std::integral_constant<bool, noexcept(std::declval<F_&>()(std::declval<As>()...))>,
-                is_result_t<invoke_result_t<F_&, As...>>>;
+                is_result_t<decltype(std::declval<F_&>()(std::declval<As>()...))>>;
 
             template <typename...>
             static auto check_fail(...) -> std::false_type;
@@ -50,13 +50,16 @@ namespace flux_foundry {
             template <typename G_>
             static auto check_fail(int) -> conjunction<
                 std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
-                is_result_t<invoke_result_t<G_&, flow_async_agg_err_t>>>;
+                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>>;
 
             template <typename...>
             static auto check_return_match(...) -> std::false_type;
 
             template <typename F_, typename G_, typename... As>
-            static auto check_return_match(int) -> std::is_same<invoke_result_t<F_&, As...>, invoke_result_t<G_&, flow_async_agg_err_t>>;
+            static auto check_return_match(int) -> std::is_same<
+                decltype(std::declval<F_&>()(std::declval<As>()...)),
+                decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))
+            >;
 
             static constexpr bool value = conjunction_v<
                 decltype(check_success<F, Args_...>(0)),
@@ -79,17 +82,17 @@ namespace flux_foundry {
             template <typename G_>
             static auto check_fail(int) -> conjunction<
                 std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
-                is_result_t<invoke_result_t<G_&, flow_async_agg_err_t>>>;
+                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>>;
 
             template <typename...>
             static auto check_all_returns(...) -> std::false_type;
 
             template <typename F_, typename G_, typename... As>
             static auto check_all_returns(int) -> conjunction<
-                is_result_t<invoke_result_t<G_&, flow_async_agg_err_t>>,
+                is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
                 is_all_the_same<
-                    invoke_result_t<G_&, flow_async_agg_err_t>,
-                    invoke_result_t<F_&, As>...
+                    decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>())),
+                    decltype(std::declval<F_&>()(std::declval<As>()))...
                 >>;
 
             static constexpr bool value = conjunction_v<
@@ -436,7 +439,7 @@ namespace flux_foundry {
             F f;
             G g;
 
-            using F_O = invoke_result_t<G, flow_async_agg_err_t>;
+            using F_O = decltype(std::declval<G&>()(std::declval<flow_async_agg_err_t>()));
             using awaitable_t = flow_when_all_awaitable<BPs...>;
 
             template <typename F_I>
@@ -484,7 +487,7 @@ namespace flux_foundry {
             F f;
             G g;
 
-            using F_O = invoke_result_t<G, flow_async_agg_err_t>;
+            using F_O = decltype(std::declval<G&>()(std::declval<flow_async_agg_err_t>()));
             using awaitable_t = flow_when_any_awaitable<BPs...>;
 
             template <typename F_I>
