@@ -2,8 +2,8 @@
 // Created by Nathan on 12/2/2025.
 //
 
-#ifndef LITE_FNDS_GSOURCE_EXECUTOR_H
-#define LITE_FNDS_GSOURCE_EXECUTOR_H
+#ifndef FLUX_FOUNDRY_GSOURCE_EXECUTOR_H
+#define FLUX_FOUNDRY_GSOURCE_EXECUTOR_H
 
 #include <memory>
 #include <sstream>
@@ -19,7 +19,7 @@
 #include "../utility/concurrent_queues.h"
 #include "../task/task_wrapper.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <size_t capacity_>
     struct gsource_executor {
         using task_wrapper_t = task_wrapper_sbo;

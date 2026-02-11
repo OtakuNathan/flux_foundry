@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_STATIC_LIST_H
-#define LITE_FNDS_STATIC_LIST_H
+#ifndef FLUX_FOUNDRY_STATIC_LIST_H
+#define FLUX_FOUNDRY_STATIC_LIST_H
 
 #include <atomic>
 #include <type_traits>
@@ -10,7 +10,7 @@
 #include "../memory/padded_t.h"
 #include "back_off.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <typename T, size_t capacity>
     struct static_list {
         using storage_t = std::decay_t<T>;
@@ -142,7 +142,7 @@ namespace lite_fnds {
             return true;
         }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         template <typename T_ = storage_t,
                 std::enable_if_t<conjunction_v<negation<std::is_nothrow_copy_constructible<T_>>,
                         std::is_copy_constructible<T_>> >* = nullptr>
@@ -193,7 +193,7 @@ namespace lite_fnds {
             return true;
         }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         template <typename T_ = storage_t, typename... Args,
                 std::enable_if_t<conjunction_v<
                         negation<std::is_nothrow_constructible<T_, Args&&...>>,

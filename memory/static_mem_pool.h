@@ -1,10 +1,10 @@
-#ifndef LITE_FNDS_STATIC_MEM_POOL_H
-#define LITE_FNDS_STATIC_MEM_POOL_H
+#ifndef FLUX_FOUNDRY_STATIC_MEM_POOL_H
+#define FLUX_FOUNDRY_STATIC_MEM_POOL_H
 
 #include "../utility/static_list.h"
 #include "../base/traits.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <size_t max_block_count = 16, size_t max_block_size = 512>
     struct static_mem_pool {
         static_assert((max_block_count & (max_block_count - 1)) == 0, 

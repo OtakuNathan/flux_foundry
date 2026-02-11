@@ -2,8 +2,8 @@
 // Created by Nathan on 2/4/2026.
 //
 
-#ifndef LITE_FNDS_FLOW_ASYNC_AGGREGATOR_H
-#define LITE_FNDS_FLOW_ASYNC_AGGREGATOR_H
+#ifndef FLUX_FOUNDRY_FLOW_ASYNC_AGGREGATOR_H
+#define FLUX_FOUNDRY_FLOW_ASYNC_AGGREGATOR_H
 
 #include <system_error>
 #include <numeric>
@@ -12,8 +12,8 @@
 #include "flow_awaitable.h"
 #include "flow_runner.h"
 
-namespace lite_fnds {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+namespace flux_foundry {
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     using flow_async_agg_err_t = std::exception_ptr;
 #else
     using flow_async_agg_err_t = std::error_code;
@@ -44,8 +44,8 @@ struct flow_when_all_state {
     std::array<lite_ptr<flow_controller>, sizeof...(Ts)> controllers;
 
     explicit flow_when_all_state(Aggregator* agg) noexcept
-        : aggregator(agg), fired(0), failed(sizeof ... (Ts))
-        , data{ Ts(error_tag, typename Ts::error_type {})... } {
+        : data{ Ts(error_tag, typename Ts::error_type {})... }
+        , aggregator(agg), fired(0), failed(sizeof ... (Ts)) {
     }
 
     struct result_delegate {
@@ -74,11 +74,11 @@ struct flow_when_all_state {
         // Only call emplace once per delegate
         void emplace(value_type&& data) noexcept {
             value_type& e = get<I>(state->data);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
                 e = std::move(data);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             } catch (...) {
                 e.emplace_error(std::current_exception());
             }
@@ -142,7 +142,7 @@ private:
             state->fired.fetch_or(detail::launch_failed_msk, std::memory_order_acq_rel);
         };
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             state_->fired.fetch_add(detail::epoch, std::memory_order_release);
@@ -152,7 +152,7 @@ private:
             using bp_t     = typename bp_ptr_t::element_type;
             using receiver_t = typename state_t::template delegate<I>;
             auto controller = make_lite_ptr<flow_controller>();
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             UNLIKELY_IF (!controller) {
                 on_error();
                 return -1;
@@ -163,7 +163,7 @@ private:
             state_->controllers[I] = runner.get_controller();
             runner(std::move(get<I>(this->packs).second()));
             return 0;
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             on_error();
             throw;
@@ -179,21 +179,21 @@ public:
     lite_ptr<state_t> state_;
     
     template <typename ... Args,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         std::enable_if_t<std::is_constructible<bp_pack_storage_t, Args&&...>::value>* = nullptr
 #else
         std::enable_if_t<std::is_nothrow_constructible<bp_pack_storage_t, Args&&...>::value>* = nullptr
 #endif
     >
     explicit flow_when_all_awaitable(Args&& ... args)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept(std::is_nothrow_constructible<bp_pack_storage_t, Args&&...>::value)
 #endif
         : packs(std::forward<Args>(args)...)
         , state_(make_lite_ptr<state_t>(static_cast<agg_t*>(this))) {
     }
     
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     bool available() const noexcept {
         return static_cast<bool>(state_);
     }
@@ -212,7 +212,7 @@ public:
     // this should never be called at the same time with cancel. 
     int submit() noexcept {
         this->retain();
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             auto ret = this->submit(std::index_sequence_for<BPs...>{});
@@ -236,7 +236,7 @@ public:
                 this->release();
             }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             // error occurred when launching the runner. no need to do anything, 
             // just release
@@ -275,8 +275,8 @@ struct flow_when_any_state {
     std::array<lite_ptr<flow_controller>, sizeof...(Ts)> controllers;
 
     explicit flow_when_any_state(Aggregator* agg) noexcept
-        : aggregator(agg) , fired(0), winner(sizeof... (Ts))
-        , data{ Ts(error_tag, typename Ts::error_type {})... } {
+        : data{ Ts(error_tag, typename Ts::error_type {})... }
+        , aggregator(agg) , fired(0), winner(sizeof... (Ts)) {
     }
 
     struct result_delegate {
@@ -293,7 +293,7 @@ struct flow_when_any_state {
 
         template <size_t I>
         decltype(auto) get_element() noexcept {
-            return lite_fnds::get<I>(state->data);
+            return flux_foundry::get<I>(state->data);
         }
     };
     using result_type = result_t<result_delegate, flow_async_agg_err_t>;
@@ -314,11 +314,11 @@ struct flow_when_any_state {
         // Only call emplace once per delegate
         void emplace(elem_type&& data) noexcept {
             elem_type& e = get<I>(state->data);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
                 e = std::move(data);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             } catch (...) {
                 e.emplace_error(std::current_exception());
             }
@@ -378,7 +378,7 @@ struct flow_when_any_awaitable :
 private:
     template <size_t I>
     int launch() {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
             state_->fired.fetch_add(detail::epoch, std::memory_order_release);
@@ -388,7 +388,7 @@ private:
             using bp_t     = typename bp_ptr_t::element_type;
             using receiver_t = typename state_t::template delegate<I>;
             auto controller = make_lite_ptr<flow_controller>();
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             UNLIKELY_IF (!controller) {
                 state_->fired.fetch_sub(detail::epoch, std::memory_order_acq_rel);
                 return -1;
@@ -399,7 +399,7 @@ private:
             state_->controllers[I] = runner.get_controller();
             runner(std::move(get<I>(this->packs).second()));
             return 0;
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
             state_->fired.fetch_sub(detail::epoch, std::memory_order_acq_rel);
             return -1;
@@ -415,21 +415,21 @@ public:
     lite_ptr<state_t> state_;
     
     template <typename ... Args,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         std::enable_if_t<std::is_constructible<bp_pack_storage_t, Args&&...>::value>* = nullptr
 #else
         std::enable_if_t<std::is_nothrow_constructible<bp_pack_storage_t, Args&&...>::value>* = nullptr
 #endif
     >
     explicit flow_when_any_awaitable(Args&& ... args)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept(std::is_nothrow_constructible<bp_pack_storage_t, Args&&...>::value)
 #endif
         : packs(std::forward<Args>(args)...)
         , state_(make_lite_ptr<state_t>(static_cast<agg_t*>(this))) {
     }
 
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     bool available() const noexcept {
         return static_cast<bool>(state_);
     }
@@ -512,7 +512,7 @@ struct aggregator_awaitable_factory {
         "awaitable requirement: Missing 'void cancel() noexcept'.\n"
         "Must be able to cancel pending async operation and release resources.");
 
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <typename U>
     constexpr static auto detect_available(int)
         -> conjunction<std::is_convertible<decltype(std::declval<U&>().available()), int>,
@@ -540,7 +540,7 @@ struct aggregator_awaitable_factory {
 
     template <size_t... I, typename ... Args>
     auto create_awaitable(std::index_sequence<I...>, flat_storage<Args...>&& params) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         return new awaitable(make_compressed_pair(get<I>(this->bps), std::move(get<I>(params)))...);
 #else
         return new (std::nothrow) awaitable(make_compressed_pair(get<I>(this->bps), std::move(get<I>(params)))...);
@@ -548,7 +548,7 @@ struct aggregator_awaitable_factory {
     }
 
     template <typename A = awaitable, typename ... Args,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         std::enable_if_t<std::is_constructible<A, compressed_pair<lite_ptr<BPs>, Args>...>::value>* = nullptr
 #else
         std::enable_if_t<std::is_nothrow_constructible<A, compressed_pair<lite_ptr<BPs>, std::decay_t<Args>>...>::value>* = nullptr
@@ -562,7 +562,7 @@ struct aggregator_awaitable_factory {
             return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, params.error());
         }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         try {
             auto aw = create_awaitable(std::index_sequence_for<BPs...> {}, std::move(params.value()));
             return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
@@ -590,4 +590,4 @@ struct aggregator_awaitable_factory {
 }
 
 
-#endif //LITE_FNDS_FLOW_ASYNC_AGGREGATOR_H
+#endif //FLUX_FOUNDRY_FLOW_ASYNC_AGGREGATOR_H

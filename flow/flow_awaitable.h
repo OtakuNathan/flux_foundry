@@ -3,8 +3,8 @@
 // Created by Nathan on 1/27/2026.
 //
 
-#ifndef LITE_FNDS_FLOW_AWAITABLE_H
-#define LITE_FNDS_FLOW_AWAITABLE_H
+#ifndef FLUX_FOUNDRY_FLOW_AWAITABLE_H
+#define FLUX_FOUNDRY_FLOW_AWAITABLE_H
 
 #include <new>
 #include "../memory/lite_ptr.h"
@@ -12,8 +12,8 @@
 #include "../utility/callable_wrapper.h"
 #include "flow_def.h"
 
-namespace lite_fnds {
-    // Contract: Awaitables in lite_fnds MUST NOT start any side effects before submit_async() is called.
+namespace flux_foundry {
+    // Contract: Awaitables in flux_foundry MUST NOT start any side effects before submit_async() is called.
     template <typename derived, typename T, typename E>
     struct awaitable_base {
     private:
@@ -40,11 +40,11 @@ namespace lite_fnds {
         }
 
         void do_resume(result_t<T, E>&& result) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
                 this->next_step(std::move(result));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             } catch (...) {
                 this->next_step(result_t<T, E>(error_tag, std::current_exception()));
             }
@@ -61,7 +61,7 @@ namespace lite_fnds {
             }
 
             static_cast<derived*>(self)->cancel();
-            result_t<T, E> cancel_result(error_tag, lite_fnds::cancel_error<E>::make(kind));
+            result_t<T, E> cancel_result(error_tag, flux_foundry::cancel_error<E>::make(kind));
             self->do_resume(std::move(cancel_result));
         }
     public:
@@ -183,7 +183,7 @@ namespace lite_fnds {
             "awaitable requirement: Missing 'void cancel() noexcept'.\n"
             "Must be able to cancel pending async operation and release resources.");
 
- #if !LFNDS_COMPILER_HAS_EXCEPTIONS       
+ #if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS       
         template <typename U>
         constexpr static auto detect_available(int) 
             -> conjunction<std::is_convertible<decltype(std::declval<U&>().available()), int>,
@@ -205,14 +205,14 @@ namespace lite_fnds {
         using awaitable_t = awaitable;
 
         template <typename A = awaitable, typename ... Args,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::enable_if_t<std::is_constructible<awaitable, Args&&...>::value>* = nullptr
 #else
             std::enable_if_t<std::is_nothrow_constructible<awaitable, Args&&...>::value>* = nullptr
 #endif
         >
         result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
                 auto aw = new awaitable(std::forward<Args>(param)...);
                 return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
@@ -246,4 +246,4 @@ namespace lite_fnds {
 
 }
 
-#endif // LITE_FNDS_FLOW_AWAITABLE_H
+#endif // FLUX_FOUNDRY_FLOW_AWAITABLE_H

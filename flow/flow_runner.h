@@ -1,5 +1,5 @@
-﻿#ifndef LITE_FNDS_FLOW_RUNNER_H
-#define LITE_FNDS_FLOW_RUNNER_H
+#ifndef FLUX_FOUNDRY_FLOW_RUNNER_H
+#define FLUX_FOUNDRY_FLOW_RUNNER_H
 
 #include <atomic>
 #include <type_traits>
@@ -14,7 +14,7 @@
 #include "flow_def.h"
 #include "flow_blueprint.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     namespace flow_impl {
         template <typename T, typename D = void>
         struct check_receiver : std::false_type {};
@@ -83,8 +83,8 @@ namespace lite_fnds {
         detail::flow_async_cancel_param_t cancel_param { nullptr };
 
         // never ever call this
-        runner_cancel lock_and_set_cancel_handler(detail::flow_async_cancel_handler_t cancel_handler,
-            detail::flow_async_notify_handler_dropped_t notify_handler_dropped,
+        runner_cancel lock_and_set_cancel_handler(detail::flow_async_cancel_handler_t new_cancel_handler,
+            detail::flow_async_notify_handler_dropped_t new_notify_handler_dropped,
             detail::flow_async_cancel_param_t param) noexcept
         {
             auto& state = state_.get();
@@ -105,8 +105,8 @@ namespace lite_fnds {
                 }
             }
 
-            this->cancel_handler = cancel_handler;
-            this->notify_handler_dropped = notify_handler_dropped;
+            this->cancel_handler = new_cancel_handler;
+            this->notify_handler_dropped = new_notify_handler_dropped;
             this->cancel_param = param;
             return static_cast<runner_cancel>(exp | runner_cancel::locked);
         }
@@ -155,6 +155,8 @@ namespace lite_fnds {
         static void drop_sub(void*) noexcept {};
 
     public:
+        // cancel() is thread-safe and may be called from external threads.
+        // Internal handler/state transitions are coordinated with runner via lock bits + epoch.
         ~flow_controller() noexcept {
             reset_cancel_handler();
         }
@@ -206,7 +208,11 @@ namespace lite_fnds {
         }
     };
 
-    // runner is not thread safe
+    // Concurrency contract:
+    // - flow_runner object is NOT thread-safe.
+    // - do not call operator() concurrently on the same runner instance.
+    // - async/via steps transfer execution by move-capturing runner state into continuations.
+    // - flow_controller::cancel() may be invoked concurrently from other threads.
     template <typename flow_bp, typename receiver_type>
     struct flow_runner {
         static constexpr std::size_t node_count = flow_bp::node_count;
@@ -273,6 +279,8 @@ namespace lite_fnds {
         template <typename In,
             std::enable_if_t<std::is_convertible<In, typename I_t::value_type>::value>* = nullptr>
         void operator()(In&& in) noexcept {
+            // Controller is created lazily per run-start so a moved-from runner can be
+            // safely resumed by internal continuations without sharing external controller state.
             if (!bp()) {
                 return;
             }
@@ -743,12 +751,20 @@ namespace lite_fnds {
         };
     };
 
-    template <typename bp_t>
-    auto make_fast_runner(std::add_rvalue_reference_t<std::decay_t<bp_t>> bp) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        using bp_storage = fast_runner_impl::bp_storage<std::add_rvalue_reference_t<std::decay_t<bp_t>>>;
-        return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_t::O_t>>(bp_storage(std::move(bp)));
+    template <typename bp_t,
+        std::enable_if_t<conjunction_v<
+            flow_impl::is_blueprint<std::decay_t<bp_t>>,
+            negation<std::is_lvalue_reference<bp_t>>
+        >, int> = 0>
+    auto make_fast_runner(bp_t&& bp) noexcept {
+        using bp_decay = std::decay_t<bp_t>;
+        using bp_storage = fast_runner_impl::bp_storage<bp_decay&&>;
+        return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_decay::O_t>>(bp_storage(std::move(bp)));
     }
+
+    template <typename bp_t,
+        std::enable_if_t<flow_impl::is_blueprint_v<std::decay_t<bp_t>>, int> = 0>
+    auto make_fast_runner(bp_t&) = delete;
 
     template <typename bp_t>
     auto make_fast_runner(lite_ptr<bp_t> bp) noexcept {
@@ -771,21 +787,30 @@ namespace lite_fnds {
         return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
     }
 
-    template <typename bp_t, typename receiver_t>
-    auto make_fast_runner(std::add_rvalue_reference_t<std::decay_t<bp_t>> bp, receiver_t receiver) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
+    template <typename bp_t, typename receiver_t,
+        std::enable_if_t<conjunction_v<
+            flow_impl::is_blueprint<std::decay_t<bp_t>>,
+            negation<std::is_lvalue_reference<bp_t>>
+        >, int> = 0>
+    auto make_fast_runner(bp_t&& bp, receiver_t receiver) noexcept {
+        using bp_decay = std::decay_t<bp_t>;
+        static_assert(flow_impl::is_blueprint_v<bp_decay>, "bp_t must be a flow_blueprint");
         static_assert(flow_impl::check_receiver<receiver_t>::value,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(flow_impl::check_receiver_compatible<typename bp_decay::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
-        using bp_storage = fast_runner_impl::bp_storage<std::add_rvalue_reference_t<std::decay_t<bp_t>>>;
+        using bp_storage = fast_runner_impl::bp_storage<bp_decay&&>;
         return flow_fast_runner<bp_storage, receiver_t>(bp_storage(std::move(bp)), std::move(receiver));
     }
+
+    template <typename bp_t, typename receiver_t,
+        std::enable_if_t<flow_impl::is_blueprint_v<std::decay_t<bp_t>>, int> = 0>
+    auto make_fast_runner(bp_t&, receiver_t) = delete;
 
     template <typename bp_t, typename receiver_t>
     auto make_fast_runner(lite_ptr<bp_t> bp, receiver_t receiver) noexcept {
@@ -834,6 +859,6 @@ namespace lite_fnds {
         using bp_storage = fast_runner_impl::bp_storage<bp_t&>;
         return flow_fast_runner<bp_storage, receiver_t>(bp_storage(bp), std::move(receiver));
     }
-} // namespace lite_fnds
+} // namespace flux_foundry
 
-#endif // LITE_FNDS_FLOW_RUNNER_H
+#endif // FLUX_FOUNDRY_FLOW_RUNNER_H

@@ -1,12 +1,12 @@
-﻿#ifndef LITE_FNDS_FLOW_NODE_H
-#define LITE_FNDS_FLOW_NODE_H
+#ifndef FLUX_FOUNDRY_FLOW_NODE_H
+#define FLUX_FOUNDRY_FLOW_NODE_H
 
 #include "flow_async_aggregator.h"
 #include "../task/task_wrapper.h"
 #include "flow_blueprint.h"
 #include "flow_awaitable.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     namespace flow_impl {
         struct identity {
             template <typename T>
@@ -42,7 +42,7 @@ namespace lite_fnds {
             template <typename F_, typename... As>
             static auto check_success(int) -> conjunction<
                 std::integral_constant<bool, noexcept(std::declval<F_&>()(std::declval<As>()...))>,
-                is_result_t<invoke_result_t<F_, As...>>>;
+                is_result_t<invoke_result_t<F_&, As...>>>;
 
             template <typename...>
             static auto check_fail(...) -> std::false_type;
@@ -50,13 +50,13 @@ namespace lite_fnds {
             template <typename G_>
             static auto check_fail(int) -> conjunction<
                 std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
-                is_result_t<invoke_result_t<G_, flow_async_agg_err_t>>>;
+                is_result_t<invoke_result_t<G_&, flow_async_agg_err_t>>>;
 
             template <typename...>
             static auto check_return_match(...) -> std::false_type;
 
             template <typename F_, typename G_, typename... As>
-            static auto check_return_match(int) -> std::is_same<invoke_result_t<F_, As...>, invoke_result_t<G_, flow_async_agg_err_t>>;
+            static auto check_return_match(int) -> std::is_same<invoke_result_t<F_&, As...>, invoke_result_t<G_&, flow_async_agg_err_t>>;
 
             static constexpr bool value = conjunction_v<
                 decltype(check_success<F, Args_...>(0)),
@@ -79,17 +79,17 @@ namespace lite_fnds {
             template <typename G_>
             static auto check_fail(int) -> conjunction<
                 std::integral_constant<bool, noexcept(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
-                is_result_t<invoke_result_t<G_, flow_async_agg_err_t>>>;
+                is_result_t<invoke_result_t<G_&, flow_async_agg_err_t>>>;
 
             template <typename...>
             static auto check_all_returns(...) -> std::false_type;
 
             template <typename F_, typename G_, typename... As>
             static auto check_all_returns(int) -> conjunction<
-                is_result_t<invoke_result_t<G_, flow_async_agg_err_t>>,
+                is_result_t<invoke_result_t<G_&, flow_async_agg_err_t>>,
                 is_all_the_same<
-                    invoke_result_t<G_, flow_async_agg_err_t>,
-                    invoke_result_t<F_, As>...
+                    invoke_result_t<G_&, flow_async_agg_err_t>,
+                    invoke_result_t<F_&, As>...
                 >>;
 
             static constexpr bool value = conjunction_v<
@@ -229,14 +229,14 @@ namespace lite_fnds {
             static auto make(then_node&& self) 
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF(in.has_value()) {
                             return f(std::move(in));
                         }
                         return F_O(error_tag, std::move(in).error());
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -248,7 +248,7 @@ namespace lite_fnds {
 
         template <typename I, typename O, typename... Nodes, typename F>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, then_node<F>&& a) {
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "callable F is not compatible with current blueprint");
 #else
@@ -273,14 +273,14 @@ namespace lite_fnds {
             static auto make(error_node&& self) 
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF(in.has_value()) {
                             return F_O(value_tag, std::move(in).value());
                         }
                         return f(std::move(in));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -292,7 +292,7 @@ namespace lite_fnds {
 
         template <typename I, typename O, typename ... Nodes, typename F>
         auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, error_node<F>&& a) {
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in error is not compatible with current blueprint.");
 #else
@@ -308,7 +308,7 @@ namespace lite_fnds {
             return std::move(bp) | std::move(node);
         }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         // exception catch
         template <typename F, typename Exception>
         struct exception_catch_node {
@@ -392,7 +392,7 @@ namespace lite_fnds {
                 " Besides, please never ever use inline executor to dispatch await operation");
 
             static_assert(is_awaitable_v<Awaitable>,
-                "Awaitable must be an valid awaitable(see lite_fnds::awaitable_base)");
+                "Awaitable must be an valid awaitable(see flux_foundry::awaitable_base)");
             Executor e;
 
             template <typename F_I, typename F_O>
@@ -448,14 +448,14 @@ namespace lite_fnds {
                 using result_type = typename awaitable_t::result_type;
                 using factory_t = aggregator_awaitable_factory<awaitable_t, BPs...>;
                 auto adaptor = [f = std::move(node.f), g = std::move(node.g)](result_type&& t) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF (t.has_value()) {
                             return unpack_and_call(f, std::move(t.value().get()));
                         }
                         return g(std::move(t.error()));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -497,7 +497,7 @@ namespace lite_fnds {
                 using factory_t = aggregator_awaitable_factory<awaitable_t, BPs...>;
 
                 auto adaptor = [f = std::move(node.f), g = std::move(node.g)](result_type&& t) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF (t.has_value()) {
@@ -505,7 +505,7 @@ namespace lite_fnds {
                             return visit_and_call(f, winner, std::move(t.value().get()));
                         }
                         return g(std::move(t.error()));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -527,11 +527,11 @@ namespace lite_fnds {
             static auto make(end_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         return f(std::move(in));
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_I(error_tag, std::current_exception());
                     }
@@ -556,7 +556,7 @@ namespace lite_fnds {
             typename F, std::enable_if_t<!std::is_void<F>::value, int> = 0>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in end is not compatible with current blueprint.");
 #else
@@ -610,7 +610,7 @@ namespace lite_fnds {
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <typename Exception, typename F>
     inline auto catch_exception(F&& f) noexcept {
         return flow_impl::exception_catch_node<std::decay_t<F>, Exception> { std::forward<F>(f) };

@@ -1,9 +1,9 @@
-﻿//
+//
 // Created by nathan on 2025/8/13.
 //
 
-#ifndef LITE_FNDS_TRAITS_H
-#define LITE_FNDS_TRAITS_H
+#ifndef FLUX_FOUNDRY_TRAITS_H
+#define FLUX_FOUNDRY_TRAITS_H
 
 #include <cstddef>
 #include <cstdint>
@@ -11,40 +11,40 @@
 #include <memory>
 #include <cassert>
 
-#ifndef LFNDS_NO_EXCEPTION_STRICT
-#define LFNDS_NO_EXCEPTION_STRICT 0
+#ifndef FLUEX_FOUNDRY_NO_EXCEPTION_STRICT
+#define FLUEX_FOUNDRY_NO_EXCEPTION_STRICT 0
 #endif
 
-#define LFNDS_CPP_14 201402L
-#define LFNDS_CPP_17 201703L
-#define LFNDS_CPP_20 202002L
+#define FLUEX_FOUNDRY_CPP_14 201402L
+#define FLUEX_FOUNDRY_CPP_17 201703L
+#define FLUEX_FOUNDRY_CPP_20 202002L
 
 #if defined(_MSVC_LANG)
-    #define LFNDS_CPP_VER _MSVC_LANG
+    #define FLUEX_FOUNDRY_CPP_VER _MSVC_LANG
 #elif defined(__cplusplus)
-    #define LFNDS_CPP_VER __cplusplus
+    #define FLUEX_FOUNDRY_CPP_VER __cplusplus
 #else
-    #define LFNDS_CPP_VER 0L
+    #define FLUEX_FOUNDRY_CPP_VER 0L
 #endif
 
-#define LFNDS_CPP_AT_LEAST(ver) (LFNDS_CPP_VER >= LFNDS_CPP_##ver)
-#define LFNDS_CPP_AT_MOST(ver)  (LFNDS_CPP_VER <= LFNDS_CPP_##ver)
+#define FLUEX_FOUNDRY_CPP_AT_LEAST(ver) (FLUEX_FOUNDRY_CPP_VER >= FLUEX_FOUNDRY_CPP_##ver)
+#define FLUEX_FOUNDRY_CPP_AT_MOST(ver)  (FLUEX_FOUNDRY_CPP_VER <= FLUEX_FOUNDRY_CPP_##ver)
 
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-#  define LFNDS_COMPILER_HAS_EXCEPTIONS 1
+#  define FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS 1
 #else
-#  define LFNDS_COMPILER_HAS_EXCEPTIONS 0
+#  define FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS 0
 #endif
 
-#ifndef LFNDS_HAS_EXCEPTIONS
-#  if !LFNDS_COMPILER_HAS_EXCEPTIONS && LFNDS_NO_EXCEPTION_STRICT
-#    define LFNDS_HAS_EXCEPTIONS 0
+#ifndef FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#  if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS && FLUEX_FOUNDRY_NO_EXCEPTION_STRICT
+#    define FLUEX_FOUNDRY_HAS_EXCEPTIONS 0
 #  else
-#    define LFNDS_HAS_EXCEPTIONS 1
+#    define FLUEX_FOUNDRY_HAS_EXCEPTIONS 1
 #  endif
 #endif
 
-#if LFNDS_CPP_AT_LEAST(20)
+#if FLUEX_FOUNDRY_CPP_AT_LEAST(20)
 #  define LIKELY_IF(expr) if ((expr)) [[likely]]
 #  define UNLIKELY_IF(expr) if ((expr)) [[unlikely]]
 #else
@@ -71,7 +71,7 @@
 #define TS_EMPTY_BASES
 #endif
 
-namespace lite_fnds {
+namespace flux_foundry {
     static constexpr size_t CACHE_LINE_SIZE = 64;
 
     template <typename T>
@@ -98,7 +98,7 @@ namespace lite_fnds {
     template <size_t N>
     struct in_place_index {};
 
-#if LFNDS_CPP_AT_LEAST(17)
+#if FLUEX_FOUNDRY_CPP_AT_LEAST(17)
     using std::invoke_result;
     using std::invoke_result_t;
 #else
@@ -109,14 +109,14 @@ namespace lite_fnds {
     using invoke_result_t = std::result_of_t<F(A...)>;
 #endif
 
-#if LFNDS_CPP_AT_LEAST(20)
+#if FLUEX_FOUNDRY_CPP_AT_LEAST(20)
     using std::type_identity;
 #else
     template <typename T>
     struct type_identity { using type = T; };
 #endif
 
-#if LFNDS_CPP_AT_MOST(14)
+#if FLUEX_FOUNDRY_CPP_AT_MOST(14)
     template <typename T>
     struct negation : std::integral_constant<bool, !T::value> {};
 
@@ -149,74 +149,45 @@ namespace lite_fnds {
     constexpr bool disjunction_v = disjunction<Ts...>::value;
 
     namespace swap_adl_tests {
-        struct tag {};
-
-        template <typename T> 
-        tag swap(T &, T &);
-        
-        template <typename T, std::size_t N> 
-        tag swap(T (&a)[N], T (&b)[N]);
+        using std::swap;
 
         template <typename, typename>
         auto can_swap(...) noexcept(false) -> std::false_type;
 
         template <typename T, typename U>
-        auto can_swap(int) noexcept(noexcept(swap(std::declval<T &>(), std::declval<U &>()))) ->
-            decltype(swap(std::declval<T &>(), std::declval<U &>()), std::true_type{});
+        auto can_swap(int) noexcept(noexcept(swap(std::declval<T>(), std::declval<U>()))
+            && noexcept(swap(std::declval<U>(), std::declval<T>())))
+            -> decltype(
+                swap(std::declval<T>(), std::declval<U>()),
+                swap(std::declval<U>(), std::declval<T>()),
+                std::true_type{}
+            );
 
-        template <typename, typename>
-        std::false_type uses_std(...);
+        template <typename T, typename U, bool = decltype(can_swap<T, U>(0))::value>
+        struct is_nothrow_swappable_helper : std::false_type {
+        };
 
         template <typename T, typename U>
-        std::is_same<decltype(swap(std::declval<T &>(), std::declval<U &>())), tag> uses_std(int);
-
-        template<class T>
-        struct is_std_swap_noexcept
-                : std::integral_constant<bool,
-                    std::is_nothrow_move_constructible<T>::value &&
-                    std::is_nothrow_move_assignable<T>::value> {
-        };
-
-        template<class T, std::size_t N>
-        struct is_std_swap_noexcept<T[N]> : is_std_swap_noexcept<T> {
-        };
-
-        template<class T, class U>
-        struct is_adl_swap_noexcept
-                : std::integral_constant<bool, noexcept(can_swap<T, U>(0))> {
+        struct is_nothrow_swappable_helper<T, U, true>
+            : std::integral_constant<bool,
+                noexcept(swap(std::declval<T>(), std::declval<U>()))
+                && noexcept(swap(std::declval<U>(), std::declval<T>()))> {
         };
     }
 
     template<class T, class U = T>
-    struct is_swappable
-            : std::integral_constant<
-                bool,
-                decltype(swap_adl_tests::can_swap<T, U>(0))::value 
-             && (!decltype(swap_adl_tests::uses_std<T, U>(0))::value 
-             || (std::is_move_assignable<T>::value &&
-                  std::is_move_constructible<T>::value))> {
+    struct is_swappable : decltype(swap_adl_tests::can_swap<T&, U&>(0)) {
     };
 
     template <typename R, typename... Args>
     struct is_swappable<R (*)(Args...)> : std::true_type { };
 
     template<class T, std::size_t N>
-    struct is_swappable<T[N], T[N]>
-            : std::integral_constant<
-                bool,
-                decltype(swap_adl_tests::can_swap<T[N], T[N]>(0))::value 
-                    && (!decltype(swap_adl_tests::uses_std<T[N], T[N]>(0))::value 
-                    || is_swappable<T, T>::value)> {
+    struct is_swappable<T[N], T[N]> : decltype(swap_adl_tests::can_swap<T(&)[N], T(&)[N]>(0)) {
     };
 
     template<class T, class U = T>
-    struct is_nothrow_swappable
-            : std::integral_constant<
-                bool, is_swappable<T, U>::value &&
-                ((decltype(swap_adl_tests::uses_std<T, U>(0))::value &&
-                  swap_adl_tests::is_std_swap_noexcept<T>::value) ||
-                 (!decltype(swap_adl_tests::uses_std<T, U>(0))::value &&
-                  swap_adl_tests::is_adl_swap_noexcept<T, U>::value))> {
+    struct is_nothrow_swappable : swap_adl_tests::is_nothrow_swappable_helper<T&, U&> {
     };
 
     template <typename R, typename... Args>

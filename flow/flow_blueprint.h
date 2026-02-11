@@ -1,5 +1,5 @@
-﻿#ifndef LITE_FNDS_FLOW_BLUEPRINT_H
-#define LITE_FNDS_FLOW_BLUEPRINT_H
+#ifndef FLUX_FOUNDRY_FLOW_BLUEPRINT_H
+#define FLUX_FOUNDRY_FLOW_BLUEPRINT_H
 
 #include <utility>
 
@@ -8,7 +8,7 @@
 
 #include "flow_def.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     namespace flow_impl {
         template <typename T, size_t... I, typename ... Ts>
         auto flat_storage_prepend_impl(T&& n, flat_storage<Ts...>&& t, std::index_sequence<I...>) {

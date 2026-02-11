@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_LOCK_FREE_QUEUES_H
-#define LITE_FNDS_LOCK_FREE_QUEUES_H
+#ifndef FLUX_FOUNDRY_LOCK_FREE_QUEUES_H
+#define FLUX_FOUNDRY_LOCK_FREE_QUEUES_H
 
 #include <atomic>
 #include <thread>
@@ -8,7 +8,7 @@
 #include "../memory/inplace_t.h"
 #include "back_off.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
 template <typename T, size_t capacity>
 struct spsc_queue {
     static_assert(std::is_nothrow_move_constructible<T>::value,
@@ -70,7 +70,7 @@ public:
        return true;
     }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_, typename... Args,
         std::enable_if_t <conjunction_v<
         negation<std::is_nothrow_constructible<T_, Args&&...>>, std::is_constructible<T_, Args&&...>>>* = nullptr>
@@ -92,7 +92,7 @@ public:
         return true;
     }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_, typename ... Args,
         typename = std::enable_if_t<std::is_constructible<T_, Args&&...>::value>>
     void wait_and_emplace(Args&&... args)
@@ -203,7 +203,7 @@ public:
         }
     }
 
-    template <typename T_, typename... Args,
+    template <typename T_ = T, typename... Args,
         std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>::value>* = nullptr>
     bool try_emplace(Args&& ... args) noexcept {
         auto& t_ = _t.get();
@@ -220,8 +220,8 @@ public:
         return false;
     }
 
-#if LFNDS_HAS_EXCEPTIONS
-    template <typename T_, typename... Args,
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+    template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>, std::is_constructible<T_, Args&&...>>>* = nullptr>
     bool try_emplace(Args&&... args)
@@ -232,7 +232,6 @@ public:
 #endif
 
     bool try_emplace(T&& object) noexcept {
-        constexpr int max_retry = 8;
         auto& t_ = _t.get();
 
         size_t t = t_.load(std::memory_order_relaxed);
@@ -266,8 +265,8 @@ public:
         }
     }
 
-#if LFNDS_HAS_EXCEPTIONS
-    template <typename T_, typename... Args,
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+    template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>,
             std::is_constructible<T_, Args&&...>>>* = nullptr>
@@ -415,8 +414,8 @@ public:
         }
     }
 
-#if LFNDS_HAS_EXCEPTIONS
-    template <typename T_, typename... Args,
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+    template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>,
             std::is_constructible<T_, Args&&...>>>* = nullptr>
@@ -488,8 +487,8 @@ public:
         return false;
     }
 
-#if LFNDS_HAS_EXCEPTIONS
-    template <typename T_, typename... Args,
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+    template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>,
             std::is_constructible<T_, Args&&...>>>* = nullptr>
@@ -665,8 +664,8 @@ public:
         return true;
     }
 
-#if LFNDS_HAS_EXCEPTIONS
-    template<typename T_, typename... Args,
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+    template<typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args &&...> >,
             std::is_constructible<T_, Args &&...> > >* = nullptr>

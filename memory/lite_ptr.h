@@ -14,7 +14,7 @@
 #include "flat_storage.h"
 #include "aligned_alloc.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
 
     template <typename T>
     struct default_deleter {
@@ -39,7 +39,7 @@ namespace lite_fnds {
     template <typename T, typename F = default_deleter<T>, size_t align = alignof(T)>
     class lite_ptr {
         static_assert(align >= alignof(T), "align must be >= alignof(T)");
-        static_assert((align & (align - 1)) == 0, "align must be power of two");;
+        static_assert((align & (align - 1)) == 0, "align must be power of two");
 
         using op = raw_inplace_storage_base<T>;
 
@@ -76,20 +76,20 @@ namespace lite_fnds {
 
         template <typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<std::is_same<F_, default_deleter<T>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<T, Args&&...>
 #else
                         std::is_nothrow_constructible<T, Args&&...>
 #endif
         >>* = nullptr>
         explicit lite_ptr(in_place_t, Args&& ... args)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, default_deleter<T>&&, Args&&...>>)
 #endif
             : cb {nullptr} {
             auto cb_ = static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1)));
             if (!cb_) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 throw std::bad_alloc();
 #else
                 return;
@@ -105,20 +105,20 @@ namespace lite_fnds {
         template <typename G, typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<
                         negation<std::is_same<F_, default_deleter<T>>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<F_, G&&>, std::is_constructible<T, Args&&...>
 #else
                         std::is_nothrow_constructible<F_, G&&>, std::is_nothrow_constructible<T, Args&&...>
 #endif
         >>* = nullptr>
         lite_ptr(in_place_t, G&& g, Args&& ... args)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept(conjunction_v<std::is_nothrow_constructible<cb_t, G&&, Args&&...>>)
 #endif
             : cb {nullptr} {
             auto cb_ = static_cast<cb_t*>(aligned_alloc(alignof(cb_t), (sizeof(cb_t) + alignof(cb_t) - 1) & ~(alignof(cb_t) - 1)));
             if (!cb_) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 throw std::bad_alloc();
 #else
                 return;

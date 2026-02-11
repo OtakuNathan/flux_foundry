@@ -1,0 +1,14 @@
+# Test build output
+test/bin/
+
+# CMake build output
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Common MSVC/LLD artifacts
+*.ilk
+*.pdb

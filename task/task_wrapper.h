@@ -2,8 +2,8 @@
 // Created by nathan on 2025/8/13.
 //
 
-#ifndef LITE_FNDS_TASK_WRAPPER_H
-#define LITE_FNDS_TASK_WRAPPER_H
+#ifndef FLUX_FOUNDRY_TASK_WRAPPER_H
+#define FLUX_FOUNDRY_TASK_WRAPPER_H
 
 #include <cassert>
 #include <cstddef>
@@ -12,7 +12,7 @@
 #include "../base/inplace_base.h"
 #include "../base/type_erase_base.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     // this is not thread safe
     template <size_t sbo_size_, size_t align_>
     class task_wrapper : 

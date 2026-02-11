@@ -1,167 +1,207 @@
-# lite_fnds & Flow+
+# flux_foundry
 
-**lite_fnds** is a lightweight, hardware-aware C++ foundation library designed to provide predictable performance for latency-sensitive systems. **Flow+** is an asynchronous task orchestration framework built upon these primitives, utilizing a static DSL (Domain Specific Language) to simplify the construction of complex execution pipelines.
+> Lightweight C++14 foundations for async flow orchestration, lock-free queues, and low-level memory building blocks.
 
-The primary goal of this project is to explore the limits of zero-overhead abstractions in C++ and to minimize resource contention in high-concurrency environments through deterministic memory management and layout optimization.
+## ✨ Overview
 
-## 📊 Performance Benchmarks
-**Note**: The following benchmarks measure the **pure dispatch latency** and **abstraction overhead** of the framework. The test pipeline consists of 20+ lightweight integer arithmetic nodes to expose the minimal cost per stage. In real-world "heavy" workloads (e.g., I/O or heavy compute), the framework's overhead effectively becomes negligible (approaching zero impact).
+`flux_foundry` is a header-only C++14 library that combines:
 
-**Scenario**: $10^7$ iterations, 20-stage pipeline, integer increment logic.
+- ⚡ Low-overhead flow pipeline execution (`flow_runner`, `flow_fast_runner`)
+- 🔁 Async composition primitives (`flow_async`, `await_when_all`, `await_when_any`)
+- 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace`)
+- 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`)
 
-| Execution Mode | Total Time ($10^7$ ops) | Avg Latency per Node | Description                                                              |
-| :--- | :--- | :--- |:-------------------------------------------------------------------------|
-| **Standard Runner** | ~2.2 s | ~220 ns | Dynamic construction of blueprint, suitable for flexible runtime graphs. |
-| **Fast Runner** | **~1.5 s** | **~150 ns** | Zero-virtual-call. Pure template expansion overhead.                     |
+The project is tuned for predictable behavior and explicit contracts under concurrency.
 
-> *Note: Benchmarks were run on consumer-grade x86_64 hardware. Actual performance may vary depending on the CPU architecture, compiler version, and optimization flags.*
+## 🧩 Components
 
----
+| Module | Main files | What it provides |
+|---|---|---|
+| `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h` | Pipeline DSL, node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
+| `executor/` | `simple_executor.h`, `gsource_executor.h` | MPSC single-consumer executor, GLib source-backed executor |
+| `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h` | Lock-free queues, callable type-erasure with SBO, backoff policies |
+| `task/` | `task_wrapper.h`, `future_task.h` | Task wrappers and future-related task abstraction |
+| `memory/` | `result_t.h`, `either_t.h`, `flat_storage.h`, `lite_ptr.h`, `inplace_t.h`, `padded_t.h`, `hazard_ptr.h` | Result/error transport, tagged unions, storage composition, smart pointer, inplace construction helpers, padding/alignment primitives |
+| `base/` | `traits.h`, `type_erase_base.h`, `inplace_base.h`, `type_utility.h` | Traits/macros and low-level reusable base utilities |
 
-## 🛠️ Core Components
+## 🚀 Quick Start (CMake)
 
-### 1. Deterministic Memory Management
-To mitigate the non-determinism often found in standard allocators, this library provides:
-* **`lite_ptr<T>`**: A lightweight reference-counted smart pointer. It optimizes memory ordering (using a `release-fence-acquire` sequence) and ensures the control block is co-located with the object to improve cache locality.
-* **`static_mem_pool`**: A tiered, pre-allocated memory pool that ensures O(1) allocation and deallocation, avoiding system calls on the hot path.
-* **`hazard_ptr`**: Implements a lock-free memory reclamation strategy for lock-free data structures, effectively solving the ABA problem.
-* **`inplace_t<T>`**: A helper for manual object lifetime management, supporting exception-safe placement new and aggregate initialization.
+```bash
+cmake -S . -B build -DFLUX_FOUNDRY_BUILD_TESTS=ON
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
 
-### 2. Concurrency & Synchronization
-Engineered to reduce false sharing and thread contention:
-* **Lock-Free Queues**: Includes SPSC, MPSC, and MPMC queue implementations. These utilize CAS-based slot reservation and sequence tracking to maintain throughput.
-* **Hardware Alignment**: Critical structures (such as `hazard_record`) are strictly aligned to `CACHE_LINE_SIZE` (64 bytes).
-* **`simple_executor`**: A lightweight scheduler based on an MPSC queue. It employs `thread_local` state tracking to prevent deadlocks caused by task reentrancy, making it suitable for high-frequency micro-tasks.
+Run specific suites:
 
-### 3. Tasks & Type Erasure
-* **`task_wrapper_sbo`**: A type-erasure container optimized for 64-byte cache lines. It uses SBO (Small Object Optimization) to avoid heap allocation for lambdas; trivial types are further optimized into `memcpy` operations.
-* **`future_task`**: An asynchronous task wrapper compatible with `std::future`, enforcing strict `noexcept` move semantics to ensure stability.
+```bash
+ctest --test-dir build -C Release -L smoke  --output-on-failure
+ctest --test-dir build -C Release -L stress --output-on-failure
+ctest --test-dir build -C Release -L perf   --output-on-failure
+```
 
-### 4. Flow+ Pipeline
-A template-based DSL for composing asynchronous logic:
-* **Static Folding**: Pipelines constructed via the `|` operator are flattened at compile-time, minimizing runtime abstraction overhead.
-* **Functional Nodes**:
-* `transform`: Data processing.
-* `via`: Context switching to a specific Executor.
-* `on_error` / `catch_exception`: Unified error handling paths.
-* **Error Propagation**: Built on `result_t` (similar to `std::expected`), allowing the system to function correctly even in environments where C++ exceptions are disabled.
+## ✅ CI
 
----
+GitHub Actions workflow: `.github/workflows/ci.yml`
 
-## 💻 Usage Example
+- OS matrix: `ubuntu-latest`, `windows-latest`
+- Build: CMake + C++14
+- Test gate: `ctest -L smoke`
 
-The following example demonstrates how to define and execute a flow that includes computation, thread switching, and error handling:
+This keeps PR checks fast while still validating the core flow path on both platforms.
+
+## 🛠 Flow DSL at a glance
 
 ```cpp
-#include <iostream>
+#include "flow/flow.h"
 
-#include "flow/flow_blueprint.h"
-#include "flow/flow_node.h"
-#include "flow/flow_runner.h"
+using namespace flux_foundry;
+using E = std::exception_ptr;
 
-struct fake_executor {
-    void dispatch(lite_fnds::task_wrapper_sbo sbo) noexcept {
-        sbo();
-    }
+struct inline_executor {
+    void dispatch(task_wrapper_sbo t) noexcept { t(); }
 };
 
-int main(int argc, char *argv[]) {
-    using std::cout;
-    using std::endl;
+struct plus_one_awaitable : awaitable_base<plus_one_awaitable, int, E> {
+    using async_result_type = result_t<int, E>;
+    int v;
 
-    using lite_fnds::result_t;
-    using lite_fnds::value_tag;
-    using lite_fnds::error_tag;
+    explicit plus_one_awaitable(async_result_type&& in) noexcept
+        : v(in.has_value() ? in.value() : 0) {}
 
-    using lite_fnds::make_blueprint;
-    using lite_fnds::via;
-    using lite_fnds::transform;
-    using lite_fnds::then;
-    using lite_fnds::end;
-    using lite_fnds::on_error;
-    using lite_fnds::make_runner;
-    using lite_fnds::catch_exception;
-    using E = std::exception_ptr;
+    int submit() noexcept {
+        this->resume(async_result_type(value_tag, v + 1));
+        return 0;
+    }
 
-    fake_executor executor;
+    void cancel() noexcept {}
+};
 
-    int v = 100;
-    // 1. Define the Blueprint
+int main() {
+    inline_executor ex;
+
     auto bp = make_blueprint<int>()
-         | via(&executor)
-         | transform([&v] (int x) noexcept{
-             return v += 10, (double)v + x;
-         })
-         | then([](result_t<double, E> f) {
-             std::cout << f.value() << std::endl;
-             if (f.value() > 120) {
-                 throw std::logic_error("exception on then node error");
-             }
-             f.value() += 10;
-             return f;
-         })
-         | on_error([&](result_t<double, E> f) {
-             try {
-                 std::rethrow_exception(f.error());
-             } catch (const std::logic_error& e) {
-                 std::cout << e.what() << std::endl;
-                 // return result_t<double, E>(value_tag, 1.0);
-                 throw e;
-             } catch (...) {
-                 return result_t<double, E>(error_tag, std::current_exception());
-             }
-         })
-         | catch_exception<std::logic_error>([](const std::logic_error& e) {
-                std::cout << e.what() << endl;
-                return 3.0;
-            })
-         | end([](result_t<double, E> f) {
-             if (f.has_value()) {
-                 std::cout << "finaly value is: " << f.value() << std::endl;
-             }
-             return f;
-         });
+        | transform([](int x) noexcept { return x + 1; })
+        | await<plus_one_awaitable>(&ex)
+        | end();
 
-    using bp_t = decltype(bp);
-    std::shared_ptr<bp_t> bp_ptr = std::make_shared<bp_t>(std::move(bp));
-    
-    // 2. Create Runner and Execute
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr);
-
-    runner(10);
-    cout << "V become after one shot of bp:" << v << endl;
-    cout << endl;
-
-    /*
-    * 120
-    * finaly value is: 130
-    * become after one shot of bp:110
-    */
-
-    runner(10);
-    cout << "V become after one shot of bp:" << v << endl;
-    cout << endl;
-
-    /*
-     * 130
-     * exception on then node error
-     * exception on then node error
-     * finaly value is: 3
-     * V become after one shot of bp:120
-     */
-    return 0;
+    runner(1);
 }
 ```
 
-## ⚙️ Design Philosophy
-* **Pay only for what you use**: Features like monitoring or exception support are injected via policy templates, incurring zero overhead when disabled.
-* **Hardware-First**: Data structures prioritize cache line alignment, branch prediction hints (LIKELY_IF), and precise memory ordering.
-* **Robustness**: While full C++ exception support is available, the core library is designed to compile and run reliably in -fno-exceptions modes.
+## 🏗 Architecture sketch
+
+```mermaid
+flowchart LR
+    A[Blueprint DSL<br/>transform/via/async/when_all/when_any] --> B[flow_blueprint]
+    B --> C[flow_runner / flow_fast_runner]
+    C --> D[Executor<br/>simple_executor or custom dispatch]
+    C --> E[Awaitable Layer<br/>awaitable_base + factories]
+    E --> F[Async Aggregators<br/>when_all / when_any state]
+    C --> G[result_t/either_t error path]
+    D --> H[Queues<br/>MPSC/MPMC/SPSC/SPMC]
+```
+
+## 🔧 Key contracts
+
+### `simple_executor`
+
+- `run()`:
+  - single-consumer only
+  - non-reentrant on the same thread
+- `try_shutdown()`:
+  - attempts `running -> shutdown`
+  - returns `true` when shutdown is already visible/succeeded
+- `dispatch()` after shutdown:
+  - treated as invalid usage (`assert` + `abort`)
+
+### Flow runner
+
+- Strongly typed node IO (`result_t<T, E>`)
+- Explicit cancel path via `flow_controller`
+- Async node submit/cancel lifecycle managed through `awaitable_base`
+
+## 📊 Benchmark snapshot (local run)
+
+Command:
+
+```bash
+cmake -S . -B build -DFLUX_FOUNDRY_BUILD_TESTS=ON
+cmake --build build --config Release --target lfnds_flow_perf
+ctest --test-dir build -C Release -R flow_perf --output-on-failure
+```
+
+Measured output (`2026-02-11`, local machine):
+
+- Device: `Microsoft Surface Pro 7` (`x64-based PC`)
+- CPU: `Intel Core i5-1035G4` (4 cores / 8 threads)
+- Memory: `8 GB` RAM (`8155709440` bytes reported by WMI)
+- GPU: `Intel Iris Plus Graphics`
+- OS: `Windows 10 Home` (`10.0.19045`, `64-bit`)
+- Compiler: `clang++ 21.1.0` (`target: x86_64-pc-windows-msvc`)
+
+| Case | total | ns/op |
+|---|---:|---:|
+| `direct.loop20` | 5.391 ms | 1.08 |
+| `runner.sync.20nodes` | 87.245 ms | 43.62 |
+| `fast_runner.sync.20nodes` | 20.592 ms | 6.86 |
+| `runner.async.4nodes` | 1197.195 ms | 1496.49 |
+| `runner.when_all.2` | 279.624 ms | 932.08 |
+| `runner.when_any.2` | 234.322 ms | 781.07 |
+
+Notes:
+
+- This is a microbenchmark for framework overhead, not an end-to-end application benchmark.
+- `fast_runner` significantly reduces pure pipeline overhead in this setup.
+- Absolute numbers depend on CPU/compiler/flags.
+
+## 🧪 Stress validation snapshot
+
+Command:
+
+```bash
+cmake -S . -B build -DFLUX_FOUNDRY_BUILD_TESTS=ON
+cmake --build build --config Release --target lfnds_flow_state_stress
+ctest --test-dir build -C Release -R flow_state_stress --output-on-failure
+```
+
+Result summary (local run):
+
+- ✅ `[PASS] state-machine stress passed`
+- `async cancel race`: 5000/5000 completed, `timeout=0`, `duplicate_callback=0`
+- `submit fail path`: 5000/5000 completed, all classified as submit-fail as expected
+- `when_all cancel race`: 1500/1500 completed, `timeout=0`
+- `when_any cancel race`: 1500/1500 completed, `timeout=0`
+
+## 📁 Repository layout
+
+```text
+base/
+CMakeLists.txt
+executor/
+flow/
+memory/
+task/
+utility/
+test/
+test/CMakeLists.txt
+test/bin/      # generated probe executables
+README.md
+```
 
 ## 📦 Requirements
-* **Compiler**: C++14 or later (GCC, Clang, MSVC).
-* **Architecture**: Optimized primarily for x86_64 and ARMv8 (includes specific optimizations like _mm_pause).
-* **Integration**: Header-only library; simply include the headers in your project.
 
-## 📄 License
-MIT License © 2025 Nathan
+- C++14 compiler (Clang/GCC/MSVC)
+- CMake 3.16+
+
+## 📌 Notes
+
+- Core library remains header-only.
+- Probe/stress/perf sources live in `test/` (`*.cpp`).
+- Generated binaries are written to `test/bin/`.
+
+## 📜 License
+
+MIT

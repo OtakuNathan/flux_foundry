@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_TYPE_ERASE_BASE_H
-#define LITE_FNDS_TYPE_ERASE_BASE_H
+#ifndef FLUX_FOUNDRY_TYPE_ERASE_BASE_H
+#define FLUX_FOUNDRY_TYPE_ERASE_BASE_H
 
 #include <memory>
 #include <new>
@@ -16,7 +16,7 @@
  * vtable and invoker for a specific concrete type T, and it must be `noexcept`.
  */
 
-namespace lite_fnds {
+namespace flux_foundry {
     constexpr static size_t sbo_size = 64;
 
     namespace detail {
@@ -173,14 +173,14 @@ namespace lite_fnds {
 
 
         raw_type_erase_base(const raw_type_erase_base& rhs)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
             : invoker_ { derived::stub } , manager_ { nullptr } {
             if (rhs.manager_) {
                 auto res = rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy);
                 if (res != lifespan_op_error::success) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     throw std::runtime_error("the object is not copy constructible");
 #else
                     assert(false && "the object is not copy constructible");
@@ -193,7 +193,7 @@ namespace lite_fnds {
         }
 
         raw_type_erase_base& operator=(const raw_type_erase_base& rhs)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
         {
@@ -241,7 +241,7 @@ namespace lite_fnds {
             assert(this->manager_ != nullptr && "Derived class failed to set manager in do_customize!");
         }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         template <typename U, typename T = std::decay_t<U>, typename... Args,
             std::enable_if_t<conjunction_v<
                 std::is_constructible<T, Args&&...>,
@@ -262,7 +262,7 @@ namespace lite_fnds {
 
         template <typename U, typename T = std::decay_t<U>, typename... Args,
             std::enable_if_t<conjunction_v<
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, Args &&...>,
 #else
                 std::is_nothrow_constructible<T, Args&&...>,
@@ -273,11 +273,11 @@ namespace lite_fnds {
                 "SBO placement-new requires buffer alignment >= alignof(T*)");
 
             std::unique_ptr<T> tmp(new
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             (std::nothrow)
 #endif
                 T(std::forward<Args>(args)...));
-#if !LFNDS_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
             if (!tmp) {
                 return;
             }

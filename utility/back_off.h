@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_PAUSE_H
-#define LITE_FNDS_PAUSE_H
+#ifndef FLUX_FOUNDRY_PAUSE_H
+#define FLUX_FOUNDRY_PAUSE_H
 
 #include <thread>
 #if defined(__x86_64__) || defined(_M_X64)
@@ -9,7 +9,7 @@
 #else
 #endif
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <size_t spin_limit = 16, size_t max_loop = 1024>
     struct backoff_strategy {
         size_t count {1};

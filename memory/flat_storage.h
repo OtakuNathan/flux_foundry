@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_FLAT_STORAGE_H
-#define LITE_FNDS_FLAT_STORAGE_H
+#ifndef FLUX_FOUNDRY_FLAT_STORAGE_H
+#define FLUX_FOUNDRY_FLAT_STORAGE_H
 
 #include <type_traits>
 #include <utility>
@@ -8,18 +8,18 @@
 
 #include "../base/inplace_base.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template<typename T, size_t index, bool _is_empty = std::is_empty<T>::value && !std::is_final<T>::value>
     struct TS_EMPTY_BASES flat_storage_leaf :
             private ctor_delete_base<T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                     std::is_copy_constructible<T>::value, std::is_move_constructible<T>::value
 #else
                     std::is_nothrow_copy_constructible<T>::value, std::is_nothrow_move_constructible<T>::value
 #endif
             >,
             private assign_delete_base<T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                     std::is_copy_assignable<T>::value, std::is_move_assignable<T>::value
 #else
                     std::is_nothrow_copy_assignable<T>::value, std::is_nothrow_move_assignable<T>::value
@@ -47,7 +47,7 @@ namespace lite_fnds {
         ~flat_storage_leaf() noexcept = default;
 
         template<typename T_ = T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<std::is_default_constructible<T_>::value
 #else
                 std::enable_if_t<std::is_nothrow_default_constructible<T_>::value
@@ -59,10 +59,10 @@ namespace lite_fnds {
 
         template<typename T_ = T, typename... Args, typename = std::enable_if_t<conjunction_v<
                 negation<is_self_constructing<flat_storage_leaf, Args&&...>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T_, Args &&...>>
 #else
-                std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>>
+                std::is_nothrow_constructible<T_, Args&&...>>
 #endif
         >>
         flat_storage_leaf(Args &&... args)
@@ -71,7 +71,7 @@ namespace lite_fnds {
         }
 
         template<typename T_ = T, typename K, typename... Args,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<std::is_constructible<T_, std::initializer_list<K>, Args &&...>::value>
 #else
                 typename = std::enable_if_t<std::is_nothrow_constructible<T_, std::initializer_list<K>, Args&&...>::value>
@@ -95,7 +95,7 @@ namespace lite_fnds {
         }
 
         template<typename T_ = T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<is_swappable<T_>::value>
 #else
                 typename = std::enable_if_t<is_nothrow_swappable<T_>::value>
@@ -113,14 +113,14 @@ namespace lite_fnds {
     template<typename T, size_t index>
     struct TS_EMPTY_BASES flat_storage_leaf<T, index, true> :
         private T, private ctor_delete_base<T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_copy_constructible<T>::value, std::is_move_constructible<T>::value
 #else
             std::is_nothrow_copy_constructible<T>::value, std::is_nothrow_move_constructible<T>::value
 #endif
      >,
          private assign_delete_base<T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
              std::is_copy_assignable<T>::value, std::is_move_assignable<T>::value
 #else
              std::is_nothrow_copy_assignable<T>::value, std::is_nothrow_move_assignable<T>::value
@@ -146,7 +146,7 @@ namespace lite_fnds {
         noexcept(std::is_nothrow_move_assignable<T>::value) = default;
 
         template<typename T_ = T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<std::is_default_constructible<T_>::value
 #else
                         std::enable_if_t<std::is_nothrow_default_constructible<T_>::value
@@ -158,10 +158,10 @@ namespace lite_fnds {
 
         template<typename T_ = T, typename... Args, typename = std::enable_if_t<conjunction_v<
                 negation<is_self_constructing<flat_storage_leaf, Args&&...>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T_, Args &&...>>
 #else
-                std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>>
+                std::is_nothrow_constructible<T_, Args&&...>>
 #endif
         >>
         flat_storage_leaf(Args &&... args)
@@ -170,7 +170,7 @@ namespace lite_fnds {
         }
 
         template<typename T_ = T, typename K, typename... Args,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<std::is_constructible<T_, std::initializer_list<K>, Args &&...>::value>
 #else
                 typename = std::enable_if_t<std::is_nothrow_constructible<T_, std::initializer_list<K>, Args&&...>::value>
@@ -194,7 +194,7 @@ namespace lite_fnds {
         }
 
         template<typename T_ = T,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<is_swappable<T_>::value>
 #else
                 typename = std::enable_if_t<is_nothrow_swappable<T_>::value>
@@ -234,7 +234,7 @@ namespace lite_fnds {
         noexcept(conjunction_v<std::is_nothrow_move_assignable<A_>, std::is_nothrow_move_assignable<B_> >) = default;
 
         template<typename T, typename U,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<conjunction_v<std::is_constructible<A_, T&&>, std::is_constructible<B_, U&&> > >
 #else
                 typename = std::enable_if_t<conjunction_v<std::is_nothrow_constructible<A_, T&&>, std::is_nothrow_constructible<B_, U&&> > >
@@ -262,7 +262,7 @@ namespace lite_fnds {
         }
 
         template<typename T = A_, typename U = B_,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<conjunction_v<is_swappable<T>, is_swappable<U> > >
 #else
                 typename = std::enable_if_t<conjunction_v<is_nothrow_swappable<T>, is_nothrow_swappable<U>>>
@@ -277,7 +277,7 @@ namespace lite_fnds {
     };
 
     template<typename A_, typename B_,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             typename = std::enable_if_t<conjunction_v<is_swappable<A_>, is_swappable<B_> > >
 #else
             typename = std::enable_if_t<conjunction_v<is_nothrow_swappable<A_>, is_nothrow_swappable<B_>>>
@@ -289,7 +289,7 @@ namespace lite_fnds {
     }
 
     template <typename T, typename U,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         typename = std::enable_if_t<conjunction_v<
             std::is_constructible<std::decay_t<T>, T&&>, std::is_constructible<std::decay_t<U>, U&&>>
         >
@@ -337,7 +337,7 @@ namespace lite_fnds {
             flat_storage_base() = default;
 
             template<typename... Us,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                     typename = std::enable_if_t<conjunction_v<std::is_constructible<flat_storage_leaf<Ts, idx>, Us &&>...> >
 #else
                     typename = std::enable_if_t<conjunction_v<std::is_nothrow_constructible<flat_storage_leaf<Ts, idx>, Us&&>...>>
@@ -363,7 +363,7 @@ namespace lite_fnds {
             ~flat_storage_base() = default;
 
             template<typename T_ = type_list<flat_storage_leaf<Ts, idx>...>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                     typename = std::enable_if_t<is_swappable<T_>::value>
 #else
                     typename = std::enable_if_t<is_nothrow_swappable<T_>::value>
@@ -400,7 +400,7 @@ namespace lite_fnds {
         };
 
         template <size_t... idx, typename... Ts,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<conjunction_v<is_swappable<flat_storage_leaf<Ts, idx> >...> >
 #else
                 typename = std::enable_if_t<conjunction_v<is_nothrow_swappable<flat_storage_leaf<Ts, idx>>...>>

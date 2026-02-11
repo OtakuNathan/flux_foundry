@@ -2,21 +2,21 @@
 // Created by Nathan on 08/01/2026.
 //
 
-#ifndef LITE_FNDS_PADDED_T_H
-#define LITE_FNDS_PADDED_T_H
+#ifndef FLUX_FOUNDRY_PADDED_T_H
+#define FLUX_FOUNDRY_PADDED_T_H
 
 #include <initializer_list>
 #include "../base/type_utility.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <typename T, size_t align = alignof(T)>
     struct alignas(align) TS_EMPTY_BASES padded_t :
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             ctor_delete_base<T, std::is_copy_constructible<T>::value, std::is_move_constructible<T>::value>,
             assign_delete_base<T, std::is_copy_assignable<T>::value, std::is_move_assignable<T>::value>
 #else
-        lite_fnds::ctor_delete_base<T, std::is_nothrow_copy_constructible<T>::value, std::is_nothrow_move_constructible<T>::value>,
-            lite_fnds::assign_delete_base<T, std::is_nothrow_copy_assignable<T>::value, std::is_nothrow_move_assignable<T>::value>
+        flux_foundry::ctor_delete_base<T, std::is_nothrow_copy_constructible<T>::value, std::is_nothrow_move_constructible<T>::value>,
+            flux_foundry::assign_delete_base<T, std::is_nothrow_copy_assignable<T>::value, std::is_nothrow_move_assignable<T>::value>
 #endif
     {
         static_assert(!std::is_void<T>::value, "T must not be void");
@@ -29,7 +29,7 @@ namespace lite_fnds {
 
         template <typename... Args,
                 std::enable_if_t<conjunction_v<negation<is_self_constructing<padded_t, Args &&...>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<T, Args &&...>
 #else
                         std::is_nothrow_constructible<T, Args &&...>
@@ -42,7 +42,7 @@ namespace lite_fnds {
 
         template <typename U, typename ... Args,
                 std::enable_if_t<
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<T, std::initializer_list<U>, Args &&...>::value
 #else
                         std::is_nothrow_constructible<T, std::initializer_list<U>, Args &&...>::value

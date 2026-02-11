@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_FLOW_AGGREGATOR_H
-#define LITE_FNDS_FLOW_AGGREGATOR_H
+#ifndef FLUX_FOUNDRY_FLOW_AGGREGATOR_H
+#define FLUX_FOUNDRY_FLOW_AGGREGATOR_H
 
 #include <cstdlib>
 #include <atomic>
@@ -36,7 +36,7 @@
  * Flow provides mechanism, you provide policy.
  */
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <typename... Ts>
     struct flow_aggregator {
         static_assert(conjunction_v<is_result_t<Ts>...>,
@@ -79,7 +79,7 @@ namespace lite_fnds {
 
             // Only call emplace once per delegate
             template <typename... Us, 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<std::is_constructible<elem_type, Us&&...>::value
 #else
                 std::enable_if_t<std::is_nothrow_constructible<elem_type, Us&&...>::value
@@ -94,11 +94,11 @@ namespace lite_fnds {
                 }
 
                 elem_type& e = get<I>(data->val);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     e = elem_type(std::forward<Us>(args)...);
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     e.emplace_error(std::current_exception());
                 }
@@ -112,7 +112,7 @@ namespace lite_fnds {
         
         flow_aggregator() : 
             data(Data::make_shared()) {
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             assert(data && "failed to allocate aggregator data.");
 #endif
         }

@@ -1,13 +1,13 @@
-﻿//
+//
 // Created by Nathan on 10/6/2025.
 //
 
-#ifndef LITE_FNDS_RESULTT_H
-#define LITE_FNDS_RESULTT_H
+#ifndef FLUX_FOUNDRY_RESULTT_H
+#define FLUX_FOUNDRY_RESULTT_H
 
 #include "either_t.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <typename E>
     class error_t {
         static_assert(!std::is_void<E>::value, "E must not be void");
@@ -17,14 +17,14 @@ namespace lite_fnds {
     public:
         error_t() = delete;
 
-#if !LFNDS_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
         template <typename E_ = E, std::enable_if_t<std::is_nothrow_copy_constructible<E_>::value>* = nullptr>
 #endif
         constexpr explicit error_t(const E &e)
             noexcept(std::is_nothrow_copy_constructible<E>::value) : _error(e) {
         }
 
-#if !LFNDS_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
         template <typename E_ = E, std::enable_if_t<std::is_nothrow_move_constructible<E_>::value>* = nullptr>
 #endif
         constexpr explicit error_t(E &&e)
@@ -33,7 +33,7 @@ namespace lite_fnds {
 
         template <typename... Args,
             std::enable_if_t<conjunction_v<negation<is_self_constructing<error_t, Args&&...>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<E, Args &&...>
 #else
             std::is_nothrow_constructible<E, Args &&...>
@@ -45,7 +45,7 @@ namespace lite_fnds {
 
         template <typename T, typename... Args,
             std::enable_if_t<
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<E, std::initializer_list<T>, Args &&...>::value
 #else
             std::is_nothrow_constructible<E, std::initializer_list<T>, Args &&...>::value
@@ -171,7 +171,7 @@ namespace lite_fnds {
 
         template <typename T_, std::enable_if_t<conjunction_v<
             negation<std::is_void<T_>>, negation<is_error_t<T_>>, negation<is_self_constructing<result_t, T_>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<T, T_&&>
 #else
             std::is_nothrow_constructible<T, T_&&>
@@ -190,7 +190,7 @@ namespace lite_fnds {
         }
 
         template <bool B =
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_copy_constructible<error_t<E>>::value
 #else
             std::is_nothrow_copy_constructible<error_t<E>>::value
@@ -204,7 +204,7 @@ namespace lite_fnds {
         }
 
         template <bool B = 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_move_constructible<error_t<E>>::value
 #else
             std::is_nothrow_move_constructible<error_t<E>>::value
@@ -218,7 +218,7 @@ namespace lite_fnds {
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<base, other_base &&>
 #else
                 std::is_constructible<base, other_base &&>
@@ -232,7 +232,7 @@ namespace lite_fnds {
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<base, const other_base &>
 #else
                 std::is_nothrow_constructible<base, const other_base &>
@@ -247,7 +247,7 @@ namespace lite_fnds {
             class other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_assignable<base&, other_base &&>
 #else
                 std::is_nothrow_assignable<base&, other_base &&>
@@ -262,7 +262,7 @@ namespace lite_fnds {
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_assignable<base&, const other_base &>
 #else
                 std::is_nothrow_assignable<base&, const other_base &>
@@ -276,7 +276,7 @@ namespace lite_fnds {
 
         template <typename T_ = T,
             std::enable_if_t<conjunction_v<negation<std::is_void<T_>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_move_constructible<T_>, can_strong_replace<T_>
 #else
                 std::is_nothrow_move_constructible<T_>
@@ -290,7 +290,7 @@ namespace lite_fnds {
 
         template <typename T_ = T,
             std::enable_if_t<conjunction_v<negation<std::is_void<T_>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_copy_constructible<T_>, can_strong_replace<T_>
 #else
                 std::is_nothrow_copy_constructible<T_>
@@ -303,7 +303,7 @@ namespace lite_fnds {
         }
 
         template <typename F_ = error_t<E>, std::enable_if_t<
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_move_constructible<F_>::value
 #else
             std::is_nothrow_move_constructible<F_>::value
@@ -316,7 +316,7 @@ namespace lite_fnds {
         }
 
         template <typename F_ = error_t<E>, std::enable_if_t<
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_copy_constructible<F_>::value
 #else
             std::is_nothrow_copy_constructible<F_>::value
@@ -335,7 +335,7 @@ namespace lite_fnds {
 
         template <typename T_ = T, typename ... Args,
             std::enable_if_t<conjunction_v<negation<std::is_void<T_>>,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T_, Args&&...>
 #else
                 std::is_nothrow_constructible<T_, Args&&...>
@@ -348,7 +348,7 @@ namespace lite_fnds {
 
         template <typename F_ = error_t<E>, typename... Args,
             std::enable_if_t<conjunction_v<
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<F_, Args &&...>
 #else
             std::is_nothrow_constructible<F_, Args &&...>
@@ -408,4 +408,4 @@ namespace lite_fnds {
 }
 
 
-#endif //__LITE_FNDS_RESULTT_H__
+#endif //__FLUX_FOUNDRY_RESULTT_H__

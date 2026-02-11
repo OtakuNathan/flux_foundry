@@ -1,12 +1,12 @@
-﻿#ifndef LITE_FNDS_FUTURE_TASK_H
-#define LITE_FNDS_FUTURE_TASK_H
+#ifndef FLUX_FOUNDRY_FUTURE_TASK_H
+#define FLUX_FOUNDRY_FUTURE_TASK_H
 
 #include <future>
 #include <atomic>
 #include "../base/traits.h"
 #include "task_core.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
 
 namespace future_task_detail {
     template <typename Callable, typename... Params>
@@ -22,7 +22,7 @@ namespace future_task_detail {
             if (result.has_value()) {
                 promise_.set_value(std::move(result.value()));
             } 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
               else {
                 promise_.set_exception(result.error());
             }
@@ -34,7 +34,7 @@ namespace future_task_detail {
             if (result.has_value()) {
                 promise_.set_value();
             }
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
               else {
                 promise_.set_exception(result.error());
             }
@@ -96,7 +96,7 @@ template <typename Callable, typename... Params>
 class future_task : 
     public future_task_detail::future_task_impl<Callable, Params...>,
     private ctor_delete_base<future_task<Callable, Params...>, false,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         true              
 #else
         std::is_nothrow_move_constructible<
@@ -105,7 +105,7 @@ class future_task :
 #endif
     >,
     private assign_delete_base<future_task<Callable, Params...>, false,
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         true
 #else
         std::is_nothrow_move_assignable<

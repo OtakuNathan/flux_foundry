@@ -1,5 +1,5 @@
-﻿#ifndef LITE_FNDS_HAZARD_PTR_H
-#define LITE_FNDS_HAZARD_PTR_H
+#ifndef FLUX_FOUNDRY_HAZARD_PTR_H
+#define FLUX_FOUNDRY_HAZARD_PTR_H
 
 #include <atomic>
 #include <thread>
@@ -15,7 +15,7 @@
 #include "../utility/back_off.h"
 #include "../utility/static_list.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
 
 struct hazard_ptr;
 
@@ -339,6 +339,6 @@ public:
     }
 };
 
-} // namespace lite_fnds
+} // namespace flux_foundry
 
 #endif

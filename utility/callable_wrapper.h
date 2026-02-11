@@ -1,5 +1,5 @@
-﻿#ifndef LITE_FNDS_CALLABLE_WRAPPER_H
-#define LITE_FNDS_CALLABLE_WRAPPER_H
+#ifndef FLUX_FOUNDRY_CALLABLE_WRAPPER_H
+#define FLUX_FOUNDRY_CALLABLE_WRAPPER_H
 
 #include <cassert>
 #include <functional>
@@ -10,7 +10,7 @@
 #include "../base/type_erase_base.h"
 #include "../memory/result_t.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     constexpr static size_t callable_wrapper_sbo_size = 48;
 
     namespace callable_handle_impl {
@@ -19,7 +19,7 @@ namespace lite_fnds {
         private:
             template <typename callable_>
             static auto test(int) ->
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_convertible<invoke_result_t<callable_&, Args...>, R>;
 #else
                 conjunction< std::integral_constant<bool,
@@ -55,7 +55,7 @@ namespace lite_fnds {
 
 
         static R stub(void*, Args... args) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             throw std::bad_function_call();
 #else
             assert(false && "attempting to call an uninitialized callable wrapper.");
@@ -65,7 +65,7 @@ namespace lite_fnds {
 
         friend struct raw_type_erase_base<callable_wrapper<R(Args...)>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(void*, Args...)>;
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) noexcept {
             try {
                 this->operator()(std::forward<Args>(args)...);
@@ -117,14 +117,14 @@ namespace lite_fnds {
         }
 
         FORCE_INLINE R operator()(Args... args)
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
         {
             return this->invoker_(this->data_, std::forward<Args>(args)...);
         }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         FORCE_INLINE result_t<R, std::exception_ptr> nothrow_call(Args... args) noexcept {
             return do_nothrow(std::is_void<R>{}, std::forward<Args>(args)...);
         }
@@ -146,7 +146,7 @@ namespace lite_fnds {
             alignof(std::max_align_t), R(const void*, Args...)>;
 
         static R stub(const void*, Args... args) {
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             throw std::bad_function_call();
 #else
             assert(false && "attempting to call an uninitialized callable wrapper.");
@@ -157,7 +157,7 @@ namespace lite_fnds {
         friend struct raw_type_erase_base<callable_wrapper<R(Args...) const>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(const void*, Args...)>;
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         result_t<R, std::exception_ptr> do_nothrow(std::true_type, Args... args) const noexcept {
             try {
                 this->operator()(std::forward<Args>(args)...);
@@ -207,14 +207,14 @@ namespace lite_fnds {
         }
 
         FORCE_INLINE R operator()(Args... args) const
-#if !LFNDS_COMPILER_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
         {
             return this->invoker_(this->data_, std::forward<Args>(args)...);
         }
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         FORCE_INLINE result_t<R, std::exception_ptr> nothrow_call(Args... args) const noexcept {
             return do_nothrow(std::is_void<R> {}, std::forward<Args>(args)...);
         }

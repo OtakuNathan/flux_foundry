@@ -2,8 +2,8 @@
 // Created by Nathan on 1/30/2026.
 //
 
-#ifndef LITE_FNDS_FLOW_H
-#define LITE_FNDS_FLOW_H
+#ifndef FLUX_FOUNDRY_FLOW_H
+#define FLUX_FOUNDRY_FLOW_H
 
 #include "../memory/lite_ptr.h"
 #include "../memory/result_t.h"

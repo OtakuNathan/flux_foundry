@@ -1,9 +1,9 @@
-#ifndef LITE_FNDS_TYPE_UTILITY_H
-#define LITE_FNDS_TYPE_UTILITY_H
+#ifndef FLUX_FOUNDRY_TYPE_UTILITY_H
+#define FLUX_FOUNDRY_TYPE_UTILITY_H
 
 #include "traits.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     // ctor deleter
     template <typename T, bool EnableCopy, bool EnableMove>
     struct ctor_delete_base;

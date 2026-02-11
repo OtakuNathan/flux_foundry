@@ -12,7 +12,7 @@
 #include <malloc.h>
 #endif
 
-namespace lite_fnds {
+namespace flux_foundry {
     inline void* aligned_alloc(size_t align, size_t size) noexcept {
         assert((align & (align - 1)) == 0 && "align must be power of 2");
         assert(align >= alignof(nullptr_t) && "align must be >= alignof(void*)");

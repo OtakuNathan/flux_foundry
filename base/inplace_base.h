@@ -1,5 +1,5 @@
-#ifndef LITE_FNDS_INPLACE_BASE_H
-#define LITE_FNDS_INPLACE_BASE_H
+#ifndef FLUX_FOUNDRY_INPLACE_BASE_H
+#define FLUX_FOUNDRY_INPLACE_BASE_H
 
 #include <type_traits>
 #include <cstddef>
@@ -7,10 +7,10 @@
 #include <utility>
 #include "type_utility.h"
 
-namespace lite_fnds {
+namespace flux_foundry {
     template <typename T>
     struct raw_inplace_storage_operations {
-#if !LFNDS_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
         static_assert(std::is_nothrow_destructible<T>::value, "T must be nothrow destructible");
 #endif
     private:
@@ -32,7 +32,7 @@ namespace lite_fnds {
         template <typename ... Args, std::enable_if_t<std::is_constructible<T, Args&&...>::value>* = nullptr>
         static T* _construct_at(void* addr, Args&& ... args)
             noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
-#if !LFNDS_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
                 "T must be nothrow constructible with Args...");
 #endif
@@ -43,7 +43,7 @@ namespace lite_fnds {
             negation<std::is_constructible<T, Args&&...>>, is_aggregate_constructible<T, Args&&...>>>* = nullptr>
         static T* _construct_at(void* addr, Args&& ... args)
             noexcept (is_nothrow_aggregate_constructible<T, Args&&...>::value) {
-#if !LFNDS_HAS_EXCEPTIONS
+#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_nothrow_aggregate_constructible<T, Args&&...>::value,
                 "T must be nothrow aggregate constructible with Args...");
 #endif
@@ -74,7 +74,7 @@ namespace lite_fnds {
             return  _construct_at(addr, il, std::forward<Args>(args)...);
         }
 
-#if LFNDS_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
         template <typename ... Args, std::enable_if_t<conjunction_v<
             std::is_constructible<T, Args&&...>,
             std::is_nothrow_move_assignable<T>>>* = nullptr>

@@ -1,12 +1,12 @@
-#ifndef LITE_FNDS_FLOW_DEFINE_H
-#define LITE_FNDS_FLOW_DEFINE_H
+#ifndef FLUX_FOUNDRY_FLOW_DEFINE_H
+#define FLUX_FOUNDRY_FLOW_DEFINE_H
 
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <stdexcept>
 
-namespace lite_fnds {
+namespace flux_foundry {
 namespace flow_impl {
 #if defined(__clang__)
     static constexpr size_t MAX_ZIP_N = 2;
@@ -28,13 +28,13 @@ template <typename E>
 struct cancel_error {
     static E make(cancel_kind) {
         static_assert(sizeof(E) == 0,
-            "lite_fnds::cancel_error<E> is not specialized for this error type E. "
-            "Please provide `template<> struct lite_fnds::cancel_error<E>` "
+            "flux_foundry::cancel_error<E> is not specialized for this error type E. "
+            "Please provide `template<> struct flux_foundry::cancel_error<E>` "
             "with a static `E make(cancel_kind)` member.");
     }
 };
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct cancel_error<std::exception_ptr> {
     static std::exception_ptr make(cancel_kind kind) noexcept {
@@ -54,13 +54,13 @@ template <typename E>
 struct awaitable_creating_error {
     static E make() noexcept {
         static_assert(sizeof(E) == 0,
-            "lite_fnds::awaitable_creating_error<E> is not specialized for this error type E. "
-            "Please provide `template<> struct lite_fnds::awaitable_creating_error<E>` "
+            "flux_foundry::awaitable_creating_error<E> is not specialized for this error type E. "
+            "Please provide `template<> struct flux_foundry::awaitable_creating_error<E>` "
             "with a static `E make()` member.");
     }
 };
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct awaitable_creating_error<std::exception_ptr> {
     static std::exception_ptr make() noexcept {
@@ -77,13 +77,13 @@ template <typename E>
 struct async_submission_failed_error {
     static E make() {
         static_assert(sizeof(E) == 0,
-            "lite_fnds::async_submission_failed_error<E> is not specialized for this error type E. "
-            "Please provide `template<> struct lite_fnds::async_submission_failed_error<E>` "
+            "flux_foundry::async_submission_failed_error<E> is not specialized for this error type E. "
+            "Please provide `template<> struct flux_foundry::async_submission_failed_error<E>` "
             "with a static `E make()` member.");
     }
 };
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct async_submission_failed_error<std::exception_ptr> {
     static std::exception_ptr make() noexcept {
@@ -100,13 +100,13 @@ template <typename E>
 struct async_all_failed_error {
     static E make() {
         static_assert(sizeof(E) == 0,
-            "lite_fnds::async_all_failed_error<E> is not specialized for this error type E. "
-            "Please provide `template<> struct lite_fnds::async_all_failed_error<E>` "
+            "flux_foundry::async_all_failed_error<E> is not specialized for this error type E. "
+            "Please provide `template<> struct flux_foundry::async_all_failed_error<E>` "
             "with a static `E make()` member.");
     }
 };
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct async_all_failed_error<std::exception_ptr> {
     static std::exception_ptr make() {
@@ -123,13 +123,13 @@ template <typename E>
 struct async_any_failed_error {
         static E make(size_t i) {
             static_assert(sizeof(E) == 0,
-                "lite_fnds::async_any_failed_error<E> is not specialized for this error type E. "
-                "Please provide `template<> struct lite_fnds::async_any_failed_error<E>` "
+                "flux_foundry::async_any_failed_error<E> is not specialized for this error type E. "
+                "Please provide `template<> struct flux_foundry::async_any_failed_error<E>` "
                 "with a static `E make(size_t i)` member.");
         }
     };
 
-#if LFNDS_COMPILER_HAS_EXCEPTIONS
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <>
     struct async_any_failed_error<std::exception_ptr> {
         static std::exception_ptr make(size_t i) {
