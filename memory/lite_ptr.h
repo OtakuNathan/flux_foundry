@@ -188,10 +188,16 @@ namespace flux_foundry {
         void release() noexcept {
             auto ccb = cb;
             cb = nullptr;
-            UNLIKELY_IF(ccb && ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
-                std::atomic_thread_fence(std::memory_order_acquire);
-                ccb->~cb_t();
-                aligned_free(ccb);
+            if (ccb) {
+#if FLUEX_FOUNDRY_WITH_TSAN
+                UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_acq_rel) == 1) {
+#else
+                UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+                    std::atomic_thread_fence(std::memory_order_acquire);
+#endif
+                    ccb->~cb_t();
+                    aligned_free(ccb);
+                }
             }
         }
 

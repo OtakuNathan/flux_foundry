@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <memory>
+#include <atomic>
 #include <cassert>
 
 #ifndef FLUEX_FOUNDRY_NO_EXCEPTION_STRICT
@@ -69,6 +70,20 @@
 #define TS_EMPTY_BASES __declspec(empty_bases)
 #else
 #define TS_EMPTY_BASES
+#endif
+
+#if defined(__has_feature)
+#  if __has_feature(thread_sanitizer)
+#    define FLUEX_FOUNDRY_WITH_TSAN 1
+#  endif
+#endif
+
+#if !defined(FLUEX_FOUNDRY_WITH_TSAN)
+#  if defined(__SANITIZE_THREAD__)
+#    define FLUEX_FOUNDRY_WITH_TSAN 1
+#  else
+#    define FLUEX_FOUNDRY_WITH_TSAN 0
+#  endif
 #endif
 
 namespace flux_foundry {

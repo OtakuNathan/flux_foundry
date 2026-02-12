@@ -9,6 +9,7 @@
 #include <numeric>
 #include <array>
 
+#include "../memory/padded_t.h"
 #include "flow_awaitable.h"
 #include "flow_runner.h"
 
@@ -39,8 +40,8 @@ struct flow_when_all_state {
     // | 64 ... 2 | 1 |  0  |
     // | -------- | -- | --- | 
     // | fired runner | all fired? | failed to launch all runner? |
-    std::atomic<size_t> fired;
-    std::atomic<size_t> failed;
+    padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> fired;
+    padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> failed;
     std::array<lite_ptr<flow_controller>, sizeof...(Ts)> controllers;
 
     explicit flow_when_all_state(Aggregator* agg) noexcept
@@ -85,7 +86,7 @@ struct flow_when_all_state {
 #endif
 
             UNLIKELY_IF(e.has_error()) {
-                LIKELY_IF (state->fired.load(std::memory_order_acquire) & detail::launch_success_msk) {
+                LIKELY_IF (state->fired.get().load(std::memory_order_acquire) & detail::launch_success_msk) {
                     for (size_t i = 0; i < sizeof ... (Ts); ++i) {
                         state->controllers[i]->cancel(true);
                     }
@@ -96,13 +97,17 @@ struct flow_when_all_state {
                 }
 
                 size_t exp = sizeof...(Ts);
-                state->failed.compare_exchange_strong(exp, I,  std::memory_order_release, std::memory_order_relaxed);
+                state->failed.get().compare_exchange_strong(exp, I,  std::memory_order_release, std::memory_order_relaxed);
             }
 
             // last one is completed
-            UNLIKELY_IF (state->fired.fetch_sub(detail::epoch, std::memory_order_release) == detail::successfully_finished) {
+#if FLUEX_FOUNDRY_WITH_TSAN
+            UNLIKELY_IF (state->fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel) == detail::successfully_finished) {
+#else
+            UNLIKELY_IF (state->fired.get().fetch_sub(detail::epoch, std::memory_order_release) == detail::successfully_finished) {
                 std::atomic_thread_fence(std::memory_order_acquire);
-                auto i = state->failed.load(std::memory_order_relaxed);
+#endif
+                auto i = state->failed.get().load(std::memory_order_relaxed);
                 LIKELY_IF (i == sizeof ... (Ts)) {
                     state->aggregator->resume(result_type(value_tag, result_delegate{state}));
                 } else {
@@ -138,14 +143,14 @@ private:
             }
 
             // recall my self and set failed bit
-            state->fired.fetch_sub(detail::epoch, std::memory_order_relaxed);
-            state->fired.fetch_or(detail::launch_failed_msk, std::memory_order_acq_rel);
+            state->fired.get().fetch_sub(detail::epoch, std::memory_order_relaxed);
+            state->fired.get().fetch_or(detail::launch_failed_msk, std::memory_order_acq_rel);
         };
 
 #if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
-            state_->fired.fetch_add(detail::epoch, std::memory_order_release);
+            state_->fired.get().fetch_add(detail::epoch, std::memory_order_release);
 
             using pack_t   = flat_storage_element_t<I, bp_pack_storage_t>;
             using bp_ptr_t = typename pack_t::first_type;
@@ -204,7 +209,7 @@ public:
         bool ok = true;
         using swallow = int[];
         (void)swallow {
-            0, (ok && ((ok = (!launch<idx>() && this->state_->failed.load(std::memory_order_relaxed) == N))), 0)...
+            0, (ok && ((ok = (!launch<idx>() && this->state_->failed.get().load(std::memory_order_relaxed) == N))), 0)...
         };
         return ok ? 0 : -1;
     }
@@ -222,12 +227,13 @@ public:
             }
 
             // YOU MUST MARK ALL TASKS ARE SUBMITTED
-            auto n = state_->fired.fetch_or(detail::launch_success_msk, std::memory_order_release);
-
-            // all tasks are finished
-            UNLIKELY_IF (n == 0) {
+#if FLUEX_FOUNDRY_WITH_TSAN
+            UNLIKELY_IF (state_->fired.get().fetch_or(detail::launch_success_msk, std::memory_order_acq_rel) == 0) {
+#else
+            UNLIKELY_IF (state_->fired.get().fetch_or(detail::launch_success_msk, std::memory_order_release) == 0) {
                 std::atomic_thread_fence(std::memory_order_acquire);
-                auto i = state_->failed.load(std::memory_order_relaxed);
+#endif
+                auto i = state_->failed.get().load(std::memory_order_relaxed);
                 LIKELY_IF (i == sizeof ... (BPs)) {
                     this->resume(result_type(value_tag, result_delegate{state_}));
                 } else {
@@ -249,7 +255,7 @@ public:
 
     void cancel() noexcept {
         // error occurred, no need to cancel
-        UNLIKELY_IF (state_->fired.load(std::memory_order_acquire) & detail::launch_failed_msk) {
+        UNLIKELY_IF (state_->fired.get().load(std::memory_order_acquire) & detail::launch_failed_msk) {
             return;
         }
 
@@ -270,8 +276,8 @@ struct flow_when_any_state {
     // | 64 ... 2 | 1 |  0  |
     // | -------- | -- | --- | 
     // | fired runner | all fired? | failed to launch all runner? |
-    std::atomic<size_t> fired;
-    std::atomic<size_t> winner;
+    padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> fired;
+    padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> winner;
     std::array<lite_ptr<flow_controller>, sizeof...(Ts)> controllers;
 
     explicit flow_when_any_state(Aggregator* agg) noexcept
@@ -284,10 +290,10 @@ struct flow_when_any_state {
         using value_type = storage_t;
 
         size_t winner() noexcept {
-            return state->winner.load(std::memory_order_acquire);
+            return state->winner.get().load(std::memory_order_acquire);
         }
 
-        decltype(auto) get() noexcept {
+        storage_t& get() noexcept {
             return state->data;
         }
 
@@ -301,10 +307,10 @@ struct flow_when_any_state {
     template <size_t I>
     struct delegate {
     private:
-        using elem_type = flat_storage_element_t<I, storage_t>;
         lite_ptr<flow_when_any_state> state;
+
     public:
-        using value_type = elem_type;
+        using value_type = flat_storage_element_t<I, storage_t>;
 
         delegate() = delete;
         explicit delegate(lite_ptr<flow_when_any_state> state_) noexcept
@@ -312,8 +318,8 @@ struct flow_when_any_state {
         }
 
         // Only call emplace once per delegate
-        void emplace(elem_type&& data) noexcept {
-            elem_type& e = get<I>(state->data);
+        void emplace(value_type&& data) noexcept {
+            value_type& e = get<I>(state->data);
 #if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
@@ -325,12 +331,12 @@ struct flow_when_any_state {
 #endif
             bool im_winner = false;
             // fast success.
-            LIKELY_IF(e.has_value()) {
+            LIKELY_IF (e.has_value()) {
                 auto expected = sizeof...(Ts);
-                LIKELY_IF(state->winner.compare_exchange_strong(expected, I,
+                LIKELY_IF(state->winner.get().compare_exchange_strong(expected, I,
                     std::memory_order_release, std::memory_order_relaxed)) {
                     im_winner = true;
-                    LIKELY_IF(state->fired.load(std::memory_order_acquire) & detail::launch_success_msk) {
+                    LIKELY_IF(state->fired.get().load(std::memory_order_acquire) & detail::launch_success_msk) {
                         for (size_t i = 0; i < sizeof...(Ts); ++i) {
                             if (state->controllers[i]) {
                                 state->controllers[i]->cancel(true);
@@ -348,11 +354,15 @@ struct flow_when_any_state {
             }
 
             // If I am the last one
-            UNLIKELY_IF (state->fired.fetch_sub(detail::epoch, std::memory_order_release) == detail::successfully_finished) {
+#if FLUEX_FOUNDRY_WITH_TSAN
+            UNLIKELY_IF (state->fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel) == detail::successfully_finished) {
+#else
+            UNLIKELY_IF (state->fired.get().fetch_sub(detail::epoch, std::memory_order_release) == detail::successfully_finished) {
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 if (!im_winner) {
                     // all failed?
-                    UNLIKELY_IF(state->winner.load(std::memory_order_acquire) == sizeof...(Ts)) {
+                    UNLIKELY_IF(state->winner.get().load(std::memory_order_acquire) == sizeof...(Ts)) {
                         state->aggregator->resume(result_type(error_tag, async_all_failed_error<flow_async_agg_err_t>::make()));
                     }
                 }
@@ -381,7 +391,7 @@ private:
 #if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         try {
 #endif
-            state_->fired.fetch_add(detail::epoch, std::memory_order_release);
+            state_->fired.get().fetch_add(detail::epoch, std::memory_order_release);
 
             using pack_t   = flat_storage_element_t<I, bp_pack_storage_t>;
             using bp_ptr_t = typename pack_t::first_type;
@@ -390,7 +400,7 @@ private:
             auto controller = make_lite_ptr<flow_controller>();
 #if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             UNLIKELY_IF (!controller) {
-                state_->fired.fetch_sub(detail::epoch, std::memory_order_acq_rel);
+                state_->fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel);
                 return -1;
             }
 #endif
@@ -401,7 +411,7 @@ private:
             return 0;
 #if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         } catch (...) {
-            state_->fired.fetch_sub(detail::epoch, std::memory_order_acq_rel);
+            state_->fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel);
             return -1;
         }
 #endif
@@ -441,7 +451,7 @@ public:
         int count = 0;
         using swallow = int[];
         (void)swallow {
-            0, (ok && ((count += !launch<idx>()), ok = (this->state_->winner.load(std::memory_order_acquire) == N)), 0)...
+            0, (ok && ((count += !launch<idx>()), ok = (this->state_->winner.get().load(std::memory_order_acquire) == N)), 0)...
         };
         return count;
     }
@@ -452,18 +462,19 @@ public:
         auto ret = this->submit(std::index_sequence_for<BPs...>{});
         // all failed when submitting.
         UNLIKELY_IF (ret == 0) {
-            state_->fired.fetch_or(detail::launch_failed_msk, std::memory_order_release);
+            state_->fired.get().fetch_or(detail::launch_failed_msk, std::memory_order_release);
             this->release();
             return -1;
         }
 
         // YOU MUST MARK ALL TASKS ARE SUBMITTED
-        auto n = state_->fired.fetch_or(detail::launch_success_msk, std::memory_order_release);
-
-        // all tasks are finished
-        UNLIKELY_IF(n == 0) {
+#if FLUEX_FOUNDRY_WITH_TSAN
+        UNLIKELY_IF (state_->fired.get().fetch_or(detail::launch_success_msk, std::memory_order_acq_rel) == 0) {
+#else
+        UNLIKELY_IF (state_->fired.get().fetch_or(detail::launch_success_msk, std::memory_order_release) == 0) {
             std::atomic_thread_fence(std::memory_order_acquire);
-            UNLIKELY_IF (state_->winner.load(std::memory_order_relaxed) == N) {
+#endif
+            UNLIKELY_IF (state_->winner.get().load(std::memory_order_relaxed) == N) {
                 state_->aggregator->resume(result_type(error_tag, async_all_failed_error<flow_async_agg_err_t>::make()));
             }
             this->release();
@@ -474,7 +485,7 @@ public:
 
     void cancel() noexcept {
         // error occurred, no need to cancel
-        UNLIKELY_IF (state_->fired.load(std::memory_order_acquire) & detail::launch_failed_msk) {
+        UNLIKELY_IF (state_->fired.get().load(std::memory_order_acquire) & detail::launch_failed_msk) {
             return;
         }
 

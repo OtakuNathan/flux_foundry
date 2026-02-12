@@ -137,7 +137,9 @@ flowchart LR
 - Explicit cancel path via `flow_controller`
 - Async node submit/cancel lifecycle managed through `awaitable_base`
 
-## 📊 Benchmark snapshot (local run)
+## 📊 Benchmark snapshots
+
+### Surface Pro 7 snapshot (historical)
 
 Command:
 
@@ -165,11 +167,43 @@ Measured output (`2026-02-11`, local machine):
 | `runner.when_all.2` | 279.624 ms | 932.08 |
 | `runner.when_any.2` | 234.322 ms | 781.07 |
 
+### macOS snapshot (current harness, exception on/off)
+
+Commands:
+
+```bash
+# Exceptions ON
+c++ -std=c++14 -O3 -DNDEBUG -I. test/flow_perf.cpp -o /tmp/flow_perf_exc
+
+# Exceptions OFF (strict no-exception mode)
+c++ -std=c++14 -O3 -DNDEBUG -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I. test/flow_perf_noexcept.cpp -o /tmp/flow_perf_noexc
+```
+
+Measured output (`2026-02-12`, local machine):
+
+- OS: `Darwin 24.3.0` (`arm64`)
+- CPU: `Apple M1 Max` (`10` cores)
+- Memory: `64 GB` (`68719476736` bytes)
+- Compiler: `clang++ -std=c++14 -O3 -DNDEBUG`
+- Harness: auto-calibrated iterations (`>=50ms/round`), `7` rounds, `ns/op` shown as median
+
+Lower is better (`ns/op`):
+
+| Case | Exceptions ON (median / p95 / mean) | Exceptions OFF (median / p95 / mean) | OFF vs ON (median) |
+|---|---:|---:|---:|
+| `direct.loop20` | `1.56 / 2.36 / 1.67` | `1.56 / 2.41 / 1.70` | `+0.00%` |
+| `runner.sync.20nodes` | `25.00 / 25.30 / 24.96` | `18.88 / 19.37 / 18.94` | `-24.48%` |
+| `fast_runner.sync.20nodes` | `1.56 / 1.59 / 1.45` | `1.57 / 1.59 / 1.57` | `+0.64%` |
+| `runner.async.4nodes` | `748.13 / 795.90 / 756.40` | `675.01 / 700.96 / 679.84` | `-9.77%` |
+| `runner.when_all.2` | `605.29 / 703.23 / 628.20` | `567.55 / 679.80 / 584.16` | `-6.24%` |
+| `runner.when_any.2` | `490.16 / 492.98 / 488.78` | `448.77 / 516.72 / 459.12` | `-8.44%` |
+
 Notes:
 
 - This is a microbenchmark for framework overhead, not an end-to-end application benchmark.
-- `fast_runner` significantly reduces pure pipeline overhead in this setup.
-- Absolute numbers depend on CPU/compiler/flags.
+- Surface Pro and macOS snapshots use different measurement harness/reporting formats.
+- `fast_runner` still shows the lowest sync pipeline overhead in both environments.
+- Absolute values depend on CPU/compiler/flags and runtime load.
 
 ## 🧪 Stress validation snapshot
 
@@ -219,5 +253,3 @@ README.md
 ## 📜 License
 
 MIT
-
-

@@ -1,4 +1,7 @@
+#include <algorithm>
+#include <array>
 #include <chrono>
+#include <climits>
 #include <cstdio>
 #include <exception>
 #include <utility>
@@ -10,6 +13,9 @@ using namespace flux_foundry;
 namespace {
 using err_t = std::exception_ptr;
 using out_t = result_t<int, err_t>;
+
+constexpr int kBenchRounds = 7;
+constexpr long long kBenchMinRoundNs = 50LL * 1000 * 1000;
 
 struct inline_executor {
     void dispatch(task_wrapper_sbo t) noexcept {
@@ -53,39 +59,88 @@ struct bench_result {
     const char* name;
     int warmup;
     int iters;
+    int rounds;
     long long elapsed_ns;
     double ns_per_op;
+    double p95_ns_per_op;
+    double mean_ns_per_op;
 };
 
 template <typename F>
-bench_result run_bench(const char* name, int warmup, int iters, F&& fn) {
+bench_result run_bench(const char* name, int warmup, int iters_hint, F&& fn) {
     for (int i = 0; i < warmup; ++i) {
         fn(i);
     }
 
-    auto t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < iters; ++i) {
-        fn(i);
-    }
-    auto t1 = std::chrono::steady_clock::now();
+    int iters = iters_hint > 0 ? iters_hint : 1;
+    auto run_once = [&](int n) {
+        auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < n; ++i) {
+            fn(i);
+        }
+        auto t1 = std::chrono::steady_clock::now();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+    };
 
-    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+    long long calib_ns = run_once(iters);
+    for (int attempt = 0; attempt < 6 && calib_ns < kBenchMinRoundNs && iters < (INT_MAX / 2); ++attempt) {
+        const double scale = static_cast<double>(kBenchMinRoundNs) /
+                             static_cast<double>(calib_ns > 0 ? calib_ns : 1);
+        int next_iters = static_cast<int>(static_cast<double>(iters) * scale * 1.10);
+        if (next_iters <= iters) {
+            next_iters = iters * 2;
+        }
+        if (next_iters <= 0 || next_iters > (INT_MAX / 2)) {
+            next_iters = INT_MAX / 2;
+        }
+        iters = next_iters;
+        calib_ns = run_once(iters);
+    }
+
+    std::array<double, kBenchRounds> samples{};
+    long long elapsed_sum_ns = 0;
+    for (int r_i = 0; r_i < kBenchRounds; ++r_i) {
+        const auto ns = run_once(iters);
+        elapsed_sum_ns += ns;
+        samples[r_i] = static_cast<double>(ns) / static_cast<double>(iters);
+    }
+
+    std::array<double, kBenchRounds> sorted = samples;
+    std::sort(sorted.begin(), sorted.end());
+
+    const double median = sorted[kBenchRounds / 2];
+    int p95_index = ((kBenchRounds * 95) + 99) / 100 - 1;
+    if (p95_index < 0) p95_index = 0;
+    if (p95_index >= kBenchRounds) p95_index = kBenchRounds - 1;
+
+    double mean = 0.0;
+    for (double v : samples) {
+        mean += v;
+    }
+    mean /= static_cast<double>(kBenchRounds);
+
     bench_result r{};
     r.name = name;
     r.warmup = warmup;
     r.iters = iters;
-    r.elapsed_ns = ns;
-    r.ns_per_op = static_cast<double>(ns) / static_cast<double>(iters);
+    r.rounds = kBenchRounds;
+    r.elapsed_ns = elapsed_sum_ns / kBenchRounds;
+    r.ns_per_op = median;
+    r.p95_ns_per_op = sorted[p95_index];
+    r.mean_ns_per_op = mean;
     return r;
 }
 
 void print_result(const bench_result& r) {
-    std::printf("%-24s warmup=%-8d iter=%-8d total=%.3f ms  ns/op=%.2f\n",
+    std::printf("%-24s warmup=%-8d iter=%-8d rounds=%-2d total=%.3f ms/round  ns/op=%.2f  p95=%.2f  mean=%.2f\n",
         r.name,
         r.warmup,
         r.iters,
+        r.rounds,
         static_cast<double>(r.elapsed_ns) / 1e6,
-        r.ns_per_op);
+        r.ns_per_op,
+        r.p95_ns_per_op,
+        r.mean_ns_per_op);
 }
 
 auto make_sync_20_bp() {

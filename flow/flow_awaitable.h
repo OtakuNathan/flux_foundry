@@ -122,8 +122,12 @@ namespace flux_foundry {
         // IF AND ONLY IF the async backend holds a reference to this object (i.e., it will trigger a callback later).
         // This releases a "Backend Reference" preventing the object from being leaked
         void release() noexcept {
+#if FLUEX_FOUNDRY_WITH_TSAN
+            UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+#else
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
                 std::atomic_thread_fence(std::memory_order_acquire);
+#endif
                 delete static_cast<derived*>(this);
             }
         }

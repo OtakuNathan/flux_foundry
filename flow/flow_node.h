@@ -136,7 +136,7 @@ namespace flux_foundry {
             return table[i](f, std::forward<Pack>(pack));
         }
 
-       template <typename F, typename... Ts>
+       template <typename F, typename ... Ts>
        auto visit_and_call(F& f, size_t i, flat_storage<Ts...>&& pack) noexcept {
            return visit_and_call_jump_table_impl(f, std::move(pack), i, std::index_sequence_for<Ts...> {});
        } 

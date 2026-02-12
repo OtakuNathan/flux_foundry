@@ -77,25 +77,25 @@ namespace flux_foundry {
         template <typename flow_bp, typename receiver_t>
         friend struct flow_runner;
     private:
-        padded_t<std::atomic<runner_cancel>, CACHE_LINE_SIZE> state_{ runner_cancel::none };
+        padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> state_{ runner_cancel::none };
         detail::flow_async_cancel_handler_t cancel_handler{ cancel_stub };
         detail::flow_async_notify_handler_dropped_t notify_handler_dropped { drop_sub };
         detail::flow_async_cancel_param_t cancel_param { nullptr };
 
         // never ever call this
-        runner_cancel lock_and_set_cancel_handler(detail::flow_async_cancel_handler_t new_cancel_handler,
+        auto lock_and_set_cancel_handler(detail::flow_async_cancel_handler_t new_cancel_handler,
             detail::flow_async_notify_handler_dropped_t new_notify_handler_dropped,
             detail::flow_async_cancel_param_t param) noexcept
         {
             auto& state = state_.get();
 
-            runner_cancel exp = state.load(std::memory_order_acquire);
+            auto exp = state.load(std::memory_order_acquire);
             if (exp & runner_cancel::msk) {
                 return exp;
             }
 
             for (backoff_strategy<> backoff;; backoff.yield()) {
-                if (state.compare_exchange_weak(exp, static_cast<runner_cancel>(exp | runner_cancel::locked), 
+                if (state.compare_exchange_weak(exp, exp | runner_cancel::locked,
                         std::memory_order_acq_rel, std::memory_order_acquire)) {
                     break;
                 }
@@ -108,7 +108,7 @@ namespace flux_foundry {
             this->cancel_handler = new_cancel_handler;
             this->notify_handler_dropped = new_notify_handler_dropped;
             this->cancel_param = param;
-            return static_cast<runner_cancel>(exp | runner_cancel::locked);
+            return exp | runner_cancel::locked;
         }
 
         // never ever call this
@@ -119,29 +119,28 @@ namespace flux_foundry {
             this->cancel_param = nullptr;
         }
 
-        void unlock(runner_cancel token) noexcept {
+        void unlock(size_t token) noexcept {
             auto& state = state_.get();
-            state.compare_exchange_strong(token,  static_cast<runner_cancel>(token + 1), 
+            state.compare_exchange_strong(token, token + 1,
                 std::memory_order_release, std::memory_order_relaxed);
         }
 
-        runner_cancel reset_cancel_handler() noexcept {
+        auto reset_cancel_handler() noexcept {
             auto& state = state_.get();
 
-            runner_cancel exp = state.load(std::memory_order_acquire);
+            auto exp = state.load(std::memory_order_acquire);
             if (exp & runner_cancel::msk) {
                 return exp;
             }
 
             for (backoff_strategy<> backoff;; backoff.yield()) {
-                if (state.compare_exchange_weak(exp, static_cast<runner_cancel>(exp | runner_cancel::locked), 
+                if (state.compare_exchange_weak(exp, exp | runner_cancel::locked,
                     std::memory_order_acq_rel, std::memory_order_acquire)) {
                     notify_handler_dropped(cancel_param);
                     this->notify_handler_dropped = drop_sub;
                     this->cancel_handler = cancel_stub;
                     this->cancel_param = nullptr;
-
-                    state.store(static_cast<runner_cancel>(exp + epoch), std::memory_order_release);
+                    state.store(exp + epoch, std::memory_order_release);
                     return exp;
                 }
 
@@ -165,18 +164,17 @@ namespace flux_foundry {
             const auto kind = force ? runner_cancel::hard : runner_cancel::soft;
             auto& state = state_.get();
 
-            runner_cancel exp = state.load(std::memory_order_acquire);
+            auto exp = state.load(std::memory_order_acquire);
             if ((exp & runner_cancel::msk) == runner_cancel::soft 
                 || (exp & runner_cancel::msk) == runner_cancel::hard) {
                 return;
             }
 
             for (backoff_strategy<> backoff;; backoff.yield()) {
-                exp = static_cast<runner_cancel>(exp & ~runner_cancel::msk);
-                runner_cancel target = static_cast<runner_cancel>(exp | kind);
+                exp &= ~size_t(runner_cancel::msk);
+                auto target = exp | kind;
                 if (state.compare_exchange_weak(exp, target, std::memory_order_acq_rel, std::memory_order_acquire)) {
                     cancel_handler(cancel_param, force ? cancel_kind::hard : cancel_kind::soft);
-
                     notify_handler_dropped(cancel_param);
                     this->notify_handler_dropped = drop_sub;
                     this->cancel_handler = cancel_stub;
@@ -254,8 +252,6 @@ namespace flux_foundry {
         receiver_t& receiver() noexcept {
             return data.second();
         }
-
-
     public:
         flow_runner() = delete;
 
@@ -410,7 +406,7 @@ namespace flux_foundry {
                 // ok prepare to submit asio
                 struct guard {
                     flow_controller* controller;
-                    runner_cancel token;
+                    size_t token;
                     ~guard() noexcept {
                         if (controller) controller->unlock(token);
                     }
@@ -429,16 +425,20 @@ namespace flux_foundry {
                                              adaptor = std::move(adaptor),
                                              state = state,
                                              in = std::move(in)]() mutable noexcept {
-                                
-                                auto& cs = controller->state_.get();
-                                LIKELY_IF (state != cs.load(std::memory_order_acquire)) {
-                                    controller->reset_cancel_handler();
-                                } else {
-                                    controller->reset_cancel_handler_when_locked();
-                                    controller->unlock(state);
-                                }
-                                
-                                flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
+                            auto& cs = controller->state_.get();
+                            auto exp = state;
+                            // am I still have the lock?
+                            LIKELY_IF (!cs.compare_exchange_strong(exp, state + epoch,
+                                                                   std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                                // no it is freed by guard.
+                                controller->reset_cancel_handler();
+                            } else {
+                                // yes, I can reset cancel handler.
+                                controller->reset_cancel_handler_when_locked();
+                                cs.fetch_add(1, std::memory_order_release);
+                            }
+
+                            flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
                                 ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
                           })
                         );
