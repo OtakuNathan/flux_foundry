@@ -45,7 +45,7 @@ namespace flux_foundry {
 
         struct cb_t {
             alignas(align) unsigned char data[sizeof(T)];
-            compressed_pair<std::atomic<size_t>, F> cb;
+            alignas(CACHE_LINE_SIZE) compressed_pair<std::atomic<size_t>, F> cb;
 
             template <typename G, typename ... Args>
             cb_t(G&& g, Args&& ... args)
