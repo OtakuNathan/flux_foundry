@@ -1,4 +1,4 @@
-# flux_foundry
+﻿# flux_foundry
 
 > Lightweight C++14 foundations for async flow orchestration, lock-free queues, and low-level memory building blocks.
 
@@ -7,7 +7,7 @@
 `flux_foundry` is a header-only C++14 library that combines:
 
 - ⚡ Low-overhead flow pipeline execution (`flow_runner`, `flow_fast_runner`)
-- 🔁 Async composition primitives (`flow_async`, `await_when_all`, `await_when_any`)
+- 🔁 Flow DSL operators (`transform`, `then`, `on_error`, `catch_exception`, `flow_async`, `await_when_all`, `await_when_any`)
 - 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace`)
 - 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`)
 
@@ -17,7 +17,7 @@ The project is tuned for predictable behavior and explicit contracts under concu
 
 | Module | Main files | What it provides |
 |---|---|---|
-| `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h` | Pipeline DSL, node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
+| `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h` | Pipeline DSL (`transform/then/on_error/catch_exception/via/await`), node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
 | `executor/` | `simple_executor.h`, `gsource_executor.h` | MPSC single-consumer executor, GLib source-backed executor |
 | `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h` | Lock-free queues, callable type-erasure with SBO, backoff policies |
 | `task/` | `task_wrapper.h`, `future_task.h` | Task wrappers and future-related task abstraction |
@@ -82,6 +82,20 @@ int main() {
 
     auto bp = make_blueprint<int>()
         | transform([](int x) noexcept { return x + 1; })
+        | then([](result_t<int, E>&& in) noexcept -> result_t<int, E> {
+            if (!in.has_value()) {
+                return result_t<int, E>(error_tag, std::move(in).error());
+            }
+            return result_t<int, E>(value_tag, in.value() * 2);
+        })
+        | on_error([](result_t<int, E>&&) noexcept -> result_t<int, E> {
+            return result_t<int, E>(value_tag, -1); // recover from non-exception errors
+        })
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+        | catch_exception<std::runtime_error>([](const std::runtime_error&) noexcept {
+            return -2; // recover from std::runtime_error
+        })
+#endif
         | await<plus_one_awaitable>(&ex)
         | end();
 
@@ -95,7 +109,7 @@ int main() {
 
 ```mermaid
 flowchart LR
-    A[Blueprint DSL<br/>transform/via/async/when_all/when_any] --> B[flow_blueprint]
+    A[Blueprint DSL<br/>transform/then/on_error/catch_exception/via/async/when_all/when_any] --> B[flow_blueprint]
     B --> C[flow_runner / flow_fast_runner]
     C --> D[Executor<br/>simple_executor or custom dispatch]
     C --> E[Awaitable Layer<br/>awaitable_base + factories]
@@ -205,3 +219,5 @@ README.md
 ## 📜 License
 
 MIT
+
+

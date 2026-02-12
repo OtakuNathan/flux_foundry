@@ -2,9 +2,8 @@
 #include <system_error>
 #include <utility>
 
-#include "flow/flow.h"
-
-using namespace flux_foundry;
+#include "base/traits.h"
+#include "flow/flow_def.h"
 
 namespace flux_foundry {
 template <>
@@ -42,6 +41,10 @@ struct async_any_failed_error<std::error_code> {
     }
 };
 }
+
+#include "flow/flow.h"
+
+using namespace flux_foundry;
 
 namespace {
 using err_t = std::error_code;

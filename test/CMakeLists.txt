@@ -14,10 +14,29 @@ function(lfnds_add_probe target source)
     target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}")
 endfunction()
 
+function(lfnds_add_noexc_probe target source)
+    lfnds_add_probe(${target} ${source})
+    target_compile_definitions(${target} PRIVATE FLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1)
+    if(MSVC)
+        target_compile_definitions(${target} PRIVATE _HAS_EXCEPTIONS=0)
+        target_compile_options(${target} PRIVATE /EHs-c-)
+    else()
+        target_compile_options(${target} PRIVATE -fno-exceptions)
+    endif()
+endfunction()
+
 # Smoke
 lfnds_add_probe(lfnds_flow_smoke flow_smoke_test.cpp)
 add_test(NAME flow_smoke COMMAND lfnds_flow_smoke)
 set_tests_properties(flow_smoke PROPERTIES LABELS "smoke")
+
+lfnds_add_probe(lfnds_flow_fullchain_smoke flow_fullchain_smoke.cpp)
+add_test(NAME flow_fullchain_smoke COMMAND lfnds_flow_fullchain_smoke)
+set_tests_properties(flow_fullchain_smoke PROPERTIES LABELS "smoke")
+
+lfnds_add_noexc_probe(lfnds_flow_fullchain_smoke_noexc flow_fullchain_smoke_noexcept.cpp)
+add_test(NAME flow_fullchain_smoke_noexc COMMAND lfnds_flow_fullchain_smoke_noexc)
+set_tests_properties(flow_fullchain_smoke_noexc PROPERTIES LABELS "smoke;noexc")
 
 # Stress
 lfnds_add_probe(lfnds_flow_state_stress flow_state_stress.cpp)
