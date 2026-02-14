@@ -14,6 +14,12 @@ bench/horizontal_compare/run.sh
 
 脚本会在首次运行时自动拉取 Asio 到 `/tmp/flux_foundry_asio`，不会把第三方仓库塞进当前项目目录。
 
+`noexcept` 兼容版本：
+
+```bash
+bench/horizontal_compare/run_noexcept.sh
+```
+
 ## 当前覆盖
 
 - `baseline.direct.loop20`
@@ -34,9 +40,11 @@ Full semantics overhead:
 - `full.asio.post.async4`
 - `full.flux.runner.when_all2.post`
 - `full.flux.fast_runner.when_all2.post`
+- `full.flux.fast_runner.when_all2.fastagg.post`
 - `full.asio.post.when_all2`
 - `full.flux.runner.when_any2.post`
 - `full.flux.fast_runner.when_any2.post`
+- `full.flux.fast_runner.when_any2.fastagg.post`
 - `full.asio.post.when_any2`
 
 ## 注意

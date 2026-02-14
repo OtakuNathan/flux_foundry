@@ -50,7 +50,7 @@ struct ex {
     void dispatch(task_wrapper_sbo t) noexcept { t(); }
 };
 
-struct aw_noexcept : awaitable_base<aw_noexcept, int, std::error_code> {
+struct aw_noexcept final : awaitable_base<aw_noexcept, int, std::error_code> {
     using async_result_type = result_t<int, std::error_code>;
     int v;
 

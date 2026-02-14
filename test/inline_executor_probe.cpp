@@ -94,7 +94,7 @@ void spin_for_us(unsigned us) {
     }
 }
 
-struct immediate_plus_one_awaitable : awaitable_base<immediate_plus_one_awaitable, int, err_t> {
+struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
     int v;
 
@@ -111,7 +111,7 @@ struct immediate_plus_one_awaitable : awaitable_base<immediate_plus_one_awaitabl
     }
 };
 
-struct delayed_plus_one_awaitable : awaitable_base<delayed_plus_one_awaitable, int, err_t> {
+struct delayed_plus_one_awaitable final : awaitable_base<delayed_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
     int v;
 
@@ -134,7 +134,7 @@ struct delayed_plus_one_awaitable : awaitable_base<delayed_plus_one_awaitable, i
     }
 };
 
-struct fail_submit_awaitable : awaitable_base<fail_submit_awaitable, int, err_t> {
+struct fail_submit_awaitable final : awaitable_base<fail_submit_awaitable, int, err_t> {
     using async_result_type = out_t;
 
     explicit fail_submit_awaitable(async_result_type&&) noexcept {

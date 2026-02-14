@@ -23,7 +23,7 @@ struct inline_executor {
     }
 };
 
-struct immediate_plus_one_awaitable : awaitable_base<immediate_plus_one_awaitable, int, err_t> {
+struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
 
     int v;
@@ -253,6 +253,26 @@ int main() {
     });
     print_result(r4);
 
+    auto bp_all_fast = await_when_all_fast(
+        &ex,
+        [](int a, int b) noexcept {
+            return out_t(value_tag, a + b);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1_all,
+        p2_all)
+        | end();
+
+    auto bp_all_fast_ptr = make_lite_ptr<decltype(bp_all_fast)>(std::move(bp_all_fast));
+    auto when_all_fast_runner = make_runner(bp_all_fast_ptr, sink_receiver{&sink});
+
+    auto r4f = run_bench("runner.when_all_fast.2", 5000, 300000, [&](int i) {
+        when_all_fast_runner(make_flat_storage(i, i + 1));
+    });
+    print_result(r4f);
+
     auto leaf1_any = make_blueprint<int>()
         | transform([](int x) noexcept { return x + 100; })
         | end();
@@ -282,6 +302,26 @@ int main() {
         when_any_runner(make_flat_storage(i, i + 1));
     });
     print_result(r5);
+
+    auto bp_any_fast = await_when_any_fast(
+        &ex,
+        [](int v) noexcept {
+            return out_t(value_tag, v);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1_any,
+        p2_any)
+        | end();
+
+    auto bp_any_fast_ptr = make_lite_ptr<decltype(bp_any_fast)>(std::move(bp_any_fast));
+    auto when_any_fast_runner = make_runner(bp_any_fast_ptr, sink_receiver{&sink});
+
+    auto r5f = run_bench("runner.when_any_fast.2", 5000, 300000, [&](int i) {
+        when_any_fast_runner(make_flat_storage(i, i + 1));
+    });
+    print_result(r5f);
 
     std::printf("sink=%lld\n", sink);
     return 0;

@@ -17,7 +17,7 @@ struct inline_executor {
     }
 };
 
-struct plus_one_awaitable : awaitable_base<plus_one_awaitable, int, err_t> {
+struct plus_one_awaitable final : awaitable_base<plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
     int v;
 
@@ -33,7 +33,7 @@ struct plus_one_awaitable : awaitable_base<plus_one_awaitable, int, err_t> {
     void cancel() noexcept {}
 };
 
-struct submit_fail_awaitable : awaitable_base<submit_fail_awaitable, int, err_t> {
+struct submit_fail_awaitable final : awaitable_base<submit_fail_awaitable, int, err_t> {
     using async_result_type = out_t;
 
     explicit submit_fail_awaitable(async_result_type&&) noexcept {}
@@ -187,6 +187,153 @@ int test_when_any() {
     return failed;
 }
 
+int test_when_all_fast() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto leaf1 = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 10; })
+        | end();
+
+    auto leaf2 = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 20; })
+        | end();
+
+    auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));
+    auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
+
+    auto bp = await_when_all_fast(
+        &ex,
+        [](int a, int b) noexcept {
+            return out_t(value_tag, a + b);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1,
+        p2)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(make_flat_storage(1, 2));
+
+    int failed = 0;
+    check(obs.called, "when_all_fast called", failed);
+    check(obs.has_value, "when_all_fast has value", failed);
+    check(obs.value == 33, "when_all_fast value == 33", failed);
+    return failed;
+}
+
+int test_when_any_fast() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto leaf1 = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 100; })
+        | end();
+
+    auto leaf2 = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 200; })
+        | end();
+
+    auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));
+    auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
+
+    auto bp = await_when_any_fast(
+        &ex,
+        [](int x) noexcept {
+            return out_t(value_tag, x);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1,
+        p2)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(make_flat_storage(1, 2));
+
+    int failed = 0;
+    check(obs.called, "when_any_fast called", failed);
+    check(obs.has_value, "when_any_fast has value", failed);
+    check(obs.value == 101, "when_any_fast value == 101", failed);
+    return failed;
+}
+
+int test_when_all_rejects_null_bp() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto leaf = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 10; })
+        | end();
+
+    using leaf_t = decltype(leaf);
+    auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
+    lite_ptr<leaf_t> p_null;
+
+    auto bp = await_when_all(
+        &ex,
+        [](int a, int b) noexcept {
+            return out_t(value_tag, a + b);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p_valid,
+        p_null)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(make_flat_storage(1, 2));
+
+    int failed = 0;
+    check(obs.called, "when_all null bp called", failed);
+    check(!obs.has_value, "when_all null bp has error", failed);
+    check(has_logic_error_message(obs.err, "failed to submit async operation"),
+          "when_all null bp submit-fail message", failed);
+    return failed;
+}
+
+int test_when_any_accepts_null_bp() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto leaf = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 100; })
+        | end();
+
+    using leaf_t = decltype(leaf);
+    lite_ptr<leaf_t> p_null;
+    auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
+
+    auto bp = await_when_any(
+        &ex,
+        [](int x) noexcept {
+            return out_t(value_tag, x);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p_null,
+        p_valid)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(make_flat_storage(7, 1));
+
+    int failed = 0;
+    check(obs.called, "when_any null bp called", failed);
+    check(obs.has_value, "when_any null bp has value", failed);
+    check(obs.value == 101, "when_any null bp value == 101", failed);
+    return failed;
+}
+
 int test_submit_fail_path() {
     inline_executor ex;
     run_observer obs;
@@ -215,6 +362,10 @@ int main() {
     failed += test_async_async();
     failed += test_when_all();
     failed += test_when_any();
+    failed += test_when_all_fast();
+    failed += test_when_any_fast();
+    failed += test_when_all_rejects_null_bp();
+    failed += test_when_any_accepts_null_bp();
     failed += test_submit_fail_path();
 
     if (failed == 0) {

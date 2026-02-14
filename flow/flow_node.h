@@ -391,8 +391,9 @@ namespace flux_foundry {
                 "noexcept exec->dispatch(task_wrapper_sbo)."
                 " Besides, please never ever use inline executor to dispatch await operation");
 
-            static_assert(is_awaitable_v<Awaitable>,
-                "Awaitable must be an valid awaitable(see flux_foundry::awaitable_base)");
+            static_assert(is_awaitable_v<Awaitable> || is_fast_awaitable_v<Awaitable>,
+                "Awaitable must be an valid awaitable(see flux_foundry::awaitable_base)\n"
+                "or a valid fast_awaitable(see flux_foundry::fast_awaitable_base)");
             Executor e;
 
             template <typename F_I, typename F_O>
@@ -421,7 +422,7 @@ namespace flux_foundry {
         }
 
         // when_all_node
-        template <typename Executor, typename F, typename G, typename ... BPs>
+        template <typename Executor, typename F, typename G, bool Fast, typename ... BPs>
         struct when_all_node {
             static_assert(conjunction_v<is_runnable_bp<BPs>...>, "BPs should be runnable_bps");
             static_assert(check_when_all_success_compatibility<F, G, typename BPs::O_t::value_type...>::value,
@@ -440,7 +441,8 @@ namespace flux_foundry {
             G g;
 
             using F_O = decltype(std::declval<G&>()(std::declval<flow_async_agg_err_t>()));
-            using awaitable_t = flow_when_all_awaitable<BPs...>;
+            using awaitable_t = std::conditional_t<Fast,
+                flow_when_all_fast_awaitable<BPs...>, flow_when_all_awaitable<BPs...>>;
 
             template <typename F_I>
             static auto make(when_all_node&& node, lite_ptr<BPs> ... bps) noexcept {
@@ -472,7 +474,7 @@ namespace flux_foundry {
         };
 
         // when_any_node
-        template <typename Executor, typename F, typename G, typename ... BPs>
+        template <typename Executor, typename F, typename G, bool Fast, typename ... BPs>
         struct when_any_node {
             static_assert(conjunction_v<is_runnable_bp<BPs>...>, "BPs should be runnable_bps");
 
@@ -494,7 +496,8 @@ namespace flux_foundry {
             G g;
 
             using F_O = decltype(std::declval<G&>()(std::declval<flow_async_agg_err_t>()));
-            using awaitable_t = flow_when_any_awaitable<BPs...>;
+            using awaitable_t = std::conditional_t<Fast,
+                    flow_when_any_fast_awaitable<BPs...>, flow_when_any_awaitable<BPs...>>;
 
             template <typename F_I>
             static auto make(when_any_node&& node, lite_ptr<BPs> ... bps) noexcept {
@@ -646,7 +649,22 @@ namespace flux_foundry {
     auto await_when_all(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
         using E = std::decay_t<Executor>;
 
-        using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, BPs...>;
+        using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
+        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        using F_O = typename when_all_t::F_O;
+
+        when_all_t when_all{std::forward<Executor>(executor_to_resume),
+            std::forward<F>(on_success), std::forward<G>(on_error)};
+
+        auto node = when_all_t::template make<F_I>(std::move(when_all), std::move(bps)...);
+        return flow_impl::flow_blueprint<F_I, F_O, decltype(node)>(flat_storage<decltype(node)>(std::move(node)));
+    }
+
+    template <typename Executor, typename F, typename G, typename ... BPs>
+    auto await_when_all_fast(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        using E = std::decay_t<Executor>;
+
+        using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
         using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
         using F_O = typename when_all_t::F_O;
 
@@ -661,7 +679,20 @@ namespace flux_foundry {
     auto await_when_any(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
         using E = std::decay_t<Executor>;
 
-        using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, BPs...>;
+        using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
+        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        using F_O = typename when_any_t::F_O;
+
+        when_any_t when_any{std::forward<Executor>(executor_to_resume), std::forward<F>(on_success), std::forward<G>(on_error)};
+        auto node = when_any_t::template make<F_I>(std::move(when_any), std::move(bps)...);
+        return flow_impl::flow_blueprint<F_I, F_O, decltype(node)>(flat_storage<decltype(node)>(std::move(node)));
+    }
+
+    template <typename Executor, typename F, typename G, typename ... BPs>
+    auto await_when_any_fast(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        using E = std::decay_t<Executor>;
+
+        using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
         using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
         using F_O = typename when_any_t::F_O;
 

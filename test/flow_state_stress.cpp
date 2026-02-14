@@ -113,7 +113,9 @@ struct inline_executor {
     }
 };
 
-struct delayed_plus_one_awaitable : awaitable_base<delayed_plus_one_awaitable, int, err_t> {
+static inline_executor g_inline_executor;
+
+struct delayed_plus_one_awaitable final : awaitable_base<delayed_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
 
     int input;
@@ -141,7 +143,7 @@ struct delayed_plus_one_awaitable : awaitable_base<delayed_plus_one_awaitable, i
     }
 };
 
-struct always_fail_submit_awaitable : awaitable_base<always_fail_submit_awaitable, int, err_t> {
+struct always_fail_submit_awaitable final : awaitable_base<always_fail_submit_awaitable, int, err_t> {
     using async_result_type = out_t;
 
     explicit always_fail_submit_awaitable(async_result_type&&) noexcept {
@@ -299,10 +301,9 @@ void consume_outcome(const std::shared_ptr<receiver_state>& st, test_stat& s) {
 test_stat stress_async_cancel_race() {
     constexpr int kIters = 5000;
     constexpr int kTimeoutAbort = 50;
-    inline_executor ex;
 
     auto bp = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&ex)
+        | await<delayed_plus_one_awaitable>(&g_inline_executor)
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
@@ -348,10 +349,9 @@ test_stat stress_async_cancel_race() {
 test_stat stress_submit_fail_path() {
     constexpr int kIters = 5000;
     constexpr int kTimeoutAbort = 50;
-    inline_executor ex;
 
     auto bp = make_blueprint<int>()
-        | await<always_fail_submit_awaitable>(&ex)
+        | await<always_fail_submit_awaitable>(&g_inline_executor)
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
@@ -389,23 +389,10 @@ test_stat stress_submit_fail_path() {
     return s;
 }
 
-test_stat stress_when_all_cancel_race() {
-    constexpr int kIters = 1500;
-    constexpr int kTimeoutAbort = 40;
-    inline_executor ex;
-
-    auto leaf1 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&ex)
-        | end();
-    auto leaf2 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&ex)
-        | end();
-
-    auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));
-    auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
-
-    auto bp = await_when_all(
-        &ex,
+template <typename BP1, typename BP2>
+auto make_when_all_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
+    return await_when_all(
+        &g_inline_executor,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -415,7 +402,69 @@ test_stat stress_when_all_cancel_race() {
         p1,
         p2)
         | end();
+}
 
+template <typename BP1, typename BP2>
+auto make_when_all_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
+    return await_when_all_fast(
+        &g_inline_executor,
+        [](int a, int b) noexcept {
+            return out_t(value_tag, a + b);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1,
+        p2)
+        | end();
+}
+
+template <typename BP1, typename BP2>
+auto make_when_any_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
+    return await_when_any(
+        &g_inline_executor,
+        [](int x) noexcept {
+            return out_t(value_tag, x);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1,
+        p2)
+        | end();
+}
+
+template <typename BP1, typename BP2>
+auto make_when_any_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
+    return await_when_any_fast(
+        &g_inline_executor,
+        [](int x) noexcept {
+            return out_t(value_tag, x);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p1,
+        p2)
+        | end();
+}
+
+template <bool RunnerFast, bool AggFast>
+test_stat stress_when_all_matrix_case(const char* tag) {
+    constexpr int kIters = 1000;
+    constexpr int kTimeoutAbort = 40;
+
+    auto leaf1 = make_blueprint<int>()
+        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | end();
+    auto leaf2 = make_blueprint<int>()
+        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | end();
+
+    auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));
+    auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
+
+    auto bp = make_when_all_stress_bp(std::integral_constant<bool, AggFast>{}, p1, p2);
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
 
@@ -424,19 +473,25 @@ test_stat stress_when_all_cancel_race() {
     auto begin = std::chrono::steady_clock::now();
 
     for (int i = 0; i < kIters; ++i) {
-        if ((i + 1) % 150 == 0) {
-            std::printf("[when_all] progress %d/%d\n", i + 1, kIters);
+        if ((i + 1) % 200 == 0) {
+            std::printf("%s progress %d/%d\n", tag, i + 1, kIters);
             std::fflush(stdout);
         }
 
-        auto ctrl = make_lite_ptr<flow_controller>();
         auto st = std::make_shared<receiver_state>();
+        if (RunnerFast) {
+            auto runner = make_fast_runner(bp_ptr, int_receiver{st});
+            runner(make_flat_storage(i, i + 1));
+        } else {
+            auto ctrl = make_lite_ptr<flow_controller>();
+            flow_runner<bp_t, int_receiver> runner(bp_ptr, ctrl, int_receiver{st});
+            runner(make_flat_storage(i, i + 1));
 
-        flow_runner<bp_t, int_receiver> runner(bp_ptr, ctrl, int_receiver{st});
-        runner(make_flat_storage(i, i + 1));
-
-        random_sleep_us(120);
-        ctrl->cancel((fast_rand_u32() & 1u) != 0u);
+            if (!AggFast) {
+                random_sleep_us(120);
+                ctrl->cancel((fast_rand_u32() & 1u) != 0u);
+            }
+        }
 
         ++s.executed;
         if (!wait_done(st, 180)) {
@@ -455,33 +510,22 @@ test_stat stress_when_all_cancel_race() {
     return s;
 }
 
-test_stat stress_when_any_cancel_race() {
-    constexpr int kIters = 1500;
+template <bool RunnerFast, bool AggFast>
+test_stat stress_when_any_matrix_case(const char* tag) {
+    constexpr int kIters = 1000;
     constexpr int kTimeoutAbort = 40;
-    inline_executor ex;
 
     auto leaf1 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&ex)
+        | await<delayed_plus_one_awaitable>(&g_inline_executor)
         | end();
     auto leaf2 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&ex)
+        | await<delayed_plus_one_awaitable>(&g_inline_executor)
         | end();
 
     auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
-    auto bp = await_when_any(
-        &ex,
-        [](int x) noexcept {
-            return out_t(value_tag, x);
-        },
-        [](flow_async_agg_err_t e) noexcept {
-            return out_t(error_tag, std::move(e));
-        },
-        p1,
-        p2)
-        | end();
-
+    auto bp = make_when_any_stress_bp(std::integral_constant<bool, AggFast>{}, p1, p2);
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
 
@@ -490,19 +534,25 @@ test_stat stress_when_any_cancel_race() {
     auto begin = std::chrono::steady_clock::now();
 
     for (int i = 0; i < kIters; ++i) {
-        if ((i + 1) % 150 == 0) {
-            std::printf("[when_any] progress %d/%d\n", i + 1, kIters);
+        if ((i + 1) % 200 == 0) {
+            std::printf("%s progress %d/%d\n", tag, i + 1, kIters);
             std::fflush(stdout);
         }
 
-        auto ctrl = make_lite_ptr<flow_controller>();
         auto st = std::make_shared<receiver_state>();
+        if (RunnerFast) {
+            auto runner = make_fast_runner(bp_ptr, int_receiver{st});
+            runner(make_flat_storage(i, i + 1));
+        } else {
+            auto ctrl = make_lite_ptr<flow_controller>();
+            flow_runner<bp_t, int_receiver> runner(bp_ptr, ctrl, int_receiver{st});
+            runner(make_flat_storage(i, i + 1));
 
-        flow_runner<bp_t, int_receiver> runner(bp_ptr, ctrl, int_receiver{st});
-        runner(make_flat_storage(i, i + 1));
-
-        random_sleep_us(120);
-        ctrl->cancel((fast_rand_u32() & 1u) != 0u);
+            if (!AggFast) {
+                random_sleep_us(120);
+                ctrl->cancel((fast_rand_u32() & 1u) != 0u);
+            }
+        }
 
         ++s.executed;
         if (!wait_done(st, 180)) {
@@ -545,18 +595,36 @@ int main() {
 
     auto t1 = stress_async_cancel_race();
     auto t2 = stress_submit_fail_path();
-    auto t3 = stress_when_all_cancel_race();
-    auto t4 = stress_when_any_cancel_race();
+    auto t3 = stress_when_all_matrix_case<false, false>("[when_all normal/cancel]");
+    auto t4 = stress_when_all_matrix_case<false, true>("[when_all normal/no_cancel]");
+    auto t5 = stress_when_all_matrix_case<true, false>("[when_all fast/cancel]");
+    auto t6 = stress_when_all_matrix_case<true, true>("[when_all fast/no_cancel]");
+    auto t7 = stress_when_any_matrix_case<false, false>("[when_any normal/cancel]");
+    auto t8 = stress_when_any_matrix_case<false, true>("[when_any normal/no_cancel]");
+    auto t9 = stress_when_any_matrix_case<true, false>("[when_any fast/cancel]");
+    auto t10 = stress_when_any_matrix_case<true, true>("[when_any fast/no_cancel]");
 
     print_stat("async cancel race", t1);
     print_stat("submit fail path", t2);
-    print_stat("when_all cancel race", t3);
-    print_stat("when_any cancel race", t4);
+    print_stat("when_all normal/cancel", t3);
+    print_stat("when_all normal/no_cancel", t4);
+    print_stat("when_all fast/cancel", t5);
+    print_stat("when_all fast/no_cancel", t6);
+    print_stat("when_any normal/cancel", t7);
+    print_stat("when_any normal/no_cancel", t8);
+    print_stat("when_any fast/cancel", t9);
+    print_stat("when_any fast/no_cancel", t10);
 
     failed += score_failures(t1);
     failed += score_failures(t2, true);
     failed += score_failures(t3);
     failed += score_failures(t4);
+    failed += score_failures(t5);
+    failed += score_failures(t6);
+    failed += score_failures(t7);
+    failed += score_failures(t8);
+    failed += score_failures(t9);
+    failed += score_failures(t10);
 
     if (!wait_backend_drained(15000)) {
         std::printf("[FAIL] backend tasks not drained in time\n");

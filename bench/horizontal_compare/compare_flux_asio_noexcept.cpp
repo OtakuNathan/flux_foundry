@@ -1,10 +1,62 @@
 #include <chrono>
+#include <cstdlib>
 #include <cstdio>
-#include <exception>
+#include <system_error>
 #include <utility>
 
 #define ASIO_STANDALONE 1
+#define ASIO_NO_EXCEPTIONS 1
+#define ASIO_DISABLE_EXCEPTIONS 1
 #include <asio.hpp>
+
+namespace asio {
+namespace detail {
+template <typename Exception>
+[[noreturn]] void throw_exception(const Exception& ASIO_SOURCE_LOCATION_PARAM) {
+    std::abort();
+}
+}
+}
+
+#include "base/traits.h"
+#include "flow/flow_def.h"
+
+namespace flux_foundry {
+template <>
+struct cancel_error<std::error_code> {
+    static std::error_code make(cancel_kind kind) noexcept {
+        return std::error_code(kind == cancel_kind::hard ? 1001 : 1002, std::generic_category());
+    }
+};
+
+template <>
+struct awaitable_creating_error<std::error_code> {
+    static std::error_code make() noexcept {
+        return std::error_code(1003, std::generic_category());
+    }
+};
+
+template <>
+struct async_submission_failed_error<std::error_code> {
+    static std::error_code make() noexcept {
+        return std::error_code(1004, std::generic_category());
+    }
+};
+
+template <>
+struct async_all_failed_error<std::error_code> {
+    static std::error_code make() noexcept {
+        return std::error_code(1005, std::generic_category());
+    }
+};
+
+template <>
+struct async_any_failed_error<std::error_code> {
+    static std::error_code make(size_t i) noexcept {
+        return std::error_code(static_cast<int>(1100 + i), std::generic_category());
+    }
+};
+}
 
 #include "flow/flow.h"
 
@@ -12,7 +64,7 @@ using namespace flux_foundry;
 
 namespace {
 
-using err_t = std::exception_ptr;
+using err_t = std::error_code;
 using out_t = result_t<int, err_t>;
 
 struct inline_executor {
@@ -108,7 +160,7 @@ void print_result(const bench_result& r) {
 }
 
 auto make_sync_20_bp() {
-    auto bp = make_blueprint<int>()
+    auto bp = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 1; })
         | transform([](int x) noexcept { return x + 1; })
         | transform([](int x) noexcept { return x + 1; })
@@ -135,7 +187,7 @@ auto make_sync_20_bp() {
 
 template <typename ExecutorPtr>
 auto make_via_20_bp(ExecutorPtr ex) {
-    auto bp = make_blueprint<int>()
+    auto bp = make_blueprint<int, err_t>()
         | via(ex) | via(ex) | via(ex) | via(ex) | via(ex)
         | via(ex) | via(ex) | via(ex) | via(ex) | via(ex)
         | via(ex) | via(ex) | via(ex) | via(ex) | via(ex)
@@ -145,8 +197,16 @@ auto make_via_20_bp(ExecutorPtr ex) {
 }
 
 template <typename ExecutorPtr>
+auto make_async_1_bp(ExecutorPtr ex) {
+    auto bp = make_blueprint<int, err_t>()
+        | await<immediate_plus_one_awaitable>(ex)
+        | end();
+    return bp;
+}
+
+template <typename ExecutorPtr>
 auto make_async_4_bp(ExecutorPtr ex) {
-    auto bp = make_blueprint<int>()
+    auto bp = make_blueprint<int, err_t>()
         | await<immediate_plus_one_awaitable>(ex)
         | await<immediate_plus_one_awaitable>(ex)
         | await<immediate_plus_one_awaitable>(ex)
@@ -226,6 +286,11 @@ void asio_post_async4(asio::io_context& io, int in, volatile long long* sink) {
     drain(io);
 }
 
+void asio_post_async1(asio::io_context& io, int in, volatile long long* sink) {
+    asio::post(io, asio_post_async4_hop{&io, sink, in, 1});
+    drain(io);
+}
+
 void asio_post_when_all2(asio::io_context& io, int a_in, int b_in, volatile long long* sink) {
     int a = 0;
     int b = 0;
@@ -269,8 +334,8 @@ void asio_post_when_any2(asio::io_context& io, int a_in, int b_in, volatile long
 } // namespace
 
 int main() {
-    std::printf("[horizontal compare] flux_foundry vs asio (same host/toolchain)\n");
-    std::printf("[build] clang++ -std=c++14 -O3 -DNDEBUG\n");
+    std::printf("[horizontal compare noexc] flux_foundry vs asio (same host/toolchain)\n");
+    std::printf("[build] clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -DASIO_NO_EXCEPTIONS=1\n");
 
     volatile long long sink = 0;
     asio::io_context io_sched_dispatch;
@@ -359,10 +424,32 @@ int main() {
     });
     print_result(r9);
 
-    auto leaf1_all = make_blueprint<int>()
+    auto bp_async1 = make_async_1_bp(&ex_full_post);
+    auto bp_async1_ptr = make_lite_ptr<decltype(bp_async1)>(std::move(bp_async1));
+    auto flux_async1_runner = make_runner(bp_async1_ptr, sink_receiver{&sink});
+    auto r9a = run_bench("full.flux.runner.async1.post", 5000, 300000, [&](int i) {
+        flux_async1_runner(i);
+        drain(io_full_flux);
+    });
+    print_result(r9a);
+
+    auto bp_async1_fast = make_async_1_bp(&ex_full_post);
+    auto flux_async1_fast_runner = make_fast_runner_view(bp_async1_fast, sink_receiver{&sink});
+    auto r9b = run_bench("full.flux.fast_runner.async1.post", 5000, 300000, [&](int i) {
+        flux_async1_fast_runner(i);
+        drain(io_full_flux);
+    });
+    print_result(r9b);
+
+    auto r9c = run_bench("full.asio.post.async1", 5000, 300000, [&](int i) {
+        asio_post_async1(io_full_asio, i, &sink);
+    });
+    print_result(r9c);
+
+    auto leaf1_all = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 10; })
         | end();
-    auto leaf2_all = make_blueprint<int>()
+    auto leaf2_all = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 20; })
         | end();
     auto p1_all = make_lite_ptr<decltype(leaf1_all)>(std::move(leaf1_all));
@@ -381,10 +468,10 @@ int main() {
     });
     print_result(r10);
 
-    auto leaf1_all_fast = make_blueprint<int>()
+    auto leaf1_all_fast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 10; })
         | end();
-    auto leaf2_all_fast = make_blueprint<int>()
+    auto leaf2_all_fast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 20; })
         | end();
     auto p1_all_fast = make_lite_ptr<decltype(leaf1_all_fast)>(std::move(leaf1_all_fast));
@@ -401,10 +488,10 @@ int main() {
     });
     print_result(r11);
 
-    auto leaf1_all_ffast = make_blueprint<int>()
+    auto leaf1_all_ffast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 10; })
         | end();
-    auto leaf2_all_ffast = make_blueprint<int>()
+    auto leaf2_all_ffast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 20; })
         | end();
     auto p1_all_ffast = make_lite_ptr<decltype(leaf1_all_ffast)>(std::move(leaf1_all_ffast));
@@ -426,10 +513,10 @@ int main() {
     });
     print_result(r12);
 
-    auto leaf1_any = make_blueprint<int>()
+    auto leaf1_any = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 100; })
         | end();
-    auto leaf2_any = make_blueprint<int>()
+    auto leaf2_any = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 200; })
         | end();
     auto p1_any = make_lite_ptr<decltype(leaf1_any)>(std::move(leaf1_any));
@@ -448,10 +535,10 @@ int main() {
     });
     print_result(r13);
 
-    auto leaf1_any_fast = make_blueprint<int>()
+    auto leaf1_any_fast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 100; })
         | end();
-    auto leaf2_any_fast = make_blueprint<int>()
+    auto leaf2_any_fast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 200; })
         | end();
     auto p1_any_fast = make_lite_ptr<decltype(leaf1_any_fast)>(std::move(leaf1_any_fast));
@@ -468,10 +555,10 @@ int main() {
     });
     print_result(r14);
 
-    auto leaf1_any_ffast = make_blueprint<int>()
+    auto leaf1_any_ffast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 100; })
         | end();
-    auto leaf2_any_ffast = make_blueprint<int>()
+    auto leaf2_any_ffast = make_blueprint<int, err_t>()
         | transform([](int x) noexcept { return x + 200; })
         | end();
     auto p1_any_ffast = make_lite_ptr<decltype(leaf1_any_ffast)>(std::move(leaf1_any_ffast));

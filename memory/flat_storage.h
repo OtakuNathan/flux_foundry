@@ -94,7 +94,7 @@ namespace flux_foundry {
             return std::move(_value);
         }
 
-        template<typename T_ = T,
+        template <typename T_ = T,
 #if FLUEX_FOUNDRY_HAS_EXCEPTIONS
                 typename = std::enable_if_t<is_swappable<T_>::value>
 #else

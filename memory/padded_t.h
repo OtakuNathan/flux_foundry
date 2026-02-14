@@ -9,7 +9,11 @@
 #include "../base/type_utility.h"
 
 namespace flux_foundry {
+#if FLUEX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN
+    template <typename T, size_t align = (alignof(T) > CACHE_LINE_SIZE ? alignof(T) : CACHE_LINE_SIZE)>
+#else
     template <typename T, size_t align = alignof(T)>
+#endif
     struct alignas(align) TS_EMPTY_BASES padded_t :
 #if FLUEX_FOUNDRY_HAS_EXCEPTIONS
             ctor_delete_base<T, std::is_copy_constructible<T>::value, std::is_move_constructible<T>::value>,

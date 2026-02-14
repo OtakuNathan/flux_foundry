@@ -37,6 +37,16 @@ namespace flux_foundry {
         _aligned_free(p);
 #endif
     }
+
+    struct aligned_malloc_allocator {
+        void* allocate(size_t align, size_t size) const noexcept {
+            return aligned_alloc(align, size);
+        }
+
+        void deallocate(void* p) const noexcept {
+            aligned_free(p);
+        }
+    };
 }
 
 #endif //LF_TEST_ALIGNED_ALLOC_H

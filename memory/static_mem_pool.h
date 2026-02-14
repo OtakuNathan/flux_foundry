@@ -17,8 +17,10 @@ namespace flux_foundry {
 
         alignas(std::max_align_t) uint8_t buff[epoch * line_width];
 
+        using slot_t = uint8_t*;
+
         template <size_t line>
-        using list_t = static_list<uint8_t*, (max_block_count << (maxoff - line))>;
+        using list_t = static_list<slot_t, (max_block_count << (maxoff - line))>;
 
         list_t<0> free_0;
         list_t<1> free_1;
@@ -74,10 +76,10 @@ namespace flux_foundry {
         }
 
         void* allocate(size_t n) noexcept {
-            inplace_t<uint8_t*> p{};
+            inplace_t<slot_t> p{};
             /* fallthrough */
             switch (match(n)) {
-                case 0: p = free_0.pop(); if (p.has_value()) return p.steal(); 
+                case 0: p = free_0.pop(); if (p.has_value()) return p.steal();
                 case 1: p = free_1.pop(); if (p.has_value()) return p.steal();
                 case 2: p = free_2.pop(); if (p.has_value()) return p.steal();
                 case 3: p = free_3.pop(); if (p.has_value()) return p.steal();

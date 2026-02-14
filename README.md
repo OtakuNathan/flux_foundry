@@ -7,7 +7,7 @@
 `flux_foundry` is a header-only C++14 library that combines:
 
 - ⚡ Low-overhead flow pipeline execution (`flow_runner`, `flow_fast_runner`)
-- 🔁 Flow DSL operators (`transform`, `then`, `on_error`, `catch_exception`, `flow_async`, `await_when_all`, `await_when_any`)
+- 🔁 Flow DSL operators (`transform`, `then`, `on_error`, `catch_exception`, `flow_async`, `await_when_all`, `await_when_any` `await_when_all_fast`, `await_when_any_fast`)
 - 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace`)
 - 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`)
 
@@ -62,7 +62,7 @@ struct inline_executor {
     void dispatch(task_wrapper_sbo t) noexcept { t(); }
 };
 
-struct plus_one_awaitable : awaitable_base<plus_one_awaitable, int, E> {
+struct plus_one_awaitable final : awaitable_base<plus_one_awaitable, int, E> {
     using async_result_type = result_t<int, E>;
     int v;
 
@@ -137,10 +137,21 @@ flowchart LR
 - Explicit cancel path via `flow_controller`
 - Async node submit/cancel lifecycle managed through `awaitable_base`
 
+### Fast async lane
+
+- `fast_awaitable_base`:
+  - designed for throughput-first async path
+  - no awaitable internal state-machine CAS on `submit/resume`
+  - contract-based: backend must guarantee `resume()` is eventually called exactly once after successful `submit()`
+- `await_when_all_fast(...)` / `await_when_any_fast(...)`:
+  - use fast aggregator awaitables (`flow_when_all_fast_awaitable`, `flow_when_any_fast_awaitable`)
+  - run subgraphs with `fast_runner`
+  - cancellation semantics are intentionally removed from the fast path (`cancel()` is no-op)
+- Recommended combinations:
+  - max throughput: `fast_runner + fast awaitable/fast aggregator`
+  - full cancellation semantics: `flow_runner + awaitable_base/normal aggregator`
+
 ## 📊 Benchmark snapshots
-
-### Surface Pro 7 snapshot (historical)
-
 Command:
 
 ```bash
@@ -149,23 +160,34 @@ cmake --build build --config Release --target lfnds_flow_perf
 ctest --test-dir build -C Release -R flow_perf --output-on-failure
 ```
 
-Measured output (`2026-02-11`, local machine):
+### Windows 11 (strict no-exception)
 
-- Device: `Microsoft Surface Pro 7` (`x64-based PC`)
-- CPU: `Intel Core i5-1035G4` (4 cores / 8 threads)
-- Memory: `8 GB` RAM (`8155709440` bytes reported by WMI)
-- GPU: `Intel Iris Plus Graphics`
-- OS: `Windows 10 Home` (`10.0.19045`, `64-bit`)
-- Compiler: `clang++ 21.1.0` (`target: x86_64-pc-windows-msvc`)
+Command baseline:
 
-| Case | total | ns/op |
-|---|---:|---:|
-| `direct.loop20` | 5.391 ms | 1.08 |
-| `runner.sync.20nodes` | 87.245 ms | 43.62 |
-| `fast_runner.sync.20nodes` | 20.592 ms | 6.86 |
-| `runner.async.4nodes` | 1197.195 ms | 1496.49 |
-| `runner.when_all.2` | 279.624 ms | 932.08 |
-| `runner.when_any.2` | 234.322 ms | 781.07 |
+```bash
+clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1
+```
+
+- Host: `Windows 11 Home` (`10.0.26200`)
+- CPU: `AMD Family 23 Model 113` (`~3.6 GHz`, x64)
+- Memory: `32 GB`
+- Compiler baseline printed by harness: `clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1`
+
+Lower is better (`ns/op`):
+
+| Case | Run #1 | Run #2 | Mean |
+|---|---:|---:|---:|
+| `direct.loop20` | 0.42 | 0.50 | 0.46 |
+| `runner.sync.20nodes` | 18.42 | 19.19 | 18.81 |
+| `fast_runner.sync.20nodes` | 1.63 | 1.66 | 1.65 |
+| `runner.async.4nodes` | 545.65 | 545.70 | 545.68 |
+| `fast_runner.async.4nodes` | 222.95 | 225.26 | 224.11 |
+| `runner.when_all.2` | 274.00 | 278.08 | 276.04 |
+| `fast_runner.when_all_fast.2` | 148.66 | 147.92 | 148.29 |
+| `runner.when_all_fast.2` | 231.18 | 232.17 | 231.68 |
+| `runner.when_any.2` | 248.46 | 248.39 | 248.43 |
+| `fast_runner.when_any_fast.2` | 123.33 | 121.99 | 122.66 |
+| `runner.when_any_fast.2` | 204.35 | 205.19 | 204.77 |
 
 ### macOS snapshot (current harness, exception on/off)
 
@@ -189,14 +211,34 @@ Measured output (`2026-02-12`, local machine):
 
 Lower is better (`ns/op`):
 
-| Case | Exceptions ON (median / p95 / mean) | Exceptions OFF (median / p95 / mean) | OFF vs ON (median) |
-|---|---:|---:|---:|
-| `direct.loop20` | `1.56 / 2.36 / 1.67` | `1.56 / 2.41 / 1.70` | `+0.00%` |
-| `runner.sync.20nodes` | `25.00 / 25.30 / 24.96` | `18.88 / 19.37 / 18.94` | `-24.48%` |
-| `fast_runner.sync.20nodes` | `1.56 / 1.59 / 1.45` | `1.57 / 1.59 / 1.57` | `+0.64%` |
-| `runner.async.4nodes` | `748.13 / 795.90 / 756.40` | `675.01 / 700.96 / 679.84` | `-9.77%` |
-| `runner.when_all.2` | `605.29 / 703.23 / 628.20` | `567.55 / 679.80 / 584.16` | `-6.24%` |
-| `runner.when_any.2` | `490.16 / 492.98 / 488.78` | `448.77 / 516.72 / 459.12` | `-8.44%` |
+Commands:
+
+```bash
+# Exceptions ON
+clang++ -O3 -fstrict-aliasing -mcpu=apple-m1 -std=c++14 -DNDEBUG -I. test/flow_perf.cpp -o /tmp/flow_perf_exc_latest
+
+# Exceptions OFF (strict no-exception mode)
+clang++ -O3 -fstrict-aliasing -fno-exceptions -mcpu=apple-m1 -std=c++14 -DNDEBUG -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I. test/flow_perf_noexcept.cpp -o /tmp/flow_perf_noexc_latest
+```
+
+- OS: `Darwin` (`arm64`, Apple Silicon)
+- CPU target flag: `-mcpu=apple-m1`
+
+Lower is better (`ns/op`, median):
+
+| Case | Exceptions ON | Exceptions OFF |
+|---|---:|---:|
+| `direct.loop20` | 1.54 | 2.56 |
+| `runner.sync.20nodes` | 24.82 | 18.93 |
+| `fast_runner.sync.20nodes` | 1.56 | 2.60 |
+| `runner.async.4nodes` | 561.66 | 503.97 |
+| `fast_runner.async.4nodes` | - | 121.32 |
+| `runner.when_all.2` | 291.88 | 270.61 |
+| `fast_runner.when_all_fast.2` | - | 85.55 |
+| `runner.when_all_fast.2` | 215.89 | 210.83 |
+| `runner.when_any.2` | 271.50 | 251.73 |
+| `fast_runner.when_any_fast.2` | - | 67.37 |
+| `runner.when_any_fast.2` | 187.93 | 186.16 |
 
 Notes:
 
@@ -220,8 +262,8 @@ Result summary (local run):
 - ✅ `[PASS] state-machine stress passed`
 - `async cancel race`: 5000/5000 completed, `timeout=0`, `duplicate_callback=0`
 - `submit fail path`: 5000/5000 completed, all classified as submit-fail as expected
-- `when_all cancel race`: 1500/1500 completed, `timeout=0`
-- `when_any cancel race`: 1500/1500 completed, `timeout=0`
+- `when_all` matrix: `normal/cancel`, `normal/no_cancel`, `fast/cancel`, `fast/no_cancel`
+- `when_any` matrix: `normal/cancel`, `normal/no_cancel`, `fast/cancel`, `fast/no_cancel`
 
 ## 📁 Repository layout
 

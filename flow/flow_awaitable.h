@@ -6,8 +6,11 @@
 #ifndef FLUX_FOUNDRY_FLOW_AWAITABLE_H
 #define FLUX_FOUNDRY_FLOW_AWAITABLE_H
 
+#include <atomic>
 #include <new>
-#include "../memory/lite_ptr.h"
+#include <cstdint>
+#include <type_traits>
+#include "../memory/pooling.h"
 #include "../memory/result_t.h"
 #include "../utility/callable_wrapper.h"
 #include "flow_def.h"
@@ -15,9 +18,8 @@
 namespace flux_foundry {
     // Contract: Awaitables in flux_foundry MUST NOT start any side effects before submit_async() is called.
     template <typename derived, typename T, typename E>
-    struct awaitable_base {
+    struct awaitable_base : public pooling_base<derived, FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
     private:
-
         // State transitions:
         // idle -> waiting (via submit_async, atomic CAS)
         // waiting -> done (via resume, atomic CAS)
@@ -80,12 +82,17 @@ namespace flux_foundry {
                     return -1;
                 }
 
+                // Keep awaitable alive across derived::submit(); submit() may
+                // synchronously complete and drop refs via resume/cancel paths.
+                self->retain();
                 auto code = static_cast<derived*>(self)->submit();
                 if (code != 0) {
                     self->status.store(idle, std::memory_order_release);
+                    self->release();
                     return code;
                 }
 
+                self->release();
                 return 0;
             }
 
@@ -149,18 +156,115 @@ namespace flux_foundry {
         }
     };
 
+    // Fast awaitable contract:
+    // 1) submit() success means backend will eventually invoke resume() exactly once.
+    // 2) cancel() may request backend cancellation call resume once, directly or indirectly by derived class.
+    // 3) resume() must be the last operation touching this. and must be called exactly once.
+    template <typename derived, typename T, typename E>
+    struct fast_awaitable_base : public pooling_base<derived, FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
+    private:
+        using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
+        std::atomic<size_t> refcount;
+        next_step_t next_step;
+
+        static void notify_cancel_handler_dropped(void* self_) noexcept {}
+        static void cancel(void* self_, cancel_kind) noexcept {}
+
+        void do_resume(result_t<T, E>&& result) noexcept {
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+            try {
+#endif
+                this->next_step(std::move(result));
+#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+            } catch (...) {
+                this->next_step(result_t<T, E>(error_tag, std::current_exception()));
+            }
+#endif
+            release();
+        }
+
+    public:
+        struct access_delegate {
+            fast_awaitable_base* self;
+
+            void emplace_nextstep(next_step_t&& next) noexcept {
+                self->next_step = std::move(next);
+            }
+
+            int submit_async() noexcept {
+                // Keep one backend ref from successful submit() until resume().
+                self->retain();
+                auto code = static_cast<derived*>(self)->submit();
+                self->release();
+                return code;
+            }
+
+            void provide_cancel_handler(detail::flow_async_cancel_handler_t* cancel_handler,
+                detail::flow_async_notify_handler_dropped_t* drop,
+                detail::flow_async_cancel_param_t* param) noexcept {
+                *cancel_handler = cancel;
+                *drop = notify_cancel_handler_dropped;
+                *param = nullptr;
+            }
+
+            void release() noexcept {
+                self->release();
+            }
+        };
+
+        access_delegate delegate() noexcept {
+            return access_delegate{ this };
+        }
+
+        void retain() noexcept {
+            refcount.fetch_add(1, std::memory_order_relaxed);
+        }
+
+        void release() noexcept {
+#if FLUEX_FOUNDRY_WITH_TSAN
+            UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+#else
+            UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+                std::atomic_thread_fence(std::memory_order_acquire);
+#endif
+                delete static_cast<derived*>(this);
+            }
+        }
+
+        void resume(result_t<T, E>&& io_result) noexcept {
+            do_resume(std::move(io_result));
+        }
+
+        fast_awaitable_base() noexcept
+            : refcount(1) {
+        }
+    };
+
     template <typename T, typename = void>
     struct is_awaitable : std::false_type {};
 
     template <typename T>
     struct is_awaitable<T, void_t<typename T::async_result_type>>
-        : std::is_base_of<awaitable_base<T,
-        typename T::async_result_type::value_type,
-        typename T::async_result_type::error_type>, T> {
-    };
+        : conjunction<std::is_final<T>,
+            std::is_base_of<awaitable_base<T,
+                typename T::async_result_type::value_type,
+                typename T::async_result_type::error_type>, T>> {};
 
     template <typename T>
     constexpr bool is_awaitable_v = is_awaitable<T>::value;
+
+    template <typename T, typename = void>
+    struct is_fast_awaitable : std::false_type {};
+
+    template <typename T>
+    struct is_fast_awaitable<T, void_t<typename T::async_result_type>>
+            : conjunction<std::is_final<T>,
+                        std::is_base_of<fast_awaitable_base<T,
+                            typename T::async_result_type::value_type,
+                            typename T::async_result_type::error_type>, T>> {};
+
+    template <typename T>
+    constexpr bool is_fast_awaitable_v = is_fast_awaitable<T>::value;
 
     template <typename awaitable>
     struct awaitable_factory {
@@ -210,9 +314,9 @@ namespace flux_foundry {
 
         template <typename A = awaitable, typename ... Args,
 #if FLUEX_FOUNDRY_HAS_EXCEPTIONS
-            std::enable_if_t<std::is_constructible<awaitable, Args&&...>::value>* = nullptr
+            std::enable_if_t<std::is_constructible<A, Args&&...>::value>* = nullptr
 #else
-            std::enable_if_t<std::is_nothrow_constructible<awaitable, Args&&...>::value>* = nullptr
+            std::enable_if_t<std::is_nothrow_constructible<A, Args&&...>::value>* = nullptr
 #endif
         >
         result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {

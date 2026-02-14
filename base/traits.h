@@ -86,6 +86,26 @@
 #  endif
 #endif
 
+#ifndef FLUEX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL
+#define FLUEX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL 1
+#endif
+
+#ifndef FLUEX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN
+#define FLUEX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN 1
+#endif
+
+#ifndef FLUEX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN
+#define FLUEX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN 1
+#endif
+
+#ifndef FLUEX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC
+#define FLUEX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC 1
+#endif
+
+#ifndef FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT
+#define FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
+#endif
+
 namespace flux_foundry {
     static constexpr size_t CACHE_LINE_SIZE = 64;
 
@@ -259,9 +279,17 @@ namespace flux_foundry {
     template <typename T, typename ... Args>
     struct is_aggregate_constructible : std::integral_constant<bool, is_aggregate_constructible_impl<T, Args...>::value> {};
 
+    template <typename T, typename, typename ... Args>
+    struct is_nothrow_aggregate_constructible_impl : std::false_type {};
+
+    template <typename T, typename ... Args>
+    struct is_nothrow_aggregate_constructible_impl<T,
+            void_t<decltype(T{std::declval<Args>()...})>, Args...>
+        : std::integral_constant<bool, noexcept(T{std::declval<Args>()...})> {};
+
     template <typename T, typename ... Args>
     struct is_nothrow_aggregate_constructible :
-        std::integral_constant<bool, is_aggregate_constructible<T, Args...>::value && noexcept(T{std::declval<Args>()...})> {};
+        is_nothrow_aggregate_constructible_impl<T, void, Args...> {};
 
     template <typename T, typename ... Args>
     constexpr bool is_aggregate_constructible_v = is_aggregate_constructible<T, Args...>::value;

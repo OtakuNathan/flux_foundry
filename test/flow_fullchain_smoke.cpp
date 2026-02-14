@@ -105,7 +105,7 @@ struct executor_env {
 
 simple_executor<1024>* g_exec = nullptr;
 
-struct plus_one_async_awaitable : awaitable_base<plus_one_async_awaitable, int, err_t> {
+struct plus_one_async_awaitable final : awaitable_base<plus_one_async_awaitable, int, err_t> {
     using async_result_type = out_t;
 
     int v;
