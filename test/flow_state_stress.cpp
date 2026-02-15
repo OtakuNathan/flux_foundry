@@ -481,11 +481,11 @@ test_stat stress_when_all_matrix_case(const char* tag) {
         auto st = std::make_shared<receiver_state>();
         if (RunnerFast) {
             auto runner = make_fast_runner(bp_ptr, int_receiver{st});
-            runner(make_flat_storage(i, i + 1));
+            runner(i, i + 1);
         } else {
             auto ctrl = make_lite_ptr<flow_controller>();
             flow_runner<bp_t, int_receiver> runner(bp_ptr, ctrl, int_receiver{st});
-            runner(make_flat_storage(i, i + 1));
+            runner(i, i + 1);
 
             if (!AggFast) {
                 random_sleep_us(120);
@@ -542,11 +542,11 @@ test_stat stress_when_any_matrix_case(const char* tag) {
         auto st = std::make_shared<receiver_state>();
         if (RunnerFast) {
             auto runner = make_fast_runner(bp_ptr, int_receiver{st});
-            runner(make_flat_storage(i, i + 1));
+            runner(i, i + 1);
         } else {
             auto ctrl = make_lite_ptr<flow_controller>();
             flow_runner<bp_t, int_receiver> runner(bp_ptr, ctrl, int_receiver{st});
-            runner(make_flat_storage(i, i + 1));
+            runner(i, i + 1);
 
             if (!AggFast) {
                 random_sleep_us(120);

@@ -650,7 +650,8 @@ namespace flux_foundry {
         using E = std::decay_t<Executor>;
 
         using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
-        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        
+        using F_I = result_t<flat_storage<std::decay_t<typename BPs::I_t::value_type>...>, flow_async_agg_err_t>;
         using F_O = typename when_all_t::F_O;
 
         when_all_t when_all{std::forward<Executor>(executor_to_resume),
@@ -665,7 +666,7 @@ namespace flux_foundry {
         using E = std::decay_t<Executor>;
 
         using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
-        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        using F_I = result_t<flat_storage<std::decay_t<typename BPs::I_t::value_type>...>, flow_async_agg_err_t>;
         using F_O = typename when_all_t::F_O;
 
         when_all_t when_all{std::forward<Executor>(executor_to_resume),
@@ -680,7 +681,8 @@ namespace flux_foundry {
         using E = std::decay_t<Executor>;
 
         using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
-        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        
+        using F_I = result_t<flat_storage<std::decay_t<typename BPs::I_t::value_type>...>, flow_async_agg_err_t>;
         using F_O = typename when_any_t::F_O;
 
         when_any_t when_any{std::forward<Executor>(executor_to_resume), std::forward<F>(on_success), std::forward<G>(on_error)};
@@ -693,7 +695,8 @@ namespace flux_foundry {
         using E = std::decay_t<Executor>;
 
         using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
-        using F_I = result_t<flat_storage<typename BPs::I_t::value_type...>, flow_async_agg_err_t>;
+        
+        using F_I = result_t<flat_storage<std::decay_t<typename BPs::I_t::value_type>...>, flow_async_agg_err_t>;
         using F_O = typename when_any_t::F_O;
 
         when_any_t when_any{std::forward<Executor>(executor_to_resume), std::forward<F>(on_success), std::forward<G>(on_error)};

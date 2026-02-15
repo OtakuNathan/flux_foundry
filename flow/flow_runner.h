@@ -288,9 +288,9 @@ namespace flux_foundry {
             return controller;
         }
 
-        template <typename In,
-            std::enable_if_t<std::is_convertible<In, typename I_t::value_type>::value>* = nullptr>
-        void operator()(In&& in) noexcept {
+        template <typename ... Args,
+            std::enable_if_t<std::is_constructible<typename I_t::value_type, Args&& ...>::value>* = nullptr>
+        void operator()(Args&& ... params) noexcept {
             // Controller is created lazily per run-start so a moved-from runner can be
             // safely resumed by internal continuations without sharing external controller state.
             if (!bp()) {
@@ -303,7 +303,7 @@ namespace flux_foundry {
                     return;
                 }
             }
-            ipc<node_count - 1>::run(*this, I_t(value_tag, std::forward<In>(in)));
+            ipc<node_count - 1>::run(*this, I_t(value_tag, std::forward<Args>(params)...));
         }
 
     private:
@@ -755,13 +755,13 @@ namespace flux_foundry {
             : data(std::move(bp_), std::move(receiver_)) {
         }
 
-        template <typename In,
-            std::enable_if_t<std::is_convertible<In, typename I_t::value_type>::value>* = nullptr>
-        void operator()(In&& in) noexcept {
+        template <typename ... Args,
+            std::enable_if_t<std::is_constructible<typename I_t::value_type, Args&& ...>::value>* = nullptr>
+        void operator()(Args&& ... params) noexcept {
             if (!bp()) {
                 return;
             }
-            ipc<node_count - 1>::run(*this, I_t(value_tag, std::forward<In>(in)));
+            ipc<node_count - 1>::run(*this, I_t(value_tag, std::forward<Args>(params)...));
         }
 
     private:

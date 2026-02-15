@@ -463,7 +463,7 @@ int main() {
     auto flux_when_all_runner = make_runner(bp_all_ptr, sink_receiver{&sink});
 
     auto r10 = run_bench("full.flux.runner.when_all2.post", 5000, 120000, [&](int i) {
-        flux_when_all_runner(make_flat_storage(i, i + 1));
+        flux_when_all_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r10);
@@ -483,7 +483,7 @@ int main() {
         p1_all_fast, p2_all_fast) | end();
     auto flux_when_all_fast_runner = make_fast_runner_view(bp_all_fast, sink_receiver{&sink});
     auto r11 = run_bench("full.flux.fast_runner.when_all2.post", 5000, 120000, [&](int i) {
-        flux_when_all_fast_runner(make_flat_storage(i, i + 1));
+        flux_when_all_fast_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r11);
@@ -503,7 +503,7 @@ int main() {
         p1_all_ffast, p2_all_ffast) | end();
     auto flux_when_all_ffast_runner = make_fast_runner_view(bp_all_ffast, sink_receiver{&sink});
     auto r11b = run_bench("full.flux.fast_runner.when_all2.fastagg.post", 5000, 120000, [&](int i) {
-        flux_when_all_ffast_runner(make_flat_storage(i, i + 1));
+        flux_when_all_ffast_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r11b);
@@ -530,7 +530,7 @@ int main() {
     auto flux_when_any_runner = make_runner(bp_any_ptr, sink_receiver{&sink});
 
     auto r13 = run_bench("full.flux.runner.when_any2.post", 5000, 120000, [&](int i) {
-        flux_when_any_runner(make_flat_storage(i, i + 1));
+        flux_when_any_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r13);
@@ -550,7 +550,7 @@ int main() {
         p1_any_fast, p2_any_fast) | end();
     auto flux_when_any_fast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
     auto r14 = run_bench("full.flux.fast_runner.when_any2.post", 5000, 120000, [&](int i) {
-        flux_when_any_fast_runner(make_flat_storage(i, i + 1));
+        flux_when_any_fast_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r14);
@@ -570,7 +570,7 @@ int main() {
         p1_any_ffast, p2_any_ffast) | end();
     auto flux_when_any_ffast_runner = make_fast_runner_view(bp_any_ffast, sink_receiver{&sink});
     auto r14b = run_bench("full.flux.fast_runner.when_any2.fastagg.post", 5000, 120000, [&](int i) {
-        flux_when_any_ffast_runner(make_flat_storage(i, i + 1));
+        flux_when_any_ffast_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r14b);

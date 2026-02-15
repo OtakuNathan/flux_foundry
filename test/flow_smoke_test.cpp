@@ -140,7 +140,7 @@ int test_when_all() {
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(obs.called, "when_all called", failed);
@@ -178,7 +178,7 @@ int test_when_any() {
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(obs.called, "when_any called", failed);
@@ -216,7 +216,7 @@ int test_when_all_fast() {
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(obs.called, "when_all_fast called", failed);
@@ -254,7 +254,7 @@ int test_when_any_fast() {
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(obs.called, "when_any_fast called", failed);
@@ -289,7 +289,7 @@ int test_when_all_rejects_null_bp() {
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(obs.called, "when_all null bp called", failed);
@@ -325,7 +325,7 @@ int test_when_any_accepts_null_bp() {
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(7, 1));
+    runner(7, 1);
 
     int failed = 0;
     check(obs.called, "when_any null bp called", failed);

@@ -249,7 +249,7 @@ int main() {
     auto when_all_runner = make_runner(bp_all_ptr, sink_receiver{&sink});
 
     auto r4 = run_bench("runner.when_all.2", 5000, 300000, [&](int i) {
-        when_all_runner(make_flat_storage(i, i + 1));
+        when_all_runner(i, i + 1);
     });
     print_result(r4);
 
@@ -269,7 +269,7 @@ int main() {
     auto when_all_fast_runner = make_runner(bp_all_fast_ptr, sink_receiver{&sink});
 
     auto r4f = run_bench("runner.when_all_fast.2", 5000, 300000, [&](int i) {
-        when_all_fast_runner(make_flat_storage(i, i + 1));
+        when_all_fast_runner(i, i + 1);
     });
     print_result(r4f);
 
@@ -299,7 +299,7 @@ int main() {
     auto when_any_runner = make_runner(bp_any_ptr, sink_receiver{&sink});
 
     auto r5 = run_bench("runner.when_any.2", 5000, 300000, [&](int i) {
-        when_any_runner(make_flat_storage(i, i + 1));
+        when_any_runner(i, i + 1);
     });
     print_result(r5);
 
@@ -319,7 +319,7 @@ int main() {
     auto when_any_fast_runner = make_runner(bp_any_fast_ptr, sink_receiver{&sink});
 
     auto r5f = run_bench("runner.when_any_fast.2", 5000, 300000, [&](int i) {
-        when_any_fast_runner(make_flat_storage(i, i + 1));
+        when_any_fast_runner(i, i + 1);
     });
     print_result(r5f);
 

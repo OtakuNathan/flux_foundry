@@ -4,25 +4,25 @@
 
 ## ✨ Overview
 
-`flux_foundry` is a header-only C++14 library that combines:
+`flux_foundry` is a **header-only** C++14 library that combines:
 
 - ⚡ Low-overhead flow pipeline execution (`flow_runner`, `flow_fast_runner`)
 - 🔁 Flow DSL operators (`transform`, `then`, `on_error`, `catch_exception`, `flow_async`, `await_when_all`, `await_when_any` `await_when_all_fast`, `await_when_any_fast`)
-- 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace`)
+- 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace_t`, `pooling tool`)
 - 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`)
 
 The project is tuned for predictable behavior and explicit contracts under concurrency.
 
 ## 🧩 Components
 
-| Module | Main files | What it provides |
-|---|---|---|
-| `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h` | Pipeline DSL (`transform/then/on_error/catch_exception/via/await`), node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
-| `executor/` | `simple_executor.h`, `gsource_executor.h` | MPSC single-consumer executor, GLib source-backed executor |
-| `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h` | Lock-free queues, callable type-erasure with SBO, backoff policies |
-| `task/` | `task_wrapper.h`, `future_task.h` | Task wrappers and future-related task abstraction |
-| `memory/` | `result_t.h`, `either_t.h`, `flat_storage.h`, `lite_ptr.h`, `inplace_t.h`, `padded_t.h`, `hazard_ptr.h` | Result/error transport, tagged unions, storage composition, smart pointer, inplace construction helpers, padding/alignment primitives |
-| `base/` | `traits.h`, `type_erase_base.h`, `inplace_base.h`, `type_utility.h` | Traits/macros and low-level reusable base utilities |
+| Module | Main files                                                                                                               | What it provides |
+|---|--------------------------------------------------------------------------------------------------------------------------|---|
+| `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h`                        | Pipeline DSL (`transform/then/on_error/catch_exception/via/await`), node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
+| `executor/` | `simple_executor.h`, `gsource_executor.h`                                                                                | MPSC single-consumer executor, GLib source-backed executor |
+| `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h`                                                                | Lock-free queues, callable type-erasure with SBO, backoff policies |
+| `task/` | `task_wrapper.h`, `future_task.h`                                                                                        | Task wrappers and future-related task abstraction |
+| `memory/` | `result_t.h`, `either_t.h`, `flat_storage.h`, `lite_ptr.h`, `inplace_t.h`, `padded_t.h`, `hazard_ptr.h` `pooling.h` | Result/error transport, tagged unions, storage composition, smart pointer, inplace construction helpers, padding/alignment primitives |
+| `base/` | `traits.h`, `type_erase_base.h`, `inplace_base.h`, `type_utility.h`                                                      | Traits/macros and low-level reusable base utilities |
 
 ## 🚀 Quick Start (CMake)
 
@@ -113,9 +113,9 @@ flowchart LR
     B --> C[flow_runner / flow_fast_runner]
     C --> D[Executor<br/>simple_executor or custom dispatch]
     C --> E[Awaitable Layer<br/>awaitable_base + factories]
-    E --> F[Async Aggregators<br/>when_all / when_any state]
+    E --> F[Async Aggregators<br/>when_all / when_any /<br/>when_all_fast / when_any_fast state]
     C --> G[result_t/either_t error path]
-    D --> H[Queues<br/>MPSC/MPMC/SPSC/SPMC]
+    D --> H[Queues<br/>MPSC/MPMC/SPSC/SPMC Stack<br/>static_list(mpmc static stack)]
 ```
 
 ## 🔧 Key contracts
@@ -169,8 +169,8 @@ clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1
 ```
 
 - Host: `Windows 11 Home` (`10.0.26200`)
-- CPU: `AMD Family 23 Model 113` (`~3.6 GHz`, x64)
-- Memory: `32 GB`
+- CPU: `AMD Ryzen 3700X` (`~3.6 GHz`, x64)
+- Memory: `Kingston 3600MHz 32 GB`
 - Compiler baseline printed by harness: `clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1`
 
 Lower is better (`ns/op`):
@@ -243,7 +243,7 @@ Lower is better (`ns/op`, median):
 Notes:
 
 - This is a microbenchmark for framework overhead, not an end-to-end application benchmark.
-- Surface Pro and macOS snapshots use different measurement harness/reporting formats.
+- PC and macOS snapshots use different measurement harness/reporting formats.
 - `fast_runner` still shows the lowest sync pipeline overhead in both environments.
 - Absolute values depend on CPU/compiler/flags and runtime load.
 

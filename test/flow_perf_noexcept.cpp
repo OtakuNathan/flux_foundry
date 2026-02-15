@@ -208,131 +208,6 @@ auto make_sync_20_bp() {
         | transform([](int x) noexcept { return x + 1; })
         | transform([](int x) noexcept { return x + 1; })
         | transform([](int x) noexcept { return x + 1; })
-[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing
-direct.loop20            warmup=20000    iter=194305094 rounds=7  total=83.924 ms/round  ns/op=0.43  p95=0.43  mean=0.43
-runner.sync.20nodes      warmup=20000    iter=2000000  rounds=7  total=386.982 ms/round  ns/op=193.54  p95=193.66  mean=193.49
-fast_runner.sync.20nodes warmup=20000    iter=31920450 rounds=7  total=52.398 ms/round  ns/op=1.64  p95=1.65  mean=1.64
-runner.async.4nodes      warmup=10000    iter=800000   rounds=7  total=444.253 ms/round  ns/op=555.18  p95=556.30  mean=555.32
-fast_runner.async.4nodes warmup=10000    iter=800000   rounds=7  total=188.290 ms/round  ns/op=235.76  p95=236.50  mean=235.36
-runner.when_all.2        warmup=5000     iter=300000   rounds=7  total=84.266 ms/round  ns/op=280.77  p95=282.10  mean=280.89
-fast_runner.when_all_fast.2 warmup=5000     iter=360950   rounds=7  total=55.059 ms/round  ns/op=152.40  p95=153.35  mean=152.54
-runner.when_all_fast.2   warmup=5000     iter=300000   rounds=7  total=71.343 ms/round  ns/op=237.36  p95=239.97  mean=237.81
-runner.when_any.2        warmup=5000     iter=300000   rounds=7  total=75.203 ms/round  ns/op=250.97  p95=251.34  mean=250.68
-fast_runner.when_any_fast.2 warmup=5000     iter=441804   rounds=7  total=54.952 ms/round  ns/op=124.18  p95=126.74  mean=124.38
-runner.when_any_fast.2   warmup=5000     iter=300000   rounds=7  total=64.078 ms/round  ns/op=213.84  p95=214.16  mean=213.59
-sink=155135858395520356
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing
-direct.loop20            warmup=20000    iter=194305094 rounds=7  total=83.924 ms/round  ns/op=0.43  p95=0.43  mean=0.43
-runner.sync.20nodes      warmup=20000    iter=2000000  rounds=7  total=386.982 ms/round  ns/op=193.54  p95=193.66  mean=193.49
-fast_runner.sync.20nodes warmup=20000    iter=31920450 rounds=7  total=52.398 ms/round  ns/op=1.64  p95=1.65  mean=1.64
-runner.async.4nodes      warmup=10000    iter=800000   rounds=7  total=444.253 ms/round  ns/op=555.18  p95=556.30  mean=555.32
-fast_runner.async.4nodes warmup=10000    iter=800000   rounds=7  total=188.290 ms/round  ns/op=235.76  p95=236.50  mean=235.36
-runner.when_all.2        warmup=5000     iter=300000   rounds=7  total=84.266 ms/round  ns/op=280.77  p95=282.10  mean=280.89
-fast_runner.when_all_fast.2 warmup=5000     iter=360950   rounds=7  total=55.059 ms/round  ns/op=152.40  p95=153.35  mean=152.54
-runner.when_all_fast.2   warmup=5000     iter=300000   rounds=7  total=71.343 ms/round  ns/op=237.36  p95=239.97  mean=237.81
-runner.when_any.2        warmup=5000     iter=300000   rounds=7  total=75.203 ms/round  ns/op=250.97  p95=251.34  mean=250.68
-fast_runner.when_any_fast.2 warmup=5000     iter=441804   rounds=7  total=54.952 ms/round  ns/op=124.18  p95=126.74  mean=124.38
-runner.when_any_fast.2   warmup=5000     iter=300000   rounds=7  total=64.078 ms/round  ns/op=213.84  p95=214.16  mean=213.59
-sink=155135858395520356
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing
-direct.loop20            warmup=20000    iter=194305094 rounds=7  total=83.924 ms/round  ns/op=0.43  p95=0.43  mean=0.43
-runner.sync.20nodes      warmup=20000    iter=2000000  rounds=7  total=386.982 ms/round  ns/op=193.54  p95=193.66  mean=193.49
-fast_runner.sync.20nodes warmup=20000    iter=31920450 rounds=7  total=52.398 ms/round  ns/op=1.64  p95=1.65  mean=1.64
-runner.async.4nodes      warmup=10000    iter=800000   rounds=7  total=444.253 ms/round  ns/op=555.18  p95=556.30  mean=555.32
-fast_runner.async.4nodes warmup=10000    iter=800000   rounds=7  total=188.290 ms/round  ns/op=235.76  p95=236.50  mean=235.36
-runner.when_all.2        warmup=5000     iter=300000   rounds=7  total=84.266 ms/round  ns/op=280.77  p95=282.10  mean=280.89
-fast_runner.when_all_fast.2 warmup=5000     iter=360950   rounds=7  total=55.059 ms/round  ns/op=152.40  p95=153.35  mean=152.54
-runner.when_all_fast.2   warmup=5000     iter=300000   rounds=7  total=71.343 ms/round  ns/op=237.36  p95=239.97  mean=237.81
-runner.when_any.2        warmup=5000     iter=300000   rounds=7  total=75.203 ms/round  ns/op=250.97  p95=251.34  mean=250.68
-fast_runner.when_any_fast.2 warmup=5000     iter=441804   rounds=7  total=54.952 ms/round  ns/op=124.18  p95=126.74  mean=124.38
-runner.when_any_fast.2   warmup=5000     iter=300000   rounds=7  total=64.078 ms/round  ns/op=213.84  p95=214.16  mean=213.59
-sink=155135858395520356
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing
-direct.loop20            warmup=20000    iter=194305094 rounds=7  total=83.924 ms/round  ns/op=0.43  p95=0.43  mean=0.43
-runner.sync.20nodes      warmup=20000    iter=2000000  rounds=7  total=386.982 ms/round  ns/op=193.54  p95=193.66  mean=193.49
-fast_runner.sync.20nodes warmup=20000    iter=31920450 rounds=7  total=52.398 ms/round  ns/op=1.64  p95=1.65  mean=1.64
-runner.async.4nodes      warmup=10000    iter=800000   rounds=7  total=444.253 ms/round  ns/op=555.18  p95=556.30  mean=555.32
-fast_runner.async.4nodes warmup=10000    iter=800000   rounds=7  total=188.290 ms/round  ns/op=235.76  p95=236.50  mean=235.36
-runner.when_all.2        warmup=5000     iter=300000   rounds=7  total=84.266 ms/round  ns/op=280.77  p95=282.10  mean=280.89
-fast_runner.when_all_fast.2 warmup=5000     iter=360950   rounds=7  total=55.059 ms/round  ns/op=152.40  p95=153.35  mean=152.54
-runner.when_all_fast.2   warmup=5000     iter=300000   rounds=7  total=71.343 ms/round  ns/op=237.36  p95=239.97  mean=237.81
-runner.when_any.2        warmup=5000     iter=300000   rounds=7  total=75.203 ms/round  ns/op=250.97  p95=251.34  mean=250.68
-fast_runner.when_any_fast.2 warmup=5000     iter=441804   rounds=7  total=54.952 ms/round  ns/op=124.18  p95=126.74  mean=124.38
-runner.when_any_fast.2   warmup=5000     iter=300000   rounds=7  total=64.078 ms/round  ns/op=213.84  p95=214.16  mean=213.59
-sink=155135858395520356
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
         | end();
     return bp;
 }
@@ -424,7 +299,7 @@ int main() {
     auto when_all_runner = make_runner(bp_all_ptr, sink_receiver{&sink});
 
     auto r4 = run_bench("runner.when_all.2", 5000, 300000, [&](int i) {
-        when_all_runner(make_flat_storage(i, i + 1));
+        when_all_runner(i, i + 1);
     });
     print_result(r4);
 
@@ -442,7 +317,7 @@ int main() {
 
     auto when_all_ffast_runner = make_fast_runner_view(bp_all_fast, sink_receiver{&sink});
     auto r4ff = run_bench("fast_runner.when_all_fast.2", 5000, 300000, [&](int i) {
-        when_all_ffast_runner(make_flat_storage(i, i + 1));
+        when_all_ffast_runner(i, i + 1);
     });
     print_result(r4ff);
 
@@ -450,7 +325,7 @@ int main() {
     auto when_all_fast_runner = make_runner(bp_all_fast_ptr, sink_receiver{&sink});
 
     auto r4f = run_bench("runner.when_all_fast.2", 5000, 300000, [&](int i) {
-        when_all_fast_runner(make_flat_storage(i, i + 1));
+        when_all_fast_runner(i, i + 1);
     });
     print_result(r4f);
 
@@ -480,7 +355,7 @@ int main() {
     auto when_any_runner = make_runner(bp_any_ptr, sink_receiver{&sink});
 
     auto r5 = run_bench("runner.when_any.2", 5000, 300000, [&](int i) {
-        when_any_runner(make_flat_storage(i, i + 1));
+        when_any_runner(i, i + 1);
     });
     print_result(r5);
 
@@ -498,7 +373,7 @@ int main() {
 
     auto when_any_ffast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
     auto r5ff = run_bench("fast_runner.when_any_fast.2", 5000, 300000, [&](int i) {
-        when_any_ffast_runner(make_flat_storage(i, i + 1));
+        when_any_ffast_runner(i, i + 1);
     });
     print_result(r5ff);
 
@@ -506,7 +381,7 @@ int main() {
     auto when_any_fast_runner = make_runner(bp_any_fast_ptr, sink_receiver{&sink});
 
     auto r5f = run_bench("runner.when_any_fast.2", 5000, 300000, [&](int i) {
-        when_any_fast_runner(make_flat_storage(i, i + 1));
+        when_any_fast_runner(i, i + 1);
     });
     print_result(r5f);
 

@@ -292,7 +292,7 @@ int test_when_all() {
     run_observer obs;
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(wait_done(obs, 1000), "noexc when_all wait done", failed);
@@ -333,7 +333,7 @@ int test_when_any() {
     run_observer obs;
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, int_receiver{&obs});
-    runner(make_flat_storage(1, 2));
+    runner(1, 2);
 
     int failed = 0;
     check(wait_done(obs, 1000), "noexc when_any wait done", failed);

@@ -792,12 +792,6 @@ private:
 
     template <size_t... idx>
     int submit(std::index_sequence<idx...>) {
-//        int count = 0;
-//        using swallow = int[];
-//        (void)swallow {
-//            0, (count += !launch<idx>(), 0)...
-//        };
-//        return count;
         bool keep_launching = true;
         int count = 0;
         using swallow = int[];

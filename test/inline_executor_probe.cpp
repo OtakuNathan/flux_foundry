@@ -261,7 +261,7 @@ test_stat test_inline_when_all() {
     for (int i = 0; i < s.iters; ++i) {
         auto st = std::make_shared<recv_state>();
         auto r = make_runner(bp_ptr, receiver{st});
-        r(make_flat_storage(i, i + 1));
+        r(i, i + 1);
 
         int done = st->done.load(std::memory_order_acquire);
         if (done == 0) {
@@ -301,7 +301,7 @@ test_stat test_inline_when_any() {
     for (int i = 0; i < s.iters; ++i) {
         auto st = std::make_shared<recv_state>();
         auto r = make_runner(bp_ptr, receiver{st});
-        r(make_flat_storage(i, i + 1));
+        r(i, i + 1);
 
         int done = st->done.load(std::memory_order_acquire);
         if (done == 0) {
