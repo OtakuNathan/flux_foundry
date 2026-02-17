@@ -4,12 +4,24 @@
 #include <utility>
 
 #include "../memory/flat_storage.h"
+#include "../task/task_wrapper.h"
 #include "../base/traits.h"
 
 #include "flow_def.h"
 
 namespace flux_foundry {
     namespace flow_impl {
+        struct inline_executor {
+            void dispatch(task_wrapper_sbo&& sbo) noexcept {
+                sbo();
+            }
+
+            static inline_executor* executor() noexcept {
+                static inline_executor exec;
+                return &exec;
+            }
+        };
+
         template <typename T, size_t... I, typename ... Ts>
         auto flat_storage_prepend_impl(T&& n, flat_storage<Ts...>&& t, std::index_sequence<I...>) {
             return flat_storage<std::decay_t<T>, Ts...>(std::forward<T>(n), get<I>(std::move(t))...);
@@ -161,14 +173,14 @@ namespace flux_foundry {
         }
 
         // flow control
-        template <typename I, typename O, typename P>
+        template <typename I, typename O, typename D>
         struct flow_via_node {
             using tag = node_tag_via;
             using I_t = I;
             using O_t = O;
-            using P_t = std::decay_t<P>;
+            using D_t = std::decay_t<D>;
 
-            P_t p;
+            D_t dispatcher;
 
             flow_via_node(const flow_via_node &) = default;
 
@@ -178,9 +190,9 @@ namespace flux_foundry {
 
             flow_via_node &operator=(flow_via_node &&) = default;
 
-            explicit flow_via_node(P_t f_)
-            noexcept(std::is_nothrow_move_constructible<P_t>::value)
-                    : p(std::move(f_)) {
+            explicit flow_via_node(D_t f_)
+            noexcept(std::is_nothrow_move_constructible<D_t>::value)
+                    : dispatcher(std::move(f_)) {
             }
         };
 

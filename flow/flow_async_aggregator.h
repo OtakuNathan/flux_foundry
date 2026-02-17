@@ -167,36 +167,27 @@ struct flow_when_all_state {
                 e.emplace_error(std::current_exception());
             }
 #endif
-            bool i_failed = false;
             UNLIKELY_IF (e.has_error()) {
-                i_failed = true;
                 for (size_t i = 0; i < sizeof...(Ts); ++i) {
                     state.controllers[i].cancel(true);
                 }
 
                 size_t exp = sizeof...(Ts);
-                UNLIKELY_IF(state.failed.get().compare_exchange_strong(exp, I,
-                    std::memory_order_release, std::memory_order_relaxed)) {
-                    owner_raw->resume(result_type(error_tag, async_any_failed_error<flow_async_agg_err_t>::make(I)));
-                }
+                state.failed.get().compare_exchange_strong(exp, I,
+                    std::memory_order_release, std::memory_order_relaxed);
             }
 
 #if FLUEX_FOUNDRY_WITH_TSAN
             UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel) == detail::successfully_finished) {
-                UNLIKELY_IF (i_failed) {
-                    return;
-                }
-
 #else
             UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_release) == detail::successfully_finished) {
-                UNLIKELY_IF (i_failed) {
-                    return;
-                }
                 std::atomic_thread_fence(std::memory_order_acquire);
 #endif
                 auto i = state.failed.get().load(std::memory_order_relaxed);
                 LIKELY_IF (i == sizeof...(Ts)) {
                     owner_raw->resume(result_type(value_tag, typename state_t::result_delegate(owner)));
+                } else {
+                    owner_raw->resume(result_type(error_tag, async_any_failed_error<flow_async_agg_err_t>::make(i)));
                 }
             }
         }
@@ -227,7 +218,7 @@ struct flow_when_all_awaitable final :
         bool ok = true;
         using swallow = int[];
         (void)swallow{
-            0, ((ok = ok && static_cast<bool>(get<idx>(packs).first())), 0)...
+            0, ((ok = (ok && static_cast<bool>(get<idx>(packs).first()))), 0)...
         };
         return ok;
     }
@@ -290,7 +281,7 @@ struct flow_when_all_awaitable final :
         bool ok = true;
         using swallow = int[];
         (void)swallow {
-            0, (ok && ((ok = (!launch<idx>() && (state_.failed.get().load(std::memory_order_relaxed) == N))), 0))...
+            0, (ok && ((ok = !launch<idx>()) && (state_.failed.get().load(std::memory_order_relaxed) == N)), 0)...
         };
         return ok ? 0 : -1;
     }
@@ -403,32 +394,22 @@ struct flow_when_all_fast_state {
                 e.emplace_error(std::current_exception());
             }
 #endif
-            bool i_failed = false;
             UNLIKELY_IF (e.has_error()) {
-                i_failed = true;
                 size_t exp = sizeof...(Ts);
-                LIKELY_IF (state.failed.get().compare_exchange_strong(exp, I,
-                                                                      std::memory_order_acq_rel,
-                                                                      std::memory_order_relaxed)) {
-                    owner_raw->resume(result_type(error_tag, async_any_failed_error<flow_async_agg_err_t>::make(I)));
-                }
+                state.failed.get().compare_exchange_strong(exp, I, std::memory_order_acq_rel, std::memory_order_relaxed);
             }
 
 #if FLUEX_FOUNDRY_WITH_TSAN
             UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel) == detail::successfully_finished) {
-                UNLIKELY_IF(i_failed) {
-                    return;
-                }
 #else
             UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_release) == detail::successfully_finished) {
-                UNLIKELY_IF(i_failed) {
-                    return;
-                }
                 std::atomic_thread_fence(std::memory_order_acquire);
 #endif
                 auto i = state.failed.get().load(std::memory_order_relaxed);
                 LIKELY_IF (i == sizeof...(Ts)) {
                     owner_raw->resume(result_type(value_tag, typename state_t::result_delegate(owner)));
+                } else {
+                    owner_raw->resume(result_type(error_tag, async_any_failed_error<flow_async_agg_err_t>::make(i)));
                 }
             }
         }
@@ -458,7 +439,7 @@ struct flow_when_all_fast_awaitable final :
         bool ok = true;
         using swallow = int[];
         (void) swallow{
-                0, ((ok = ok && static_cast<bool>(get<idx>(packs).first())), 0)...
+            0, ((ok = (ok && static_cast<bool>(get<idx>(packs).first()))), 0)...
         };
         return ok;
     }
@@ -507,7 +488,7 @@ struct flow_when_all_fast_awaitable final :
         bool ok = true;
         using swallow = int[];
         (void)swallow {
-            0, (ok && ((ok = (!launch<idx>() && (state_.failed.get().load(std::memory_order_relaxed) == N))), 0))...
+            0, (ok && ((ok = !launch<idx>()) && (state_.failed.get().load(std::memory_order_relaxed) == N)), 0)...
         };
         return ok ? 0 : -1;
     }

@@ -115,7 +115,7 @@ flowchart LR
     C --> E[Awaitable Layer<br/>awaitable_base + factories]
     E --> F[Async Aggregators<br/>when_all / when_any /<br/>when_all_fast / when_any_fast state]
     C --> G[result_t/either_t error path]
-    D --> H[Queues<br/>MPSC/MPMC/SPSC/SPMC Stack<br/>static_list(mpmc static stack)]
+    D --> H[Queues<br/>MPSC/MPMC/SPSC/SPMC Stack<br/>static_list]
 ```
 
 ## 🔧 Key contracts

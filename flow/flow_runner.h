@@ -69,6 +69,17 @@ namespace flux_foundry {
 
         template <typename T>
         constexpr bool awaitable_supports_cancel_v = awaitable_supports_cancel<T>::value;
+
+        template <typename Dispatcher, typename = void>
+        struct is_inline_dispatcher
+            : std::is_same<std::decay_t<Dispatcher>, inline_executor*> {};
+
+        template <typename Dispatcher>
+        struct is_inline_dispatcher<Dispatcher, void_t<typename std::decay_t<Dispatcher>::executor_t>>
+            : std::is_same<typename std::decay_t<Dispatcher>::executor_t, inline_executor*> {};
+
+        template <typename Dispatcher>
+        constexpr bool is_inline_dispatcher_v = is_inline_dispatcher<Dispatcher>::value;
     }
 
     struct flow_controller;
@@ -365,9 +376,15 @@ namespace flux_foundry {
                 ipc<I - 1>::run(self, node.f(std::forward<param_t>(in)));
             }
 
-            template <typename node_t, typename param_t, typename canceled, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
-            static void dispatch(node_t& node, flow_runner& self, param_t&& in, flow_impl::node_tag_via, canceled) noexcept {
-                node.p(
+            // dispatch impl
+            template <typename dispatcher_t, typename param_t>
+            static void dispatch_impl(dispatcher_t&, flow_runner& self, param_t&& in, std::true_type) noexcept {
+                ipc<I - 1>::run(self, std::forward<param_t>(in));
+            }
+
+            template <typename dispatcher_t, typename param_t>
+            static void dispatch_impl(dispatcher_t& dispatcher, flow_runner& self, param_t&& in, std::false_type) noexcept {
+                dispatcher(
                     task_wrapper_sbo([data = self.data,
                                       controller = std::move(self.controller),
                                       in = std::forward<param_t>(in)]() mutable noexcept {
@@ -377,143 +394,83 @@ namespace flux_foundry {
                 );
             }
 
+            template <typename node_t, typename param_t, typename canceled, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
+            static void dispatch(node_t& node, flow_runner& self, param_t&& in, flow_impl::node_tag_via, canceled) noexcept {
+                dispatch_impl(node.dispatcher, self, std::forward<param_t>(in), 
+                    std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>{}
+                );
+            }
+
             template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
             static void dispatch(node_t& node, flow_runner& self, param_t&& in, flow_impl::node_tag_async, std::true_type /*canceled?*/) noexcept {
                 using node_output_t = typename node_t::O_t;
-
-                node.dispatcher()(
-                    task_wrapper_sbo([data = self.data,
-                                      controller = std::move(self.controller)]() mutable noexcept {
-                        flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                        ipc<I - 1>::run(next_runner,
-                            node_output_t(error_tag, cancel_error<typename node_output_t::error_type>::make(cancel_kind::soft)));
-                    })
+                auto& dispatcher = node.dispatcher();
+                dispatch_impl(dispatcher, self, 
+                    node_output_t(error_tag, cancel_error<typename node_output_t::error_type>::make(cancel_kind::soft)),
+                    std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>{}
                 );
             }
 
-            template <typename node_t, typename param_t, size_t I_ = I>
-            static void dispatch_async_node(node_t& node, flow_runner& self, param_t&& in, std::true_type /* fast awaitable, no cancel*/) noexcept {
-                auto& dispatcher = node.dispatcher();
-                auto& adaptor = node.adaptor();
-                auto& factory = node.factory();
+            // no cancel 
+            template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
+            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+                const adaptor_t& adaptor, controller_t&& controller, std::true_type) noexcept {
+                return [data = data, adaptor = adaptor,
+                        controller = std::forward<controller_t>(controller)](resume_param_t&& in) mutable noexcept {
+                    flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
+                    ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
+                };
+            }
 
-                auto awaitable_or_error = factory(std::forward<param_t>(in));
-
-                using node_output_t = typename node_t::O_t;
-                // failed to create the awaitable
-                UNLIKELY_IF (!awaitable_or_error.has_value()) {
-                    dispatcher(
-                            task_wrapper_sbo([data = self.data,
-                                                     controller = std::move(self.controller),
-                                                     err = std::move(awaitable_or_error.error())]() mutable noexcept {
-                                flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                                ipc<I - 1>::run(next_runner, node_output_t(error_tag, std::move(err)));
-                            })
-                    );
-                    return;
-                }
-
-                auto &awaitable = awaitable_or_error.value();
-                auto controller = self.controller;
-
-                using resume_param_t = typename node_t::Df_t::awaitable_t::async_result_type;
-                using next_t = callable_wrapper<void(resume_param_t&&)>;
-                awaitable.emplace_nextstep(next_t([data = self.data,
-                                                          go = dispatcher,
-                                                          adaptor = adaptor,
-                                                          controller = std::move(self.controller)](resume_param_t&& in) mutable noexcept {
-                    go(task_wrapper_sbo([data = std::move(data),
+            template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
+            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+                const adaptor_t& adaptor, controller_t&& controller, std::false_type) noexcept {
+                return [data = data, dispatcher = dispatcher,
+                        adaptor = adaptor, controller = std::forward<controller_t>(controller)] (resume_param_t&& in) mutable noexcept {
+                    dispatcher(task_wrapper_sbo([data = std::move(data),
                                          controller = std::move(controller),
                                          adaptor = std::move(adaptor),
                                          in = std::move(in)]() mutable noexcept {
-                                flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                                ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
-                            })
-                        );
-                    })
-                );
-
-                UNLIKELY_IF (awaitable.submit_async() != 0) {
-                    awaitable.release();
-                    dispatcher(
-                        task_wrapper_sbo([data = self.data,
-                                          controller = std::move(controller)]() mutable noexcept {
                             flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                            ipc<I - 1>::run(next_runner,
-                                            node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()));
+                            ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
                         })
                     );
-                }
+                };
             }
 
-            template <typename node_t, typename param_t, size_t I_ = I>
-            static void dispatch_async_node(node_t& node, flow_runner& self, param_t&& in, std::false_type /* normal */) noexcept {
-                auto& dispatcher = node.dispatcher();
-                auto& adaptor = node.adaptor();
-                auto& factory = node.factory();
-
-                auto awaitable_or_error = factory(std::forward<param_t>(in));
-
-                using node_output_t = typename node_t::O_t;
-                // failed to create the awaitable
-                UNLIKELY_IF (!awaitable_or_error.has_value()) {
-                    dispatcher(
-                        task_wrapper_sbo([data = self.data,
-                                          controller = std::move(self.controller),
-                                          err = std::move(awaitable_or_error.error())]() mutable noexcept {
-                            flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                            ipc<I - 1>::run(next_runner, node_output_t(error_tag, std::move(err)));
-                        })
-                    );
-                    return;
-                }
-
-                // awaitable is successfully created
-                auto &awaitable = awaitable_or_error.value();
-                detail::flow_async_cancel_handler_t cancel_handler = nullptr;
-                detail::flow_async_cancel_param_t param = nullptr;
-                detail::flow_async_notify_handler_dropped_t notify_dropped = nullptr;
-                awaitable.provide_cancel_handler(&cancel_handler, &notify_dropped, &param);
-                
-                // first make a copy here
-                auto controller = self.controller;
-
-                auto state = self.controller->lock_and_set_cancel_handler(cancel_handler, notify_dropped, param);
-                UNLIKELY_IF ((state & runner_cancel::msk) != runner_cancel::locked) {
-                    notify_dropped(param);
-                    auto cancel_type = self.controller->is_soft_canceled() ? cancel_kind::soft : cancel_kind::hard;
-                    // operation is canceled
-                    awaitable.release();
-                    dispatcher(
-                        task_wrapper_sbo([data = self.data,
-                                          controller = std::move(controller),
-                                          cancel_type = cancel_type]() mutable noexcept {
-                            flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                            ipc<I - 1>::run(next_runner,
-                                node_output_t(error_tag, cancel_error<typename node_output_t::error_type>::make(cancel_type)));
-                        })
-                    );
-                    return;
-                }
-
-                // ok prepare to submit asio
-                struct guard {
-                    flow_controller* controller;
-                    size_t token;
-                    ~guard() noexcept {
-                        if (controller) controller->unlock(token);
+            // with cancel
+            template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
+            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+                const adaptor_t& adaptor, controller_t&& controller, size_t token, std::true_type) noexcept {
+                return [data = data, adaptor = adaptor, state = token,
+                        controller = std::forward<controller_t>(controller)]
+                        (resume_param_t&& in) mutable noexcept {
+                    auto& cs = controller->state_.get();
+                    auto exp = state;
+                        
+                    // am I still have the lock?
+                    LIKELY_IF (!cs.compare_exchange_strong(exp, state + epoch,
+                                                           std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                        // no it is freed by guard.
+                        controller->reset_cancel_handler();
+                    } else {
+                        // yes, I can reset cancel handler.
+                        controller->reset_cancel_handler_when_locked();
+                        cs.fetch_add(1, std::memory_order_release);
                     }
-                };
 
-                guard g{ controller_raw_ptr(controller), state };
-                using resume_param_t = typename node_t::Df_t::awaitable_t::async_result_type;
-                using next_t = callable_wrapper<void(resume_param_t&&)>;
-                awaitable.emplace_nextstep(next_t([data = self.data,
-                                                   go = dispatcher,
-                                                   adaptor = adaptor,
-                                                   state = state,
-                                                   controller = std::move(self.controller)](resume_param_t&& in) mutable noexcept {
-                        go(task_wrapper_sbo([data = std::move(data),
+                    flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
+                    ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
+                };
+            }
+
+            template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
+            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+                const adaptor_t& adaptor, controller_t&& controller, size_t token, std::false_type) noexcept {
+                return [data = data, state = token, adaptor = adaptor, 
+                        controller = std::forward<controller_t>(controller), dispatcher = dispatcher] 
+                        (resume_param_t&& in) mutable noexcept {
+                    dispatcher(task_wrapper_sbo([data = std::move(data),
                                              controller = std::move(controller),
                                              adaptor = std::move(adaptor),
                                              state = state,
@@ -533,26 +490,104 @@ namespace flux_foundry {
 
                             flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
                                 ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
-                          })
-                        );
+                        })
+                    );
+                };
+            }
+
+            template <typename node_t, typename param_t, size_t I_ = I>
+            static void dispatch_async_node(node_t& node, flow_runner& self, param_t&& in, std::true_type /* fast awaitable, no cancel*/) noexcept {
+                auto& dispatcher = node.dispatcher();
+                auto& adaptor = node.adaptor();
+                auto& factory = node.factory();
+
+                auto awaitable_or_error = factory(std::forward<param_t>(in));
+                using is_inline_executor_t = std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>;
+                using node_output_t = typename node_t::O_t;
+                
+                // failed to create the awaitable
+                UNLIKELY_IF (!awaitable_or_error.has_value()) {
+                    dispatch_impl(dispatcher, self, node_output_t(error_tag, std::move(awaitable_or_error.error())), is_inline_executor_t{});
+                    return;
+                }
+                
+                auto &awaitable = awaitable_or_error.value();
+                using resume_param_t = typename node_t::Df_t::awaitable_t::async_result_type;
+                // first make a copy here
+                auto controller = self.controller;
+                awaitable.emplace_nextstep(
+                    make_async_next_step<resume_param_t>(self.data, dispatcher, adaptor, 
+                        std::move(controller), is_inline_executor_t{})
+                );
+
+                UNLIKELY_IF (awaitable.submit_async() != 0) {
+                    awaitable.release();
+                    dispatch_impl(dispatcher, self, 
+                        node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()), is_inline_executor_t{});
+                }
+            }
+
+            template <typename node_t, typename param_t, size_t I_ = I>
+            static void dispatch_async_node(node_t& node, flow_runner& self, param_t&& in, std::false_type /* normal */) noexcept {
+                auto& dispatcher = node.dispatcher();
+                auto& adaptor = node.adaptor();
+                auto& factory = node.factory();
+
+                using is_inline_executor_t = std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>;
+                auto awaitable_or_error = factory(std::forward<param_t>(in));
+
+                using node_output_t = typename node_t::O_t;
+                // failed to create the awaitable
+                UNLIKELY_IF (!awaitable_or_error.has_value()) {
+                    dispatch_impl(dispatcher, self, node_output_t(error_tag, std::move(awaitable_or_error.error())), is_inline_executor_t{});
+                    return;
+                }
+
+                // awaitable is successfully created
+                auto &awaitable = awaitable_or_error.value();
+                detail::flow_async_cancel_handler_t cancel_handler = nullptr;
+                detail::flow_async_cancel_param_t param = nullptr;
+                detail::flow_async_notify_handler_dropped_t notify_dropped = nullptr;
+                awaitable.provide_cancel_handler(&cancel_handler, &notify_dropped, &param);
+                
+                // first make a copy here
+                auto controller = self.controller;
+
+                auto state = self.controller->lock_and_set_cancel_handler(cancel_handler, notify_dropped, param);
+                UNLIKELY_IF ((state & runner_cancel::msk) != runner_cancel::locked) {
+                    notify_dropped(param);
+                    auto cancel_type = self.controller->is_soft_canceled() ? cancel_kind::soft : cancel_kind::hard;
+                    // operation is canceled
+                    awaitable.release();
+                    dispatch_impl(dispatcher, self, 
+                        node_output_t(error_tag, cancel_error<typename node_output_t::error_type>::make(cancel_type)), is_inline_executor_t{});
+                    return;
+                }
+
+                // ok prepare to submit asio
+                struct guard {
+                    flow_controller* controller;
+                    size_t token;
+                    ~guard() noexcept {
+                        if (controller) controller->unlock(token);
                     }
-                ));
+                };
+
+                guard g{ controller_raw_ptr(controller), state };
+                using resume_param_t = typename node_t::Df_t::awaitable_t::async_result_type;
+                awaitable.emplace_nextstep(make_async_next_step<resume_param_t>(self.data, dispatcher, adaptor, 
+                    std::move(controller), state, is_inline_executor_t{})
+                );
 
                 // failed to submit the io.
                 UNLIKELY_IF (awaitable.submit_async() != 0) {
-                    controller->reset_cancel_handler_when_locked();
+                    self.controller->reset_cancel_handler_when_locked();
                     g.controller->unlock(state);
                     g.controller = nullptr;
 
                     awaitable.release();
-                    dispatcher(
-                        task_wrapper_sbo([data = self.data,
-                                          controller = std::move(controller)]() mutable noexcept {
-                            flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
-                            ipc<I - 1>::run(next_runner,
-                                node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()));
-                        })
-                    );
+                    dispatch_impl(dispatcher, self, 
+                        node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()), is_inline_executor_t{});
                 }
             }
 
@@ -783,15 +818,52 @@ namespace flux_foundry {
                 ipc<I - 1>::run(self, node.f(std::forward<param_t>(in)));
             }
 
-            template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
-            static void dispatch(node_t& node, flow_fast_runner& self, param_t&& in, flow_impl::node_tag_via) noexcept {
-                node.p(
-                    task_wrapper_sbo([data = std::move(self.data),
+            // dispatch impl
+            template <typename dispatcher_t, typename param_t>
+            static void dispatch_impl(dispatcher_t&, flow_fast_runner& self, param_t&& in, std::true_type) noexcept {
+                ipc<I - 1>::run(self, std::forward<param_t>(in));
+            }
+
+            template <typename dispatcher_t, typename param_t>
+            static void dispatch_impl(dispatcher_t& dispatcher, flow_fast_runner& self, param_t&& in, std::false_type) noexcept {
+                dispatcher(
+                    task_wrapper_sbo([data = self.data,
                                       in = std::forward<param_t>(in)]() mutable noexcept {
                         flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
                         ipc<I - 1>::run(next_runner, std::move(in));
                     })
                 );
+            }
+
+            // via
+            template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
+            static void dispatch(node_t& node, flow_fast_runner& self, param_t&& in, flow_impl::node_tag_via) noexcept {
+                dispatch_impl(node.dispatcher, self, std::forward<param_t>(in), 
+                    std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>{});
+            }
+
+            // no cancel 
+            template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
+            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+                const adaptor_t& adaptor, std::true_type) noexcept {
+                return [data = data, adaptor = adaptor](resume_param_t&& in) mutable noexcept {
+                    flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
+                    ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
+                };
+            }
+
+            template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
+            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+                const adaptor_t& adaptor, std::false_type) noexcept {
+                return [data = data, dispatcher = dispatcher, adaptor = adaptor] (resume_param_t&& in) mutable noexcept {
+                    dispatcher(task_wrapper_sbo([data = std::move(data),
+                                         adaptor = std::move(adaptor),
+                                         in = std::move(in)]() mutable noexcept {
+                            flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
+                            ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
+                        })
+                    );
+                };
             }
 
             template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
@@ -801,49 +873,27 @@ namespace flux_foundry {
                 auto& factory = node.factory();
 
                 auto awaitable_or_err = factory(std::forward<param_t>(in));
+                using is_inline_executor_t = std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>;
 
                 using node_output_t = typename node_t::O_t;
                 UNLIKELY_IF (!awaitable_or_err.has_value()) {
                     // failed to create the awaitable
-                    dispatcher(
-                        task_wrapper_sbo([data = std::move(self.data),
-                                          err = std::move(awaitable_or_err.error())]() mutable noexcept {
-                            flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
-                            ipc<I - 1>::run(next_runner, node_output_t(error_tag, std::move(err)));
-                        })
-                    );
+                    dispatch_impl(dispatcher, self, node_output_t(error_tag, std::move(awaitable_or_err.error())), is_inline_executor_t{});
                     return;
                 }
 
-                // ok prepare to submit asio
-                auto data = self.data;
-
                 auto &awaitable = awaitable_or_err.value();
                 using resume_param_t = typename node_t::Df_t::awaitable_t::async_result_type;
-                using next_t = callable_wrapper<void(resume_param_t&&)>;
-                awaitable.emplace_nextstep(next_t([data = std::move(self.data),
-                                                   go = dispatcher,
-                                                   adaptor = adaptor](resume_param_t&& in) mutable noexcept {
-                        go(task_wrapper_sbo([data = std::move(data),
-                                             adaptor = adaptor,
-                                             in = std::move(in)]() mutable noexcept {
-                                flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
-                                    ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
-                           })
-                        );
-                    })
+                awaitable.emplace_nextstep(
+                    make_async_next_step<resume_param_t>(self.data, dispatcher, adaptor, is_inline_executor_t{})
                 );
 
                 // failed to submit the io.
                 UNLIKELY_IF (awaitable.submit_async() != 0) {
                     awaitable.release();
-                    dispatcher(
-                        task_wrapper_sbo([data = std::move(data)]() mutable noexcept {
-                            flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
-                            ipc<I - 1>::run(next_runner,
-                                node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()));
-                        })
-                    );
+                    dispatch_impl(dispatcher, self, 
+                        node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()), 
+                        is_inline_executor_t{});
                 }
             }
         };
