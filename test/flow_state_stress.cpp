@@ -423,7 +423,7 @@ template <typename BP1, typename BP2>
 auto make_when_any_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_any(
         &g_inline_executor,
-        [](int x) noexcept {
+        [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -438,7 +438,7 @@ template <typename BP1, typename BP2>
 auto make_when_any_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_any_fast(
         &g_inline_executor,
-        [](int x) noexcept {
+        [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {

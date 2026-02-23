@@ -81,7 +81,7 @@ namespace flux_foundry {
 
             template <typename F_, typename... As>
             static auto check_success(int) -> conjunction<
-                is_result_t<decltype(std::declval<F_&>()(std::declval<As>()))>...>;
+                is_result_t<decltype(std::declval<F_&>()(std::declval<size_t>(), std::declval<As>()))>...>;
 
             template <typename...>
             static auto check_fail(...) -> std::false_type;
@@ -98,7 +98,7 @@ namespace flux_foundry {
                 is_result_t<decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>()))>,
                 is_all_the_same<
                     decltype(std::declval<G_&>()(std::declval<flow_async_agg_err_t>())),
-                    decltype(std::declval<F_&>()(std::declval<As>()))...
+                    decltype(std::declval<F_&>()(std::declval<size_t>(), std::declval<As>()))...
                 >>;
 
             static constexpr bool value = conjunction_v<
@@ -120,11 +120,11 @@ namespace flux_foundry {
 
         template <typename F, typename Pack>
         struct visit_jump_table_helper {
-            using R = invoke_result_t<F, typename flat_storage_element_t<0, Pack>::value_type>;
+            using R = invoke_result_t<F, size_t, typename flat_storage_element_t<0, Pack>::value_type>;
 
             template <size_t I>
             static R call(F& f, Pack&& pack) noexcept {
-                return f(get<I>(std::forward<Pack>(pack)).value());
+                return f(I, get<I>(std::forward<Pack>(pack)).value());
             }
         };
 
@@ -485,13 +485,13 @@ namespace flux_foundry {
 
             static_assert(check_when_any_success_compatibility<F, G, typename BPs::O_t::value_type...>::value,
                 "the success proc must can be called by\n"
-                "result_t<T, E> (put_of_bp1) noexcept, result_t<T, E> (put_of_bp2) noexcept ...\n"
+                "result_t<T, E> (size_t i, put_of_bp1) noexcept, result_t<T, E> (size_t i, put_of_bp2) noexcept ...\n"
                 "in addition, the fail proc must be compatible should have the signature like\n"
                 "result_t<T, E> (flow_async_agg_err_t) noexcept \n"
                 "and the success proc and the fail proc should have the same return type");
             static_assert(conjunction_v<
                 std::integral_constant<bool,
-                    noexcept(std::declval<F&>()(std::declval<typename BPs::O_t::value_type>()))>...>,
+                    noexcept(std::declval<F&>()(std::declval<size_t>(), std::declval<typename BPs::O_t::value_type>()))>...>,
                 "on_success overloads must be noexcept");
             static_assert(noexcept(std::declval<G&>()(std::declval<flow_async_agg_err_t>())),
                 "on_error must be noexcept");

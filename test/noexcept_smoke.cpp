@@ -200,7 +200,7 @@ int test_when_any() {
 
     auto bp = await_when_any(
         &ex,
-        [](int x) noexcept {
+        [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -276,7 +276,7 @@ int test_when_any_fast() {
 
     auto bp = await_when_any_fast(
         &ex,
-        [](int x) noexcept {
+        [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -346,7 +346,7 @@ int test_when_any_accepts_null_bp() {
 
     auto bp = await_when_any(
         &ex,
-        [](int x) noexcept {
+        [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {

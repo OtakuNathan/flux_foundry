@@ -436,7 +436,7 @@ int main() {
     auto p2_any = make_lite_ptr<decltype(leaf2_any)>(std::move(leaf2_any));
     auto bp_any = await_when_any(
         &ex_full_post,
-        [](int v) noexcept { return out_t(value_tag, v); },
+        [](size_t i, int v) noexcept { return out_t(value_tag, v); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_any, p2_any) | end();
     auto bp_any_ptr = make_lite_ptr<decltype(bp_any)>(std::move(bp_any));
@@ -458,7 +458,7 @@ int main() {
     auto p2_any_fast = make_lite_ptr<decltype(leaf2_any_fast)>(std::move(leaf2_any_fast));
     auto bp_any_fast = await_when_any(
         &ex_full_post,
-        [](int v) noexcept { return out_t(value_tag, v); },
+        [](size_t i, int v) noexcept { return out_t(value_tag, v); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_any_fast, p2_any_fast) | end();
     auto flux_when_any_fast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
@@ -478,7 +478,7 @@ int main() {
     auto p2_any_ffast = make_lite_ptr<decltype(leaf2_any_ffast)>(std::move(leaf2_any_ffast));
     auto bp_any_ffast = await_when_any_fast(
         &ex_full_post,
-        [](int v) noexcept { return out_t(value_tag, v); },
+        [](size_t i, int v) noexcept { return out_t(value_tag, v); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_any_ffast, p2_any_ffast) | end();
     auto flux_when_any_ffast_runner = make_fast_runner_view(bp_any_ffast, sink_receiver{&sink});

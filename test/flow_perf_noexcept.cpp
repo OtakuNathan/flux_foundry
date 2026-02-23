@@ -341,7 +341,7 @@ int main() {
 
     auto bp_any = await_when_any(
         &ex,
-        [](int v) noexcept {
+        [](size_t i, int v) noexcept {
             return out_t(value_tag, v);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -361,7 +361,7 @@ int main() {
 
     auto bp_any_fast = await_when_any_fast(
         &ex,
-        [](int v) noexcept {
+        [](size_t i, int v) noexcept {
             return out_t(value_tag, v);
         },
         [](flow_async_agg_err_t e) noexcept {

@@ -291,7 +291,7 @@ test_stat test_inline_when_any() {
 
     auto bp = await_when_any(
         &ex,
-        [](int v) noexcept { return out_t(value_tag, v); },
+        [](size_t i, int v) noexcept { return out_t(value_tag, v); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1, p2)
         | end();

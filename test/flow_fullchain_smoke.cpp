@@ -295,7 +295,7 @@ int test_when_any() {
 
     auto bp = await_when_any(
         &env.ex,
-        [](int x) noexcept { return out_t(value_tag, x); },
+        [](size_t i, int x) noexcept { return out_t(value_tag, x); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1,
         p2)
