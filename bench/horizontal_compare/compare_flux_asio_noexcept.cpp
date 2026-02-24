@@ -161,26 +161,26 @@ void print_result(const bench_result& r) {
 
 auto make_sync_20_bp() {
     auto bp = make_blueprint<int, err_t>()
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
         | end();
     return bp;
 }
@@ -281,6 +281,33 @@ struct asio_post_async4_hop {
     }
 };
 
+struct asio_dispatch_async4_hop {
+    asio::io_context* io;
+    volatile long long* sink;
+    int x;
+    int remaining;
+
+    void operator()() const {
+        const int nx = x + 1;
+        const int nr = remaining - 1;
+        if (nr > 0) {
+            asio::dispatch(*io, asio_dispatch_async4_hop{io, sink, nx, nr});
+            return;
+        }
+        *sink += static_cast<long long>(nx);
+    }
+};
+
+void asio_dispatch_async4(asio::io_context& io, int in, volatile long long* sink) {
+    asio::dispatch(io, asio_dispatch_async4_hop{&io, sink, in, 4});
+    drain(io);
+}
+
+void asio_dispatch_async1(asio::io_context& io, int in, volatile long long* sink) {
+    asio::dispatch(io, asio_dispatch_async4_hop{&io, sink, in, 1});
+    drain(io);
+}
+
 void asio_post_async4(asio::io_context& io, int in, volatile long long* sink) {
     asio::post(io, asio_post_async4_hop{&io, sink, in, 4});
     drain(io);
@@ -340,11 +367,14 @@ int main() {
     volatile long long sink = 0;
     asio::io_context io_sched_dispatch;
     asio::io_context io_sched_post;
+    asio::io_context io_full_flux_dispatch;
     asio::io_context io_full_flux;
+    asio::io_context io_full_asio_dispatch;
     asio::io_context io_full_asio;
 
     asio_dispatch_adapter ex_sched_dispatch{&io_sched_dispatch};
     asio_post_adapter ex_sched_post{&io_sched_post};
+    asio_dispatch_adapter ex_full_dispatch{&io_full_flux_dispatch};
     asio_post_adapter ex_full_post{&io_full_flux};
 
     auto r0 = run_bench("baseline.direct.loop20", 10000, 3000000, [&](int i) {
@@ -402,6 +432,28 @@ int main() {
     });
     print_result(r6);
 
+    auto bp_async_dispatch = make_async_4_bp(&ex_full_dispatch);
+    auto bp_async_dispatch_ptr = make_lite_ptr<decltype(bp_async_dispatch)>(std::move(bp_async_dispatch));
+    auto flux_async_dispatch_runner = make_runner(bp_async_dispatch_ptr, sink_receiver{&sink});
+    auto r6a = run_bench("full.flux.runner.async4.dispatch", 5000, 180000, [&](int i) {
+        flux_async_dispatch_runner(i);
+        drain(io_full_flux_dispatch);
+    });
+    print_result(r6a);
+
+    auto bp_async_fast_dispatch = make_async_4_bp(&ex_full_dispatch);
+    auto flux_async_fast_dispatch_runner = make_fast_runner_view(bp_async_fast_dispatch, sink_receiver{&sink});
+    auto r6b = run_bench("full.flux.fast_runner.async4.dispatch", 5000, 180000, [&](int i) {
+        flux_async_fast_dispatch_runner(i);
+        drain(io_full_flux_dispatch);
+    });
+    print_result(r6b);
+
+    auto r6c = run_bench("full.asio.dispatch.async4", 5000, 180000, [&](int i) {
+        asio_dispatch_async4(io_full_asio_dispatch, i, &sink);
+    });
+    print_result(r6c);
+
     auto bp_async = make_async_4_bp(&ex_full_post);
     auto bp_async_ptr = make_lite_ptr<decltype(bp_async)>(std::move(bp_async));
     auto flux_async_runner = make_runner(bp_async_ptr, sink_receiver{&sink});
@@ -423,6 +475,28 @@ int main() {
         asio_post_async4(io_full_asio, i, &sink);
     });
     print_result(r9);
+
+    auto bp_async1_dispatch = make_async_1_bp(&ex_full_dispatch);
+    auto bp_async1_dispatch_ptr = make_lite_ptr<decltype(bp_async1_dispatch)>(std::move(bp_async1_dispatch));
+    auto flux_async1_dispatch_runner = make_runner(bp_async1_dispatch_ptr, sink_receiver{&sink});
+    auto r9d = run_bench("full.flux.runner.async1.dispatch", 5000, 300000, [&](int i) {
+        flux_async1_dispatch_runner(i);
+        drain(io_full_flux_dispatch);
+    });
+    print_result(r9d);
+
+    auto bp_async1_fast_dispatch = make_async_1_bp(&ex_full_dispatch);
+    auto flux_async1_fast_dispatch_runner = make_fast_runner_view(bp_async1_fast_dispatch, sink_receiver{&sink});
+    auto r9e = run_bench("full.flux.fast_runner.async1.dispatch", 5000, 300000, [&](int i) {
+        flux_async1_fast_dispatch_runner(i);
+        drain(io_full_flux_dispatch);
+    });
+    print_result(r9e);
+
+    auto r9f = run_bench("full.asio.dispatch.async1", 5000, 300000, [&](int i) {
+        asio_dispatch_async1(io_full_asio_dispatch, i, &sink);
+    });
+    print_result(r9f);
 
     auto bp_async1 = make_async_1_bp(&ex_full_post);
     auto bp_async1_ptr = make_lite_ptr<decltype(bp_async1)>(std::move(bp_async1));

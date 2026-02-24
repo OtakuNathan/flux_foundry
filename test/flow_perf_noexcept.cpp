@@ -189,25 +189,25 @@ void print_result(const bench_result& r) {
 
 auto make_sync_20_bp() {
     auto bp = make_blueprint<int, err_t>()
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
-        | transform([](int x) noexcept { return x + 1; })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
         | end();
     return bp;
 }
@@ -232,10 +232,10 @@ int main() {
 
     auto r0 = run_bench("direct.loop20", 20000, 5000000, [&](int i) {
         int x = i;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
+       x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);
+       x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);
+       x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);
+       x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);
         sink += static_cast<long long>(x);
     });
     print_result(r0);

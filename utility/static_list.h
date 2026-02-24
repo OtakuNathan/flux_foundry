@@ -30,7 +30,7 @@ namespace flux_foundry {
 #endif
         };
 
-        static constexpr uint64_t cal_offset() noexcept {
+        static constexpr uint64_t off() noexcept {
             uint64_t i = 0;
             for (auto cap = capacity; cap >= 1;) {
                 cap >>= 1, ++i;
@@ -38,20 +38,28 @@ namespace flux_foundry {
             return i;
         }
 
-        constexpr static uint64_t off = cal_offset(),
-                offset_msk = (uint64_t{1} << off) - 1,
-                seq_msk = ((~offset_msk) >> off), empty_tag = capacity;
+        constexpr static uint64_t offset_msk() noexcept {
+            return (uint64_t{1} << off()) - 1;
+        }
+
+        constexpr static uint64_t seq_msk() noexcept {
+            return ((~offset_msk()) >> off());
+        }
+
+        constexpr static uint64_t empty_tag() noexcept {
+            return capacity;
+        }
 
         constexpr static uint64_t make_seq(uint64_t seq, uint64_t offset) noexcept {
-            return ((seq << off) | offset);
+            return ((seq << off()) | offset);
         }
 
         constexpr static uint64_t get_seq(uint64_t tag) noexcept {
-            return (tag >> off) & seq_msk;
+            return (tag >> off()) & seq_msk();
         }
 
         static constexpr uint64_t get_offset(uint64_t tag) noexcept {
-            return tag & offset_msk;
+            return tag & offset_msk();
         }
 
         padded_t<std::atomic<uint64_t>> head_;
@@ -64,8 +72,8 @@ namespace flux_foundry {
             uint64_t h_ = head.load(std::memory_order_acquire);
             backoff_strategy<> backoff;
             for (;; backoff.yield()) {
-                if (h_ == empty_tag) {
-                    return empty_tag;
+                if (h_ == empty_tag()) {
+                    return empty_tag();
                 }
 
                 seq = get_seq(h_), offset = get_offset(h_);
@@ -102,7 +110,7 @@ namespace flux_foundry {
 
     public:
         static_list() noexcept
-                : head_(empty_tag), free_(make_seq(0, 0)) {
+                : head_(empty_tag()), free_(make_seq(0, 0)) {
             for (size_t i = 0; i < capacity; ++i) {
 #if FLUEX_FOUNDRY_WITH_TSAN
                 nodes[i].next.store(i + 1, std::memory_order_relaxed);
@@ -129,7 +137,7 @@ namespace flux_foundry {
                 std::enable_if_t<std::is_nothrow_copy_constructible<T_>::value>* = nullptr>
         bool push(const storage_t& val) noexcept {
             auto h_ = pop_from_list(free_);
-            if (h_ == empty_tag) {
+            if (h_ == empty_tag()) {
                 return false;
             }
 
@@ -137,7 +145,7 @@ namespace flux_foundry {
             auto seq_ = get_seq(h_), offset = get_offset(h_);
             auto& slot = nodes[offset];
             slot.satellite.construct(val);
-            append_to_list(head_, make_seq((seq_ + 1) & seq_msk, offset));
+            append_to_list(head_, make_seq((seq_ + 1) & seq_msk(), offset));
 
             return true;
         }
@@ -150,14 +158,14 @@ namespace flux_foundry {
             T_ tmp(val);
 
             auto h_ = pop_from_list(free_);
-            if (h_ == empty_tag) {
+            if (h_ == empty_tag()) {
                 return false;
             }
 
             auto seq_ = get_seq(h_), offset = get_offset(h_);
             auto& slot = nodes[offset];
             slot.satellite.construct(std::move(tmp));
-            append_to_list(head_, make_seq((seq_ + 1) & seq_msk, offset));
+            append_to_list(head_, make_seq((seq_ + 1) & seq_msk(), offset));
 
             return true;
         }
@@ -165,14 +173,14 @@ namespace flux_foundry {
 
         bool emplace(storage_t&& val) noexcept {
             auto h_ = pop_from_list(free_);
-            if (h_ == empty_tag) {
+            if (h_ == empty_tag()) {
                 return false;
             }
 
             auto seq_ = get_seq(h_), offset = get_offset(h_);
             auto& slot = nodes[offset];
             slot.satellite.construct(std::move(val));
-            append_to_list(head_, make_seq((seq_ + 1) & seq_msk, offset));
+            append_to_list(head_, make_seq((seq_ + 1) & seq_msk(), offset));
 
             return true;
         }
@@ -181,14 +189,14 @@ namespace flux_foundry {
                 std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>::value>* = nullptr>
         bool emplace(Args&&... args) noexcept {
             auto h_ = pop_from_list(free_);
-            if (h_ == empty_tag) {
+            if (h_ == empty_tag()) {
                 return false;
             }
 
             auto seq_ = get_seq(h_), offset = get_offset(h_);
             auto& slot = nodes[offset];
             slot.satellite.construct(std::forward<Args>(args)...);
-            append_to_list(head_, make_seq((seq_ + 1) & seq_msk, offset));
+            append_to_list(head_, make_seq((seq_ + 1) & seq_msk(), offset));
 
             return true;
         }
@@ -203,14 +211,14 @@ namespace flux_foundry {
             T_ tmp(std::forward<Args>(args)...);
 
             auto h_ = pop_from_list(free_);
-            if (h_ == empty_tag) {
+            if (h_ == empty_tag()) {
                 return false;
             }
 
             auto seq_ = get_seq(h_), offset = get_offset(h_);
             auto& slot = nodes[offset];
             slot.satellite.construct(std::move(tmp));
-            append_to_list(head_, make_seq((seq_ + 1) & seq_msk, offset));
+            append_to_list(head_, make_seq((seq_ + 1) & seq_msk(), offset));
 
             return true;
         }
@@ -218,7 +226,7 @@ namespace flux_foundry {
 
         inplace_t<storage_t> pop() noexcept {
             auto h_ = pop_from_list(head_);
-            if (h_ == empty_tag) {
+            if (h_ == empty_tag()) {
                 return inplace_t<storage_t>();
             }
 

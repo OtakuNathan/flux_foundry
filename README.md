@@ -81,7 +81,7 @@ int main() {
     inline_executor ex;
 
     auto bp = make_blueprint<int>()
-        | transform([](int x) noexcept { return x + 1; })
+        | transform([](int x) noexcept { return (x ^ 0x5a5a5a5a) + (x >> 3); })
         | then([](result_t<int, E>&& in) noexcept -> result_t<int, E> {
             if (!in.has_value()) {
                 return result_t<int, E>(error_tag, std::move(in).error());
@@ -264,6 +264,27 @@ Result summary (local run):
 - `submit fail path`: 5000/5000 completed, all classified as submit-fail as expected
 - `when_all` matrix: `normal/cancel`, `normal/no_cancel`, `fast/cancel`, `fast/no_cancel`
 - `when_any` matrix: `normal/cancel`, `normal/no_cancel`, `fast/cancel`, `fast/no_cancel`
+
+## 🔬 Formal model checking (TLA+)
+
+In addition to stress/TSAN validation, the repository includes small **TLA+** models for key concurrency protocols in `test/model/`:
+
+- `flow_controller` cancel-state protocol
+- `simple_executor` ticket accounting / shutdown-drain
+- `awaitable_base` / `fast_awaitable_base` callback lifecycle
+- `flow_runner` async-node handshake path
+- `flow_async_aggregator` (`when_all` / `when_any`, normal + fast)
+
+These are **abstract protocol models** (not line-by-line C++ proofs) and are intended to complement runtime stress tests and sanitizers.
+
+Run with TLC (example, from repo root):
+
+```bash
+java -cp test/tla2tools.jar tlc2.TLC -config test/model/FlowControllerCancel.cfg test/model/FlowControllerCancel.tla
+java -cp test/tla2tools.jar tlc2.TLC -config test/model/SimpleExecutorTickets.cfg test/model/SimpleExecutorTickets.tla
+```
+
+See `test/model/README.md` for the full model list, assumptions, and additional TLC commands.
 
 ## 📁 Repository layout
 
