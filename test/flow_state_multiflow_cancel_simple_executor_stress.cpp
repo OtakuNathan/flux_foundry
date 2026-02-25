@@ -205,11 +205,14 @@ struct delayed_plus_one_awaitable final : awaitable_base<delayed_plus_one_awaita
     }
 };
 
+enum class err_kind : int;
+err_kind classify_error(const std::exception_ptr& ep);
+
 struct receiver_state {
     std::atomic<int> done{0};
     std::atomic<int> has_value{-1};
     std::atomic<int> value{0};
-    std::exception_ptr err;
+    std::atomic<int> err_code{0}; // err_kind::none
 };
 
 struct int_receiver {
@@ -220,9 +223,10 @@ struct int_receiver {
     void emplace(value_type&& r) noexcept {
         if (r.has_value()) {
             st->value.store(r.value(), std::memory_order_relaxed);
+            st->err_code.store(0, std::memory_order_relaxed);
             st->has_value.store(1, std::memory_order_relaxed);
         } else {
-            st->err = r.error();
+            st->err_code.store(static_cast<int>(classify_error(r.error())), std::memory_order_relaxed);
             st->has_value.store(0, std::memory_order_relaxed);
         }
         st->done.fetch_add(1, std::memory_order_release);
@@ -265,7 +269,7 @@ bool wait_backend_drained(int timeout_ms) {
     return true;
 }
 
-enum class err_kind {
+enum class err_kind : int {
     none,
     cancel_soft,
     cancel_hard,
@@ -339,7 +343,7 @@ void consume_outcome(const std::shared_ptr<receiver_state>& st, test_stat& s) {
     }
 
     ++s.error_count;
-    switch (classify_error(st->err)) {
+    switch (static_cast<err_kind>(st->err_code.load(std::memory_order_relaxed))) {
         case err_kind::cancel_soft:
             ++s.cancel_soft;
             break;

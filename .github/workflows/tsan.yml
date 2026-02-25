@@ -1,0 +1,150 @@
+name: TSAN
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+  schedule:
+    # Nightly (UTC)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  tsan-quick:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Toolchain info
+        run: |
+          c++ --version
+
+      - name: Build TSAN probes
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ff_tsan
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/flow_controller_memorder_stress.cpp \
+            -o /tmp/ff_tsan/flow_controller_memorder_stress_tsan -pthread -fsanitize=thread
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/flow_state_multiflow_cancel_simple_executor_stress.cpp \
+            -o /tmp/ff_tsan/flow_state_multiflow_cancel_simple_executor_stress_tsan -pthread -fsanitize=thread
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/flow_state_stress.cpp \
+            -o /tmp/ff_tsan/flow_state_stress_tsan -pthread -fsanitize=thread
+
+      - name: Run quick TSAN regressions (fail-fast)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ff_tsan_logs
+          export TSAN_OPTIONS='halt_on_error=1 exitcode=66'
+
+          echo "[quick] flow_controller_memorder_stress x100 (small deterministic coverage)"
+          for i in $(seq 1 100); do
+            /tmp/ff_tsan/flow_controller_memorder_stress_tsan 5 5 5 5 > /tmp/ff_tsan_logs/memorder.log 2>&1 || {
+              echo "FAIL: memorder round $i"
+              cat /tmp/ff_tsan_logs/memorder.log
+              exit 1
+            }
+          done
+
+          echo "[quick] multiflow simple_executor cancel stress x10"
+          for i in $(seq 1 10); do
+            /tmp/ff_tsan/flow_state_multiflow_cancel_simple_executor_stress_tsan 8 200 4 4 500 > /tmp/ff_tsan_logs/multiflow_simple.log 2>&1 || {
+              echo "FAIL: multiflow simple round $i"
+              cat /tmp/ff_tsan_logs/multiflow_simple.log
+              exit 1
+            }
+          done
+
+          echo "[quick] flow_state_stress x2"
+          for i in $(seq 1 2); do
+            /tmp/ff_tsan/flow_state_stress_tsan > /tmp/ff_tsan_logs/flow_state.log 2>&1 || {
+              echo "FAIL: flow_state_stress round $i"
+              cat /tmp/ff_tsan_logs/flow_state.log
+              exit 1
+            }
+          done
+
+          echo "TSAN quick: PASS"
+
+      - name: Upload TSAN logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsan-quick-logs
+          path: /tmp/ff_tsan_logs
+
+  tsan-nightly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Toolchain info
+        run: |
+          c++ --version
+
+      - name: Build TSAN probes
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ff_tsan
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/flow_controller_memorder_stress.cpp \
+            -o /tmp/ff_tsan/flow_controller_memorder_stress_tsan -pthread -fsanitize=thread
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/flow_state_multiflow_cancel_simple_executor_stress.cpp \
+            -o /tmp/ff_tsan/flow_state_multiflow_cancel_simple_executor_stress_tsan -pthread -fsanitize=thread
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/flow_state_stress.cpp \
+            -o /tmp/ff_tsan/flow_state_stress_tsan -pthread -fsanitize=thread
+
+      - name: Run nightly TSAN regressions (fail-fast)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ff_tsan_logs
+          export TSAN_OPTIONS='halt_on_error=1 exitcode=66'
+
+          echo "[nightly] flow_controller_memorder_stress x1000 (targeted mem-order coverage)"
+          for i in $(seq 1 1000); do
+            /tmp/ff_tsan/flow_controller_memorder_stress_tsan 5 5 5 5 > /tmp/ff_tsan_logs/memorder.log 2>&1 || {
+              echo "FAIL: memorder round $i"
+              cat /tmp/ff_tsan_logs/memorder.log
+              exit 1
+            }
+            if (( i % 100 == 0 )); then
+              echo "PASS memorder: $i/1000"
+            fi
+          done
+
+          echo "[nightly] multiflow simple_executor cancel stress x100"
+          for i in $(seq 1 100); do
+            /tmp/ff_tsan/flow_state_multiflow_cancel_simple_executor_stress_tsan 8 200 4 4 500 > /tmp/ff_tsan_logs/multiflow_simple.log 2>&1 || {
+              echo "FAIL: multiflow simple round $i"
+              cat /tmp/ff_tsan_logs/multiflow_simple.log
+              exit 1
+            }
+            if (( i % 20 == 0 )); then
+              echo "PASS multiflow-simple: $i/100"
+            fi
+          done
+
+          echo "[nightly] flow_state_stress x50"
+          for i in $(seq 1 50); do
+            /tmp/ff_tsan/flow_state_stress_tsan > /tmp/ff_tsan_logs/flow_state.log 2>&1 || {
+              echo "FAIL: flow_state_stress round $i"
+              cat /tmp/ff_tsan_logs/flow_state.log
+              exit 1
+            }
+            if (( i % 10 == 0 )); then
+              echo "PASS flow_state_stress: $i/50"
+            fi
+          done
+
+          echo "TSAN nightly: PASS"
+
+      - name: Upload TSAN logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsan-nightly-logs
+          path: /tmp/ff_tsan_logs

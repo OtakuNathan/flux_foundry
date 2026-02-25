@@ -123,7 +123,7 @@ namespace flux_foundry {
 
             for (backoff_strategy<> backoff;; backoff.yield()) {
                 if (state.compare_exchange_weak(exp, exp | runner_cancel::locked,
-                        std::memory_order_acq_rel, std::memory_order_acquire)) {
+                        std::memory_order_acquire, std::memory_order_relaxed)) {
                     break;
                 }
 
@@ -162,7 +162,7 @@ namespace flux_foundry {
 
             for (backoff_strategy<> backoff;; backoff.yield()) {
                 if (state.compare_exchange_weak(exp, exp | runner_cancel::locked,
-                    std::memory_order_acq_rel, std::memory_order_acquire)) {
+                    std::memory_order_acquire, std::memory_order_relaxed)) {
                     notify_handler_dropped(cancel_param);
                     this->notify_handler_dropped = drop_sub;
                     this->cancel_handler = cancel_stub;
@@ -200,7 +200,7 @@ namespace flux_foundry {
             for (backoff_strategy<> backoff;; backoff.yield()) {
                 exp &= ~size_t(runner_cancel::msk);
                 auto target = exp | kind;
-                if (state.compare_exchange_weak(exp, target, std::memory_order_acq_rel, std::memory_order_acquire)) {
+                if (state.compare_exchange_weak(exp, target, std::memory_order_acquire, std::memory_order_relaxed)) {
                     cancel_handler(cancel_param, force ? cancel_kind::hard : cancel_kind::soft);
                     notify_handler_dropped(cancel_param);
                     this->notify_handler_dropped = drop_sub;
@@ -450,7 +450,7 @@ namespace flux_foundry {
                         
                     // am I still have the lock?
                     LIKELY_IF (!cs.compare_exchange_strong(exp, state + epoch,
-                                                           std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                                                           std::memory_order_relaxed, std::memory_order_relaxed)) {
                         // no it is freed by guard.
                         controller->reset_cancel_handler();
                     } else {
@@ -479,7 +479,7 @@ namespace flux_foundry {
                             auto exp = state;
                             // am I still have the lock?
                             LIKELY_IF (!cs.compare_exchange_strong(exp, state + epoch,
-                                                                   std::memory_order_acq_rel, std::memory_order_relaxed)) {
+                                                                   std::memory_order_relaxed, std::memory_order_relaxed)) {
                                 // no it is freed by guard.
                                 controller->reset_cancel_handler();
                             } else {

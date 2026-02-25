@@ -201,6 +201,7 @@ int test_full_chain_success() {
 
     run_observer obs;
     auto bp = make_blueprint<int, err_t>()
+        // Keep the smoke value path deterministic and free of signed-overflow UB.
         | transform([](int x) noexcept { return x + 1; })
         | then([](out_t&& in) noexcept -> out_t {
             if (!in.has_value()) {
