@@ -70,7 +70,7 @@ public:
        return true;
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_, typename... Args,
         std::enable_if_t <conjunction_v<
         negation<std::is_nothrow_constructible<T_, Args&&...>>, std::is_constructible<T_, Args&&...>>>* = nullptr>
@@ -92,7 +92,7 @@ public:
         return true;
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_, typename ... Args,
         typename = std::enable_if_t<std::is_constructible<T_, Args&&...>::value>>
     void wait_and_emplace(Args&&... args)
@@ -220,7 +220,7 @@ public:
         return false;
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>, std::is_constructible<T_, Args&&...>>>* = nullptr>
@@ -265,7 +265,7 @@ public:
         }
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>,
@@ -414,7 +414,7 @@ public:
         }
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>,
@@ -487,7 +487,7 @@ public:
         return false;
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template <typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args&&...>>,
@@ -664,7 +664,7 @@ public:
         return true;
     }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
     template<typename T_ = T, typename... Args,
         std::enable_if_t<conjunction_v<
             negation<std::is_nothrow_constructible<T_, Args &&...> >,

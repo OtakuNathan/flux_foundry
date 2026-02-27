@@ -10,7 +10,7 @@
 namespace flux_foundry {
     template <typename T>
     struct raw_inplace_storage_operations {
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
         static_assert(std::is_nothrow_destructible<T>::value, "T must be nothrow destructible");
 #endif
     private:
@@ -32,7 +32,7 @@ namespace flux_foundry {
         template <typename ... Args, std::enable_if_t<std::is_constructible<T, Args&&...>::value>* = nullptr>
         static T* _construct_at(void* addr, Args&& ... args)
             noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
                 "T must be nothrow constructible with Args...");
 #endif
@@ -43,7 +43,7 @@ namespace flux_foundry {
             negation<std::is_constructible<T, Args&&...>>, is_aggregate_constructible<T, Args&&...>>>* = nullptr>
         static T* _construct_at(void* addr, Args&& ... args)
             noexcept (is_nothrow_aggregate_constructible<T, Args&&...>::value) {
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_nothrow_aggregate_constructible<T, Args&&...>::value,
                 "T must be nothrow aggregate constructible with Args...");
 #endif
@@ -74,7 +74,7 @@ namespace flux_foundry {
             return  _construct_at(addr, il, std::forward<Args>(args)...);
         }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
         template <typename ... Args, std::enable_if_t<conjunction_v<
             std::is_constructible<T, Args&&...>,
             std::is_nothrow_move_assignable<T>>>* = nullptr>

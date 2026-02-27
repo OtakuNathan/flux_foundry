@@ -23,7 +23,7 @@ namespace flux_foundry {
     private:
         struct node {
             raw_inplace_storage_base<storage_t> satellite;
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
             std::atomic<uint64_t> next;
 #else
             uint64_t next;
@@ -77,7 +77,7 @@ namespace flux_foundry {
                 }
 
                 seq = get_seq(h_), offset = get_offset(h_);
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
                 auto next = nodes[offset].next.load(std::memory_order_relaxed);
 #else
                 auto next = nodes[offset].next;
@@ -95,7 +95,7 @@ namespace flux_foundry {
             uint64_t h_ = head.load(std::memory_order_acquire);;
             backoff_strategy<> backoff;
             for (;; backoff.yield()) {
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
                 nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
 #else
                 nodes[get_offset(fptr)].next = h_;
@@ -112,7 +112,7 @@ namespace flux_foundry {
         static_list() noexcept
                 : head_(empty_tag()), free_(make_seq(0, 0)) {
             for (size_t i = 0; i < capacity; ++i) {
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
                 nodes[i].next.store(i + 1, std::memory_order_relaxed);
 #else
                 nodes[i].next = i + 1;
@@ -150,7 +150,7 @@ namespace flux_foundry {
             return true;
         }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
         template <typename T_ = storage_t,
                 std::enable_if_t<conjunction_v<negation<std::is_nothrow_copy_constructible<T_>>,
                         std::is_copy_constructible<T_>> >* = nullptr>
@@ -201,7 +201,7 @@ namespace flux_foundry {
             return true;
         }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
         template <typename T_ = storage_t, typename... Args,
                 std::enable_if_t<conjunction_v<
                         negation<std::is_nothrow_constructible<T_, Args&&...>>,

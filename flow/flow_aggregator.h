@@ -79,7 +79,7 @@ namespace flux_foundry {
 
             // Only call emplace once per delegate
             template <typename... Us, 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<std::is_constructible<elem_type, Us&&...>::value
 #else
                 std::enable_if_t<std::is_nothrow_constructible<elem_type, Us&&...>::value
@@ -94,11 +94,11 @@ namespace flux_foundry {
                 }
 
                 elem_type& e = get<I>(data->val);
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     e = elem_type(std::forward<Us>(args)...);
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     e.emplace_error(std::current_exception());
                 }
@@ -112,7 +112,7 @@ namespace flux_foundry {
         
         flow_aggregator() : 
             data(Data::make_shared()) {
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             assert(data && "failed to allocate aggregator data.");
 #endif
         }

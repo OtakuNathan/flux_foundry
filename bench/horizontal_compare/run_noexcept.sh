@@ -15,7 +15,7 @@ fi
 
 echo "[build] ${OUT}"
 c++ -std=c++14 -O3 -DNDEBUG -fno-exceptions \
-  -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 \
+  -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 \
   -DASIO_NO_EXCEPTIONS=1 \
   -DASIO_DISABLE_EXCEPTIONS=1 \
   -pthread \

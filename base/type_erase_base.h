@@ -6,8 +6,7 @@
 #include <cstring>
 #include <stdexcept>
 #include "inplace_base.h"
-#include "../memory/static_mem_pool.h"
-#include "../memory/aligned_alloc.h"
+#include "../memory/pooling.h"
 
 /**
  * This class is designed to serve as a base for type erasure facilities using CRTP.
@@ -22,102 +21,11 @@ namespace flux_foundry {
     constexpr static size_t sbo_size = 64;
 
     namespace detail {
-        constexpr static size_t type_erase_pool_max_block_size = 512;
-        constexpr static size_t type_erase_pool_max_block_count = 256;
-
-        using type_erase_pool_t = static_mem_pool<type_erase_pool_max_block_count, type_erase_pool_max_block_size>;
-
-        inline type_erase_pool_t& type_erase_pool() noexcept {
-            static type_erase_pool_t pool{};
-            return pool;
-        }
-
-        template <typename T>
-        struct can_use_type_erase_pool : conjunction<
-            std::integral_constant<bool, (sizeof(T) <= type_erase_pool_max_block_size)>,
-            std::integral_constant<bool, (alignof(T) <= alignof(std::max_align_t))>> {
-        };
-
-        template <typename T, typename... Args>
-        T* allocate_type_erased(Args&&... args)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-            noexcept
-#endif
-        {
-            if (FLUEX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL && can_use_type_erase_pool<T>::value) {
-                auto& pool = type_erase_pool();
-                auto* mem = pool.allocate(sizeof(T));
-                if (mem) {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    try {
-                        return new (mem) T(std::forward<Args>(args)...);
-                    } catch (...) {
-                        pool.deallocate(mem);
-                        throw;
-                    }
-#else
-                    return new (mem) T(std::forward<Args>(args)...);
-#endif
-                }
-            }
-
-            if (alignof(T) > alignof(std::max_align_t)) {
-                void* mem = aligned_alloc(alignof(T), sizeof(T));
-                if (!mem) {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    throw std::bad_alloc();
-#else
-                    return nullptr;
-#endif
-                }
-
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                try {
-                    return new (mem) T(std::forward<Args>(args)...);
-                } catch (...) {
-                    aligned_free(mem);
-                    throw;
-                }
-#else
-                return new (mem) T(std::forward<Args>(args)...);
-#endif
-            }
-
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-            return new T(std::forward<Args>(args)...);
-#else
-            return new (std::nothrow) T(std::forward<Args>(args)...);
-#endif
-        }
-
-        template <typename T>
-        void deallocate_type_erased(T* p) noexcept {
-            if (!p) {
-                return;
-            }
-
-            if (FLUEX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL && can_use_type_erase_pool<T>::value) {
-                auto& pool = type_erase_pool();
-                if (pool.belong_to(p)) {
-                    p->~T();
-                    pool.deallocate(p);
-                    return;
-                }
-            }
-
-            if (alignof(T) > alignof(std::max_align_t)) {
-                p->~T();
-                aligned_free(p);
-                return;
-            }
-
-            delete p;
-        }
-
-        template <typename T, size_t sbo_size, size_t align>
+        template<typename T, size_t sbo_size, size_t align>
         struct can_enable_sbo : conjunction<
-            std::integral_constant<bool, (sizeof(T) <= sbo_size) && (alignof(T) <= align)>,
-            std::is_nothrow_move_constructible<T>> {};
+                std::integral_constant<bool, (sizeof(T) <= sbo_size) && (alignof(T) <= align)>,
+                std::is_nothrow_move_constructible<T>> {
+        };
     }
 
     template <typename T, bool sbo_enabled, std::enable_if_t<sbo_enabled>* = nullptr>
@@ -149,6 +57,7 @@ namespace flux_foundry {
     enum class lifespan_op_error : uint32_t {
         success,
         unsupported,
+        out_of_mem,
     };
 
     template <typename T, bool sbo_enabled,
@@ -180,13 +89,27 @@ namespace flux_foundry {
         std::enable_if_t<conjunction_v<std::integral_constant<bool, !sbo_enabled>,
         std::is_copy_constructible<T>>>* = nullptr>
     lifespan_op_error copy_construct_impl(void* dst, const void* src) {
-        auto* p = detail::allocate_type_erased<T>(*tr_ptr<T, sbo_enabled>(src));
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+        auto p = flux_foundry_allocator<sizeof(T), alignof(T)>().alloc();
         if (!p) {
-            return lifespan_op_error::unsupported;
-        }
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+            throw std::bad_alloc();
+#else
+            return lifespan_op_error::out_of_mem;
 #endif
-        *static_cast<T**>(dst) = p;
+        }
+
+        struct guard {
+            void *p;
+            ~guard() noexcept {
+                flux_foundry_allocator<sizeof(T), alignof(T)>().dealloc(p);
+            }
+        };
+
+        guard g{p};
+        new (p) T(*tr_ptr<T, sbo_enabled>(src));
+        g.p = nullptr;
+
+        *static_cast<T**>(dst) = static_cast<T*>(p);
         return lifespan_op_error::success;
     }
 
@@ -199,7 +122,6 @@ namespace flux_foundry {
         memcpy(dst, src, sizeof(T));
         return lifespan_op_error::success;
     }
-
 
     template <typename T, bool sbo_enabled,
         std::enable_if_t<conjunction_v<
@@ -232,8 +154,12 @@ namespace flux_foundry {
         std::enable_if_t<!sbo_enabled>* = nullptr>
     lifespan_op_error destroy_impl(void* addr) noexcept {
         T*& p = *static_cast<T**>(addr);
-        detail::deallocate_type_erased(p);
-        p = nullptr;
+        if (p) {
+            p->~T();
+            flux_foundry_allocator<sizeof(T), alignof(T)> allocator;
+            allocator.dealloc(p);
+            p = nullptr;
+        }
         return lifespan_op_error::success;
     }
 
@@ -273,27 +199,38 @@ namespace flux_foundry {
 
 
         raw_type_erase_base(const raw_type_erase_base& rhs)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
             : invoker_ { derived::stub } , manager_ { nullptr } {
             if (rhs.manager_) {
                 auto res = rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::copy);
-                if (res != lifespan_op_error::success) {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    throw std::runtime_error("the object is not copy constructible");
+                switch (res) {
+                    case lifespan_op_error::unsupported:
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                        throw std::runtime_error("the object is not copy constructible");
 #else
-                    assert(false && "the object is not copy constructible");
-                    std::abort();
+                        assert(false && "the object is not copy constructible");
+                        std::abort();
 #endif
+                    case lifespan_op_error::out_of_mem:
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                        throw std::bad_alloc();
+#else
+                        assert(false && "out of memory");
+                        std::abort();
+#endif
+                    default:
+                        break;
                 }
+
                 this->manager_ = rhs.manager_;
                 this->invoker_ = rhs.invoker_;
             }
         }
 
         raw_type_erase_base& operator=(const raw_type_erase_base& rhs)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
         {
@@ -341,7 +278,7 @@ namespace flux_foundry {
             assert(this->manager_ != nullptr && "Derived class failed to set manager in do_customize!");
         }
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
         template <typename U, typename T = std::decay_t<U>, typename... Args,
             std::enable_if_t<conjunction_v<
                 std::is_constructible<T, Args&&...>,
@@ -362,7 +299,7 @@ namespace flux_foundry {
 
         template <typename U, typename T = std::decay_t<U>, typename... Args,
             std::enable_if_t<conjunction_v<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, Args &&...>,
 #else
                 std::is_nothrow_constructible<T, Args&&...>,
@@ -372,15 +309,29 @@ namespace flux_foundry {
             static_assert(align >= alignof(T*),
                 "SBO placement-new requires buffer alignment >= alignof(T*)");
 
-            T* tmp = detail::allocate_type_erased<T>(std::forward<Args>(args)...);
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
-            if (!tmp) {
+            auto p = flux_foundry_allocator<sizeof(T), alignof(T)>().alloc();
+            if (!p) {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                throw std::bad_alloc();
+#else
                 return;
-            }
 #endif
+            }
+
+            struct guard {
+                void *p;
+                ~guard() noexcept {
+                    flux_foundry_allocator<sizeof(T), alignof(T)>().dealloc(p);
+                }
+            };
+
+            guard g{p};
+            new (p) T(std::forward<Args>(args)...);
+            g.p = nullptr;
+
             this->clear();
 
-            *reinterpret_cast<T**>(data_) = tmp;
+            *reinterpret_cast<T**>(data_) = static_cast<T*>(p);
             auto derived_ = static_cast<derived*>(this);
             derived_->template do_customize<T, false>();
             assert(this->manager_ != nullptr && "Derived class failed to set manager in do_customize!");

@@ -12,40 +12,40 @@
 #include <atomic>
 #include <cassert>
 
-#ifndef FLUEX_FOUNDRY_NO_EXCEPTION_STRICT
-#define FLUEX_FOUNDRY_NO_EXCEPTION_STRICT 0
+#ifndef FLUX_FOUNDRY_NO_EXCEPTION_STRICT
+#define FLUX_FOUNDRY_NO_EXCEPTION_STRICT 0
 #endif
 
-#define FLUEX_FOUNDRY_CPP_14 201402L
-#define FLUEX_FOUNDRY_CPP_17 201703L
-#define FLUEX_FOUNDRY_CPP_20 202002L
+#define FLUX_FOUNDRY_CPP_14 201402L
+#define FLUX_FOUNDRY_CPP_17 201703L
+#define FLUX_FOUNDRY_CPP_20 202002L
 
 #if defined(_MSVC_LANG)
-    #define FLUEX_FOUNDRY_CPP_VER _MSVC_LANG
+    #define FLUX_FOUNDRY_CPP_VER _MSVC_LANG
 #elif defined(__cplusplus)
-    #define FLUEX_FOUNDRY_CPP_VER __cplusplus
+    #define FLUX_FOUNDRY_CPP_VER __cplusplus
 #else
-    #define FLUEX_FOUNDRY_CPP_VER 0L
+    #define FLUX_FOUNDRY_CPP_VER 0L
 #endif
 
-#define FLUEX_FOUNDRY_CPP_AT_LEAST(ver) (FLUEX_FOUNDRY_CPP_VER >= FLUEX_FOUNDRY_CPP_##ver)
-#define FLUEX_FOUNDRY_CPP_AT_MOST(ver)  (FLUEX_FOUNDRY_CPP_VER <= FLUEX_FOUNDRY_CPP_##ver)
+#define FLUX_FOUNDRY_CPP_AT_LEAST(ver) (FLUX_FOUNDRY_CPP_VER >= FLUX_FOUNDRY_CPP_##ver)
+#define FLUX_FOUNDRY_CPP_AT_MOST(ver)  (FLUX_FOUNDRY_CPP_VER <= FLUX_FOUNDRY_CPP_##ver)
 
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-#  define FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS 1
+#  define FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS 1
 #else
-#  define FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS 0
+#  define FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS 0
 #endif
 
-#ifndef FLUEX_FOUNDRY_HAS_EXCEPTIONS
-#  if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS && FLUEX_FOUNDRY_NO_EXCEPTION_STRICT
-#    define FLUEX_FOUNDRY_HAS_EXCEPTIONS 0
+#ifndef FLUX_FOUNDRY_HAS_EXCEPTIONS
+#  if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS && FLUX_FOUNDRY_NO_EXCEPTION_STRICT
+#    define FLUX_FOUNDRY_HAS_EXCEPTIONS 0
 #  else
-#    define FLUEX_FOUNDRY_HAS_EXCEPTIONS 1
+#    define FLUX_FOUNDRY_HAS_EXCEPTIONS 1
 #  endif
 #endif
 
-#if FLUEX_FOUNDRY_CPP_AT_LEAST(20)
+#if FLUX_FOUNDRY_CPP_AT_LEAST(20)
 #  define LIKELY_IF(expr) if ((expr)) [[likely]]
 #  define UNLIKELY_IF(expr) if ((expr)) [[unlikely]]
 #else
@@ -74,36 +74,36 @@
 
 #if defined(__has_feature)
 #  if __has_feature(thread_sanitizer)
-#    define FLUEX_FOUNDRY_WITH_TSAN 1
+#    define FLUX_FOUNDRY_WITH_TSAN 1
 #  endif
 #endif
 
-#if !defined(FLUEX_FOUNDRY_WITH_TSAN)
+#if !defined(FLUX_FOUNDRY_WITH_TSAN)
 #  if defined(__SANITIZE_THREAD__)
-#    define FLUEX_FOUNDRY_WITH_TSAN 1
+#    define FLUX_FOUNDRY_WITH_TSAN 1
 #  else
-#    define FLUEX_FOUNDRY_WITH_TSAN 0
+#    define FLUX_FOUNDRY_WITH_TSAN 0
 #  endif
 #endif
 
-#ifndef FLUEX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL
-#define FLUEX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL 1
+#ifndef FLUX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL
+#define FLUX_FOUNDRY_USE_TYPE_ERASE_STATIC_POOL 1
 #endif
 
-#ifndef FLUEX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN
-#define FLUEX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN 1
+#ifndef FLUX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN
+#define FLUX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN 1
 #endif
 
-#ifndef FLUEX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN
-#define FLUEX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN 1
+#ifndef FLUX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN
+#define FLUX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN 1
 #endif
 
-#ifndef FLUEX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC
-#define FLUEX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC 1
+#ifndef FLUX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC
+#define FLUX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC 1
 #endif
 
-#ifndef FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT
-#define FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
+#ifndef FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT
+#define FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
 #endif
 
 namespace flux_foundry {
@@ -133,7 +133,7 @@ namespace flux_foundry {
     template <size_t N>
     struct in_place_index {};
 
-#if FLUEX_FOUNDRY_CPP_AT_LEAST(17)
+#if FLUX_FOUNDRY_CPP_AT_LEAST(17)
     using std::invoke_result;
     using std::invoke_result_t;
 #else
@@ -144,14 +144,14 @@ namespace flux_foundry {
     using invoke_result_t = std::result_of_t<F(A...)>;
 #endif
 
-#if FLUEX_FOUNDRY_CPP_AT_LEAST(20)
+#if FLUX_FOUNDRY_CPP_AT_LEAST(20)
     using std::type_identity;
 #else
     template <typename T>
     struct type_identity { using type = T; };
 #endif
 
-#if FLUEX_FOUNDRY_CPP_AT_MOST(14)
+#if FLUX_FOUNDRY_CPP_AT_MOST(14)
     template <typename T>
     struct negation : std::integral_constant<bool, !T::value> {};
 

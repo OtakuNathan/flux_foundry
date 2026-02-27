@@ -22,7 +22,7 @@ namespace future_task_detail {
             if (result.has_value()) {
                 promise_.set_value(std::move(result.value()));
             } 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
               else {
                 promise_.set_exception(result.error());
             }
@@ -34,7 +34,7 @@ namespace future_task_detail {
             if (result.has_value()) {
                 promise_.set_value();
             }
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
               else {
                 promise_.set_exception(result.error());
             }
@@ -96,7 +96,7 @@ template <typename Callable, typename... Params>
 class future_task : 
     public future_task_detail::future_task_impl<Callable, Params...>,
     private ctor_delete_base<future_task<Callable, Params...>, false,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
         true              
 #else
         std::is_nothrow_move_constructible<
@@ -105,7 +105,7 @@ class future_task :
 #endif
     >,
     private assign_delete_base<future_task<Callable, Params...>, false,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
         true
 #else
         std::is_nothrow_move_assignable<

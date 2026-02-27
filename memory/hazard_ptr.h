@@ -255,6 +255,8 @@ public:
 
 } // namespace detail
 
+// hazard_ptr supports deferred slot acquisition and
+// explicit recovery in no-exception builds via available() + acquire_slot().
 struct hazard_ptr {
 private:
     using hazard_record = typename detail::hp_mgr::hazard_record;

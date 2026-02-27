@@ -2,6 +2,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>
 #include <deque>
 #include <exception>
 #include <functional>
@@ -251,6 +252,26 @@ struct test_stat {
     long long elapsed_ms = 0;
 };
 
+struct run_cfg {
+    int async_cancel_iters = 5000;
+    int submit_fail_iters = 5000;
+    int when_all_iters = 1000;
+    int when_any_iters = 1000;
+};
+
+int arg_or_default(char** argv, int argc, int index, int fallback) {
+    if (index >= argc) {
+        return fallback;
+    }
+    const int v = std::atoi(argv[index]);
+    return v > 0 ? v : fallback;
+}
+
+int progress_step(int iters) {
+    const int step = iters / 100;
+    return step > 0 ? step : 1;
+}
+
 void print_stat(const char* name, const test_stat& s) {
     std::printf("[%s]\n", name);
     std::printf("  iterations         : %d\n", s.iterations);
@@ -298,9 +319,9 @@ void consume_outcome(const std::shared_ptr<receiver_state>& st, test_stat& s) {
     }
 }
 
-test_stat stress_async_cancel_race() {
-    constexpr int kIters = 5000;
-    constexpr int kTimeoutAbort = 50;
+test_stat stress_async_cancel_race(int iters) {
+    const int timeout_abort = std::max(50, iters / 100);
+    const int step = progress_step(iters);
 
     auto bp = make_blueprint<int>()
         | await<delayed_plus_one_awaitable>(&g_inline_executor)
@@ -309,12 +330,12 @@ test_stat stress_async_cancel_race() {
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
 
     test_stat s;
-    s.iterations = kIters;
+    s.iterations = iters;
     auto begin = std::chrono::steady_clock::now();
 
-    for (int i = 0; i < kIters; ++i) {
-        if ((i + 1) % 500 == 0) {
-            std::printf("[async cancel race] progress %d/%d\n", i + 1, kIters);
+    for (int i = 0; i < iters; ++i) {
+        if (((i + 1) % step) == 0 || (i + 1) == iters) {
+            std::printf("[async cancel race] progress %d/%d\n", i + 1, iters);
             std::fflush(stdout);
         }
 
@@ -332,7 +353,7 @@ test_stat stress_async_cancel_race() {
         ++s.executed;
         if (!wait_done(st, 120)) {
             ++s.timeout;
-            if (s.timeout >= kTimeoutAbort) {
+            if (s.timeout >= timeout_abort) {
                 break;
             }
             continue;
@@ -346,9 +367,9 @@ test_stat stress_async_cancel_race() {
     return s;
 }
 
-test_stat stress_submit_fail_path() {
-    constexpr int kIters = 5000;
-    constexpr int kTimeoutAbort = 50;
+test_stat stress_submit_fail_path(int iters) {
+    const int timeout_abort = std::max(50, iters / 100);
+    const int step = progress_step(iters);
 
     auto bp = make_blueprint<int>()
         | await<always_fail_submit_awaitable>(&g_inline_executor)
@@ -357,12 +378,12 @@ test_stat stress_submit_fail_path() {
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
 
     test_stat s;
-    s.iterations = kIters;
+    s.iterations = iters;
     auto begin = std::chrono::steady_clock::now();
 
-    for (int i = 0; i < kIters; ++i) {
-        if ((i + 1) % 500 == 0) {
-            std::printf("[submit fail] progress %d/%d\n", i + 1, kIters);
+    for (int i = 0; i < iters; ++i) {
+        if (((i + 1) % step) == 0 || (i + 1) == iters) {
+            std::printf("[submit fail] progress %d/%d\n", i + 1, iters);
             std::fflush(stdout);
         }
 
@@ -375,7 +396,7 @@ test_stat stress_submit_fail_path() {
         ++s.executed;
         if (!wait_done(st, 120)) {
             ++s.timeout;
-            if (s.timeout >= kTimeoutAbort) {
+            if (s.timeout >= timeout_abort) {
                 break;
             }
             continue;
@@ -450,9 +471,9 @@ auto make_when_any_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2)
 }
 
 template <bool RunnerFast, bool AggFast>
-test_stat stress_when_all_matrix_case(const char* tag) {
-    constexpr int kIters = 1000;
-    constexpr int kTimeoutAbort = 40;
+test_stat stress_when_all_matrix_case(const char* tag, int iters) {
+    const int timeout_abort = std::max(40, iters / 100);
+    const int step = progress_step(iters);
 
     auto leaf1 = make_blueprint<int>()
         | await<delayed_plus_one_awaitable>(&g_inline_executor)
@@ -469,12 +490,12 @@ test_stat stress_when_all_matrix_case(const char* tag) {
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
 
     test_stat s;
-    s.iterations = kIters;
+    s.iterations = iters;
     auto begin = std::chrono::steady_clock::now();
 
-    for (int i = 0; i < kIters; ++i) {
-        if ((i + 1) % 200 == 0) {
-            std::printf("%s progress %d/%d\n", tag, i + 1, kIters);
+    for (int i = 0; i < iters; ++i) {
+        if (((i + 1) % step) == 0 || (i + 1) == iters) {
+            std::printf("%s progress %d/%d\n", tag, i + 1, iters);
             std::fflush(stdout);
         }
 
@@ -496,7 +517,7 @@ test_stat stress_when_all_matrix_case(const char* tag) {
         ++s.executed;
         if (!wait_done(st, 180)) {
             ++s.timeout;
-            if (s.timeout >= kTimeoutAbort) {
+            if (s.timeout >= timeout_abort) {
                 break;
             }
             continue;
@@ -511,9 +532,9 @@ test_stat stress_when_all_matrix_case(const char* tag) {
 }
 
 template <bool RunnerFast, bool AggFast>
-test_stat stress_when_any_matrix_case(const char* tag) {
-    constexpr int kIters = 1000;
-    constexpr int kTimeoutAbort = 40;
+test_stat stress_when_any_matrix_case(const char* tag, int iters) {
+    const int timeout_abort = std::max(40, iters / 100);
+    const int step = progress_step(iters);
 
     auto leaf1 = make_blueprint<int>()
         | await<delayed_plus_one_awaitable>(&g_inline_executor)
@@ -530,12 +551,12 @@ test_stat stress_when_any_matrix_case(const char* tag) {
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
 
     test_stat s;
-    s.iterations = kIters;
+    s.iterations = iters;
     auto begin = std::chrono::steady_clock::now();
 
-    for (int i = 0; i < kIters; ++i) {
-        if ((i + 1) % 200 == 0) {
-            std::printf("%s progress %d/%d\n", tag, i + 1, kIters);
+    for (int i = 0; i < iters; ++i) {
+        if (((i + 1) % step) == 0 || (i + 1) == iters) {
+            std::printf("%s progress %d/%d\n", tag, i + 1, iters);
             std::fflush(stdout);
         }
 
@@ -557,7 +578,7 @@ test_stat stress_when_any_matrix_case(const char* tag) {
         ++s.executed;
         if (!wait_done(st, 180)) {
             ++s.timeout;
-            if (s.timeout >= kTimeoutAbort) {
+            if (s.timeout >= timeout_abort) {
                 break;
             }
             continue;
@@ -588,21 +609,33 @@ int score_failures(const test_stat& s, bool allow_submit_fail_only = false) {
 
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
+    run_cfg cfg;
+    cfg.async_cancel_iters = arg_or_default(argv, argc, 1, cfg.async_cancel_iters);
+    cfg.submit_fail_iters = arg_or_default(argv, argc, 2, cfg.submit_fail_iters);
+    cfg.when_all_iters = arg_or_default(argv, argc, 3, cfg.when_all_iters);
+    cfg.when_any_iters = arg_or_default(argv, argc, 4, cfg.when_any_iters);
+
+    std::printf("[flow state stress cfg]\n");
+    std::printf("  async_cancel_iters : %d\n", cfg.async_cancel_iters);
+    std::printf("  submit_fail_iters  : %d\n", cfg.submit_fail_iters);
+    std::printf("  when_all_iters     : %d\n", cfg.when_all_iters);
+    std::printf("  when_any_iters     : %d\n", cfg.when_any_iters);
+
     int failed = 0;
 
     auto whole_begin = std::chrono::steady_clock::now();
 
-    auto t1 = stress_async_cancel_race();
-    auto t2 = stress_submit_fail_path();
-    auto t3 = stress_when_all_matrix_case<false, false>("[when_all normal/cancel]");
-    auto t4 = stress_when_all_matrix_case<false, true>("[when_all normal/no_cancel]");
-    auto t5 = stress_when_all_matrix_case<true, false>("[when_all fast/cancel]");
-    auto t6 = stress_when_all_matrix_case<true, true>("[when_all fast/no_cancel]");
-    auto t7 = stress_when_any_matrix_case<false, false>("[when_any normal/cancel]");
-    auto t8 = stress_when_any_matrix_case<false, true>("[when_any normal/no_cancel]");
-    auto t9 = stress_when_any_matrix_case<true, false>("[when_any fast/cancel]");
-    auto t10 = stress_when_any_matrix_case<true, true>("[when_any fast/no_cancel]");
+    auto t1 = stress_async_cancel_race(cfg.async_cancel_iters);
+    auto t2 = stress_submit_fail_path(cfg.submit_fail_iters);
+    auto t3 = stress_when_all_matrix_case<false, false>("[when_all normal/cancel]", cfg.when_all_iters);
+    auto t4 = stress_when_all_matrix_case<false, true>("[when_all normal/no_cancel]", cfg.when_all_iters);
+    auto t5 = stress_when_all_matrix_case<true, false>("[when_all fast/cancel]", cfg.when_all_iters);
+    auto t6 = stress_when_all_matrix_case<true, true>("[when_all fast/no_cancel]", cfg.when_all_iters);
+    auto t7 = stress_when_any_matrix_case<false, false>("[when_any normal/cancel]", cfg.when_any_iters);
+    auto t8 = stress_when_any_matrix_case<false, true>("[when_any normal/no_cancel]", cfg.when_any_iters);
+    auto t9 = stress_when_any_matrix_case<true, false>("[when_any fast/cancel]", cfg.when_any_iters);
+    auto t10 = stress_when_any_matrix_case<true, true>("[when_any fast/no_cancel]", cfg.when_any_iters);
 
     print_stat("async cancel race", t1);
     print_stat("submit fail path", t2);

@@ -91,7 +91,7 @@ int main() {
         | on_error([](result_t<int, E>&&) noexcept -> result_t<int, E> {
             return result_t<int, E>(value_tag, -1); // recover from non-exception errors
         })
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         | catch_exception<std::runtime_error>([](const std::runtime_error&) noexcept {
             return -2; // recover from std::runtime_error
         })
@@ -165,13 +165,13 @@ ctest --test-dir build -C Release -R flow_perf --output-on-failure
 Command baseline:
 
 ```bash
-clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1
+clang++ -std=c++14 -O3 -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1
 ```
 
 - Host: `Windows 11 Home` (`10.0.26200`)
 - CPU: `AMD Ryzen 3700X` (`~3.6 GHz`, x64)
 - Memory: `Kingston 3600MHz 32 GB`
-- Compiler baseline printed by harness: `clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1`
+- Compiler baseline printed by harness: `clang++ -std=c++14 -O3 -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1`
 
 Lower is better (`ns/op`):
 
@@ -198,7 +198,7 @@ Commands:
 c++ -std=c++14 -O3 -DNDEBUG -I. test/flow_perf.cpp -o /tmp/flow_perf_exc
 
 # Exceptions OFF (strict no-exception mode)
-c++ -std=c++14 -O3 -DNDEBUG -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I. test/flow_perf_noexcept.cpp -o /tmp/flow_perf_noexc
+c++ -std=c++14 -O3 -DNDEBUG -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I. test/flow_perf_noexcept.cpp -o /tmp/flow_perf_noexc
 ```
 
 Measured output (`2026-02-12`, local machine):
@@ -218,7 +218,7 @@ Commands:
 clang++ -O3 -fstrict-aliasing -mcpu=apple-m1 -std=c++14 -DNDEBUG -I. test/flow_perf.cpp -o /tmp/flow_perf_exc_latest
 
 # Exceptions OFF (strict no-exception mode)
-clang++ -O3 -fstrict-aliasing -fno-exceptions -mcpu=apple-m1 -std=c++14 -DNDEBUG -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I. test/flow_perf_noexcept.cpp -o /tmp/flow_perf_noexc_latest
+clang++ -O3 -fstrict-aliasing -fno-exceptions -mcpu=apple-m1 -std=c++14 -DNDEBUG -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I. test/flow_perf_noexcept.cpp -o /tmp/flow_perf_noexc_latest
 ```
 
 - OS: `Darwin` (`arm64`, Apple Silicon)

@@ -96,7 +96,7 @@ namespace flux_foundry {
         epoch = msk + 1,
     };
 
-#if FLUEX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN
+#if FLUX_FOUNDRY_FLOW_CONTROLLER_CACHE_ALIGN
     struct alignas(CACHE_LINE_SIZE) flow_controller {
 #else
     struct flow_controller {
@@ -320,7 +320,7 @@ namespace flux_foundry {
     private:
         template <typename P = controller_ptr, std::enable_if_t<std::is_same<P, lite_ptr<flow_controller>>::value, int> = 0>
         void init_controller() noexcept {
-#if FLUEX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC
+#if FLUX_FOUNDRY_FLOW_CONTROLLER_ALIGNED_ALLOC
             controller = make_lite_ptr_with_allocator<flow_controller>(aligned_malloc_allocator{});
 #else
             controller = make_lite_ptr<flow_controller>();

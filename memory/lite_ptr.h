@@ -89,14 +89,14 @@ namespace flux_foundry {
 
         template <typename AllocLike, typename G, typename ... Args>
         void emplace_with_allocator(AllocLike&& alloc_like, G&& g, Args&& ... args)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
         {
             A alloc(std::forward<AllocLike>(alloc_like));
             auto cb_ = static_cast<cb_t*>(alloc.allocate(alignof(cb_t), alloc_size()));
             if (!cb_) {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 throw std::bad_alloc();
 #else
                 return;
@@ -123,7 +123,7 @@ namespace flux_foundry {
 
         template <typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<std::is_same<F_, default_deleter<T>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<T, Args&&...>
 #else
                         std::is_nothrow_constructible<T, Args&&...>,
@@ -131,7 +131,7 @@ namespace flux_foundry {
 #endif
         >>* = nullptr>
         explicit lite_ptr(in_place_t, Args&& ... args)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
             : cb {nullptr} {
@@ -140,14 +140,14 @@ namespace flux_foundry {
 
         template <typename AllocLike, typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<std::is_same<F_, default_deleter<T>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<A, AllocLike&&>, std::is_constructible<T, Args&&...>
 #else
                         std::is_nothrow_constructible<A, AllocLike&&>, std::is_nothrow_constructible<T, Args&&...>
 #endif
         >>* = nullptr>
         explicit lite_ptr(in_place_t, std::allocator_arg_t, AllocLike&& alloc, Args&& ... args)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
             : cb {nullptr} {
@@ -157,7 +157,7 @@ namespace flux_foundry {
         template <typename G, typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<
                         negation<std::is_same<F_, default_deleter<T>>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<F_, G&&>, std::is_constructible<T, Args&&...>
 #else
                         std::is_nothrow_constructible<F_, G&&>, std::is_nothrow_constructible<T, Args&&...>,
@@ -165,7 +165,7 @@ namespace flux_foundry {
 #endif
         >>* = nullptr>
         lite_ptr(in_place_t, G&& g, Args&& ... args)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
             : cb {nullptr} {
@@ -175,7 +175,7 @@ namespace flux_foundry {
         template <typename AllocLike, typename G, typename ... Args, typename F_ = F,
                 std::enable_if_t<conjunction_v<
                         negation<std::is_same<F_, default_deleter<T>>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<A, AllocLike&&>,
                         std::is_constructible<F_, G&&>, std::is_constructible<T, Args&&...>
 #else
@@ -184,7 +184,7 @@ namespace flux_foundry {
 #endif
         >>* = nullptr>
         lite_ptr(in_place_t, std::allocator_arg_t, AllocLike&& alloc, G&& g, Args&& ... args)
-#if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
             : cb {nullptr} {
@@ -250,7 +250,7 @@ namespace flux_foundry {
             auto ccb = cb;
             cb = nullptr;
             if (ccb) {
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
                 UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_acq_rel) == 1) {
 #else
                 UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {

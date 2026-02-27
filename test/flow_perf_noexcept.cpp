@@ -225,7 +225,7 @@ auto make_async_4_bp(inline_executor* ex) {
 } // namespace
 
 int main() {
-    std::printf("[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing\n");
+    std::printf("[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing\n");
 
     volatile long long sink = 0;
     inline_executor ex;

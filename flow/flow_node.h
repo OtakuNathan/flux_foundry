@@ -238,14 +238,14 @@ namespace flux_foundry {
             static auto make(then_node&& self) 
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF(in.has_value()) {
                             return f(std::move(in));
                         }
                         return F_O(error_tag, std::move(in).error());
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -257,7 +257,7 @@ namespace flux_foundry {
 
         template <typename I, typename O, typename... Nodes, typename F>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, then_node<F>&& a) {
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "callable F is not compatible with current blueprint");
 #else
@@ -282,14 +282,14 @@ namespace flux_foundry {
             static auto make(error_node&& self) 
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF(in.has_value()) {
                             return F_O(value_tag, std::move(in).value());
                         }
                         return f(std::move(in));
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -301,7 +301,7 @@ namespace flux_foundry {
 
         template <typename I, typename O, typename ... Nodes, typename F>
         auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, error_node<F>&& a) {
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in error is not compatible with current blueprint.");
 #else
@@ -317,7 +317,7 @@ namespace flux_foundry {
             return std::move(bp) | std::move(node);
         }
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         // exception catch
         template <typename F, typename Exception>
         struct exception_catch_node {
@@ -448,7 +448,7 @@ namespace flux_foundry {
 
             using F_O = decltype(std::declval<G&>()(std::declval<flow_async_agg_err_t>()));
             using awaitable_t = std::conditional_t<Fast,
-                flow_when_all_fast_awaitable<BPs...>, flow_when_all_awaitable<BPs...>>;
+                detail::flow_when_all_fast_awaitable<BPs...>, detail::flow_when_all_awaitable<BPs...>>;
 
             template <typename F_I>
             static auto make(when_all_node&& node, lite_ptr<BPs> ... bps) noexcept {
@@ -456,16 +456,16 @@ namespace flux_foundry {
                 wrapper_t wrapper{std::move(node.e)};
 
                 using result_type = typename awaitable_t::result_type;
-                using factory_t = aggregator_awaitable_factory<awaitable_t, BPs...>;
+                using factory_t = detail::aggregator_awaitable_factory<awaitable_t, BPs...>;
                 auto adaptor = [f = std::move(node.f), g = std::move(node.g)](result_type&& t) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF (t.has_value()) {
                             return unpack_and_call(f, std::move(t.value().get()));
                         }
                         return g(std::move(t.error()));
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -502,7 +502,7 @@ namespace flux_foundry {
 
             using F_O = decltype(std::declval<G&>()(std::declval<flow_async_agg_err_t>()));
             using awaitable_t = std::conditional_t<Fast,
-                    flow_when_any_fast_awaitable<BPs...>, flow_when_any_awaitable<BPs...>>;
+                    detail::flow_when_any_fast_awaitable<BPs...>, detail::flow_when_any_awaitable<BPs...>>;
 
             template <typename F_I>
             static auto make(when_any_node&& node, lite_ptr<BPs> ... bps) noexcept {
@@ -510,10 +510,10 @@ namespace flux_foundry {
                 wrapper_t wrapper{std::move(node.e)};
 
                 using result_type = typename awaitable_t::result_type;
-                using factory_t = aggregator_awaitable_factory<awaitable_t, BPs...>;
+                using factory_t = detail::aggregator_awaitable_factory<awaitable_t, BPs...>;
 
                 auto adaptor = [f = std::move(node.f), g = std::move(node.g)](result_type&& t) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         LIKELY_IF (t.has_value()) {
@@ -521,7 +521,7 @@ namespace flux_foundry {
                             return visit_and_call(f, winner, std::move(t.value().get()));
                         }
                         return g(std::move(t.error()));
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_O(error_tag, std::current_exception());
                     }
@@ -543,11 +543,11 @@ namespace flux_foundry {
             static auto make(end_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
                         return f(std::move(in));
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     } catch (...) {
                         return F_I(error_tag, std::current_exception());
                     }
@@ -572,7 +572,7 @@ namespace flux_foundry {
             typename F, std::enable_if_t<!std::is_void<F>::value, int> = 0>
         auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in end is not compatible with current blueprint.");
 #else
@@ -626,7 +626,7 @@ namespace flux_foundry {
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <typename Exception, typename F>
     inline auto catch_exception(F&& f) noexcept {
         return flow_impl::exception_catch_node<std::decay_t<F>, Exception> { std::forward<F>(f) };

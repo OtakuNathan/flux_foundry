@@ -153,7 +153,7 @@ int test_full_chain_success() {
             }
             return out_t(value_tag, in.value());
         })
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         | catch_exception<std::runtime_error>([](const std::runtime_error&) noexcept { return -200; })
 #endif
         | via(&env.ex)
@@ -204,7 +204,7 @@ int test_on_error_recover() {
     return failed;
 }
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 int test_catch_exception_recover() {
     executor_env env;
     g_exec = &env.ex;
@@ -324,7 +324,7 @@ int main() {
 
     failed += test_full_chain_success();
     failed += test_on_error_recover();
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     failed += test_catch_exception_recover();
 #endif
     failed += test_when_all();

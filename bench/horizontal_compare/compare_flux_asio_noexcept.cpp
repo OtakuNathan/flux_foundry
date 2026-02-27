@@ -1,7 +1,9 @@
+#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <cstdio>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 #define ASIO_STANDALONE 1
@@ -59,6 +61,7 @@ struct async_any_failed_error<std::error_code> {
 }
 
 #include "flow/flow.h"
+#include "executor/simple_executor.h"
 
 using namespace flux_foundry;
 
@@ -88,6 +91,38 @@ struct asio_post_adapter {
         asio::post(*io, [task = std::move(t)]() mutable noexcept {
             task();
         });
+    }
+};
+
+struct simple_executor_env {
+    simple_executor<4096> ex;
+    std::thread worker;
+
+    simple_executor_env()
+        : worker([this]() noexcept { ex.run(); }) {
+        std::atomic<int> started{0};
+        ex.dispatch(task_wrapper_sbo([&started]() noexcept {
+            started.store(1, std::memory_order_release);
+        }));
+        while (started.load(std::memory_order_acquire) == 0) {
+            std::this_thread::yield();
+        }
+    }
+
+    ~simple_executor_env() {
+        while (!ex.try_shutdown()) {
+            std::this_thread::yield();
+        }
+        if (worker.joinable()) {
+            worker.join();
+        }
+    }
+};
+
+struct simple_dispatch_adapter {
+    simple_executor<4096>* ex;
+    void dispatch(task_wrapper_sbo t) noexcept {
+        ex->dispatch(std::move(t));
     }
 };
 
@@ -204,6 +239,13 @@ auto make_async_1_bp(ExecutorPtr ex) {
     return bp;
 }
 
+auto make_async_1_bp_inline() {
+    auto bp = make_blueprint<int, err_t>()
+        | await<immediate_plus_one_awaitable>()
+        | end();
+    return bp;
+}
+
 template <typename ExecutorPtr>
 auto make_async_4_bp(ExecutorPtr ex) {
     auto bp = make_blueprint<int, err_t>()
@@ -215,9 +257,29 @@ auto make_async_4_bp(ExecutorPtr ex) {
     return bp;
 }
 
+auto make_async_4_bp_inline() {
+    auto bp = make_blueprint<int, err_t>()
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | end();
+    return bp;
+}
+
 inline void drain(asio::io_context& io) {
     io.restart();
     io.run();
+}
+
+inline void drain(simple_executor_env& env) {
+    std::atomic<int> done{0};
+    env.ex.dispatch(task_wrapper_sbo([&done]() noexcept {
+        done.store(1, std::memory_order_release);
+    }));
+    while (done.load(std::memory_order_acquire) == 0) {
+        std::this_thread::yield();
+    }
 }
 
 struct asio_dispatch20_hop {
@@ -362,7 +424,7 @@ void asio_post_when_any2(asio::io_context& io, int a_in, int b_in, volatile long
 
 int main() {
     std::printf("[horizontal compare noexc] flux_foundry vs asio (same host/toolchain)\n");
-    std::printf("[build] clang++ -std=c++14 -O3 -fno-exceptions -DFLUEX_FOUNDRY_NO_EXCEPTION_STRICT=1 -DASIO_NO_EXCEPTIONS=1\n");
+    std::printf("[build] clang++ -std=c++14 -O3 -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 -DASIO_NO_EXCEPTIONS=1\n");
 
     volatile long long sink = 0;
     asio::io_context io_sched_dispatch;
@@ -371,11 +433,14 @@ int main() {
     asio::io_context io_full_flux;
     asio::io_context io_full_asio_dispatch;
     asio::io_context io_full_asio;
+    simple_executor_env flux_native_exec_env;
 
     asio_dispatch_adapter ex_sched_dispatch{&io_sched_dispatch};
     asio_post_adapter ex_sched_post{&io_sched_post};
     asio_dispatch_adapter ex_full_dispatch{&io_full_flux_dispatch};
     asio_post_adapter ex_full_post{&io_full_flux};
+    simple_dispatch_adapter ex_native_dispatch{&flux_native_exec_env.ex};
+    inline_executor ex_native_inline;
 
     auto r0 = run_bench("baseline.direct.loop20", 10000, 3000000, [&](int i) {
         int x = i;
@@ -388,16 +453,33 @@ int main() {
     print_result(r0);
 
     std::printf("\n[pure scheduling overhead]\n");
+    auto bp_via_inline = make_via_20_bp(&ex_native_inline);
+    auto bp_via_inline_ptr = make_lite_ptr<decltype(bp_via_inline)>(std::move(bp_via_inline));
+    auto flux_via_inline_runner = make_runner(bp_via_inline_ptr, sink_receiver{&sink});
+    auto r0a = run_bench("sched.flux.native.via20.inline", 5000, 300000, [&](int i) {
+        flux_via_inline_runner(i);
+    });
+    print_result(r0a);
+
+    auto bp_via_native_dispatch = make_via_20_bp(&ex_native_dispatch);
+    auto bp_via_native_dispatch_ptr = make_lite_ptr<decltype(bp_via_native_dispatch)>(std::move(bp_via_native_dispatch));
+    auto flux_via_native_dispatch_runner = make_runner(bp_via_native_dispatch_ptr, sink_receiver{&sink});
+    auto r0b = run_bench("sched.flux.native.via20.dispatch", 5000, 200000, [&](int i) {
+        flux_via_native_dispatch_runner(i);
+        drain(flux_native_exec_env);
+    });
+    print_result(r0b);
+
     auto bp_via_dispatch = make_via_20_bp(&ex_sched_dispatch);
     auto bp_via_dispatch_ptr = make_lite_ptr<decltype(bp_via_dispatch)>(std::move(bp_via_dispatch));
     auto flux_via_dispatch_runner = make_runner(bp_via_dispatch_ptr, sink_receiver{&sink});
-    auto r1 = run_bench("sched.flux.via20.dispatch", 5000, 200000, [&](int i) {
+    auto r1 = run_bench("sched.flux.on_asio.via20.dispatch", 5000, 200000, [&](int i) {
         flux_via_dispatch_runner(i);
         drain(io_sched_dispatch);
     });
     print_result(r1);
 
-    auto r2 = run_bench("sched.asio.dispatch20", 5000, 200000, [&](int i) {
+    auto r2 = run_bench("sched.asio.raw.dispatch20", 5000, 200000, [&](int i) {
         asio_dispatch_sync20(io_sched_dispatch, i, &sink);
     });
     print_result(r2);
@@ -405,13 +487,13 @@ int main() {
     auto bp_via_post = make_via_20_bp(&ex_sched_post);
     auto bp_via_post_ptr = make_lite_ptr<decltype(bp_via_post)>(std::move(bp_via_post));
     auto flux_via_post_runner = make_runner(bp_via_post_ptr, sink_receiver{&sink});
-    auto r3 = run_bench("sched.flux.via20.post", 5000, 120000, [&](int i) {
+    auto r3 = run_bench("sched.flux.on_asio.via20.post", 5000, 120000, [&](int i) {
         flux_via_post_runner(i);
         drain(io_sched_post);
     });
     print_result(r3);
 
-    auto r4 = run_bench("sched.asio.post20", 5000, 120000, [&](int i) {
+    auto r4 = run_bench("sched.asio.raw.post20", 5000, 120000, [&](int i) {
         asio_post_sync20(io_sched_post, i, &sink);
     });
     print_result(r4);
@@ -420,22 +502,54 @@ int main() {
     auto bp_sync_std = make_sync_20_bp();
     auto bp_sync_std_ptr = make_lite_ptr<decltype(bp_sync_std)>(std::move(bp_sync_std));
     auto flux_sync_runner = make_runner(bp_sync_std_ptr, sink_receiver{&sink});
-    auto r5 = run_bench("full.flux.runner.sync20", 10000, 800000, [&](int i) {
+    auto r5 = run_bench("full.flux.native.runner.sync20", 10000, 800000, [&](int i) {
         flux_sync_runner(i);
     });
     print_result(r5);
 
     auto bp_sync_fast = make_sync_20_bp();
     auto flux_fast_runner = make_fast_runner(std::move(bp_sync_fast), sink_receiver{&sink});
-    auto r6 = run_bench("full.flux.fast_runner.sync20", 10000, 1200000, [&](int i) {
+    auto r6 = run_bench("full.flux.native.fast_runner.sync20", 10000, 1200000, [&](int i) {
         flux_fast_runner(i);
     });
     print_result(r6);
 
+    auto bp_async4_native_inline = make_async_4_bp_inline();
+    auto bp_async4_native_inline_ptr = make_lite_ptr<decltype(bp_async4_native_inline)>(std::move(bp_async4_native_inline));
+    auto flux_async4_native_inline_runner = make_runner(bp_async4_native_inline_ptr, sink_receiver{&sink});
+    auto r6n0 = run_bench("full.flux.native.runner.async4.inline", 5000, 300000, [&](int i) {
+        flux_async4_native_inline_runner(i);
+    });
+    print_result(r6n0);
+
+    auto bp_async4_native_inline_fast = make_async_4_bp_inline();
+    auto flux_async4_native_inline_fast_runner = make_fast_runner_view(bp_async4_native_inline_fast, sink_receiver{&sink});
+    auto r6n1 = run_bench("full.flux.native.fast_runner.async4.inline", 5000, 300000, [&](int i) {
+        flux_async4_native_inline_fast_runner(i);
+    });
+    print_result(r6n1);
+
+    auto bp_async4_native_dispatch = make_async_4_bp(&ex_native_dispatch);
+    auto bp_async4_native_dispatch_ptr = make_lite_ptr<decltype(bp_async4_native_dispatch)>(std::move(bp_async4_native_dispatch));
+    auto flux_async4_native_dispatch_runner = make_runner(bp_async4_native_dispatch_ptr, sink_receiver{&sink});
+    auto r6n2 = run_bench("full.flux.native.runner.async4.dispatch", 5000, 180000, [&](int i) {
+        flux_async4_native_dispatch_runner(i);
+        drain(flux_native_exec_env);
+    });
+    print_result(r6n2);
+
+    auto bp_async4_native_dispatch_fast = make_async_4_bp(&ex_native_dispatch);
+    auto flux_async4_native_dispatch_fast_runner = make_fast_runner_view(bp_async4_native_dispatch_fast, sink_receiver{&sink});
+    auto r6n3 = run_bench("full.flux.native.fast_runner.async4.dispatch", 5000, 180000, [&](int i) {
+        flux_async4_native_dispatch_fast_runner(i);
+        drain(flux_native_exec_env);
+    });
+    print_result(r6n3);
+
     auto bp_async_dispatch = make_async_4_bp(&ex_full_dispatch);
     auto bp_async_dispatch_ptr = make_lite_ptr<decltype(bp_async_dispatch)>(std::move(bp_async_dispatch));
     auto flux_async_dispatch_runner = make_runner(bp_async_dispatch_ptr, sink_receiver{&sink});
-    auto r6a = run_bench("full.flux.runner.async4.dispatch", 5000, 180000, [&](int i) {
+    auto r6a = run_bench("full.flux.on_asio.runner.async4.dispatch", 5000, 180000, [&](int i) {
         flux_async_dispatch_runner(i);
         drain(io_full_flux_dispatch);
     });
@@ -443,13 +557,13 @@ int main() {
 
     auto bp_async_fast_dispatch = make_async_4_bp(&ex_full_dispatch);
     auto flux_async_fast_dispatch_runner = make_fast_runner_view(bp_async_fast_dispatch, sink_receiver{&sink});
-    auto r6b = run_bench("full.flux.fast_runner.async4.dispatch", 5000, 180000, [&](int i) {
+    auto r6b = run_bench("full.flux.on_asio.fast_runner.async4.dispatch", 5000, 180000, [&](int i) {
         flux_async_fast_dispatch_runner(i);
         drain(io_full_flux_dispatch);
     });
     print_result(r6b);
 
-    auto r6c = run_bench("full.asio.dispatch.async4", 5000, 180000, [&](int i) {
+    auto r6c = run_bench("full.asio.raw.dispatch.async4", 5000, 180000, [&](int i) {
         asio_dispatch_async4(io_full_asio_dispatch, i, &sink);
     });
     print_result(r6c);
@@ -457,7 +571,7 @@ int main() {
     auto bp_async = make_async_4_bp(&ex_full_post);
     auto bp_async_ptr = make_lite_ptr<decltype(bp_async)>(std::move(bp_async));
     auto flux_async_runner = make_runner(bp_async_ptr, sink_receiver{&sink});
-    auto r7 = run_bench("full.flux.runner.async4.post", 5000, 180000, [&](int i) {
+    auto r7 = run_bench("full.flux.on_asio.runner.async4.post", 5000, 180000, [&](int i) {
         flux_async_runner(i);
         drain(io_full_flux);
     });
@@ -465,21 +579,53 @@ int main() {
 
     auto bp_async_fast = make_async_4_bp(&ex_full_post);
     auto flux_async_fast_runner = make_fast_runner_view(bp_async_fast, sink_receiver{&sink});
-    auto r8 = run_bench("full.flux.fast_runner.async4.post", 5000, 180000, [&](int i) {
+    auto r8 = run_bench("full.flux.on_asio.fast_runner.async4.post", 5000, 180000, [&](int i) {
         flux_async_fast_runner(i);
         drain(io_full_flux);
     });
     print_result(r8);
 
-    auto r9 = run_bench("full.asio.post.async4", 5000, 180000, [&](int i) {
+    auto r9 = run_bench("full.asio.raw.post.async4", 5000, 180000, [&](int i) {
         asio_post_async4(io_full_asio, i, &sink);
     });
     print_result(r9);
 
+    auto bp_async1_native_inline = make_async_1_bp_inline();
+    auto bp_async1_native_inline_ptr = make_lite_ptr<decltype(bp_async1_native_inline)>(std::move(bp_async1_native_inline));
+    auto flux_async1_native_inline_runner = make_runner(bp_async1_native_inline_ptr, sink_receiver{&sink});
+    auto r9n0 = run_bench("full.flux.native.runner.async1.inline", 5000, 500000, [&](int i) {
+        flux_async1_native_inline_runner(i);
+    });
+    print_result(r9n0);
+
+    auto bp_async1_native_inline_fast = make_async_1_bp_inline();
+    auto flux_async1_native_inline_fast_runner = make_fast_runner_view(bp_async1_native_inline_fast, sink_receiver{&sink});
+    auto r9n1 = run_bench("full.flux.native.fast_runner.async1.inline", 5000, 500000, [&](int i) {
+        flux_async1_native_inline_fast_runner(i);
+    });
+    print_result(r9n1);
+
+    auto bp_async1_native_dispatch = make_async_1_bp(&ex_native_dispatch);
+    auto bp_async1_native_dispatch_ptr = make_lite_ptr<decltype(bp_async1_native_dispatch)>(std::move(bp_async1_native_dispatch));
+    auto flux_async1_native_dispatch_runner = make_runner(bp_async1_native_dispatch_ptr, sink_receiver{&sink});
+    auto r9n2 = run_bench("full.flux.native.runner.async1.dispatch", 5000, 300000, [&](int i) {
+        flux_async1_native_dispatch_runner(i);
+        drain(flux_native_exec_env);
+    });
+    print_result(r9n2);
+
+    auto bp_async1_native_dispatch_fast = make_async_1_bp(&ex_native_dispatch);
+    auto flux_async1_native_dispatch_fast_runner = make_fast_runner_view(bp_async1_native_dispatch_fast, sink_receiver{&sink});
+    auto r9n3 = run_bench("full.flux.native.fast_runner.async1.dispatch", 5000, 300000, [&](int i) {
+        flux_async1_native_dispatch_fast_runner(i);
+        drain(flux_native_exec_env);
+    });
+    print_result(r9n3);
+
     auto bp_async1_dispatch = make_async_1_bp(&ex_full_dispatch);
     auto bp_async1_dispatch_ptr = make_lite_ptr<decltype(bp_async1_dispatch)>(std::move(bp_async1_dispatch));
     auto flux_async1_dispatch_runner = make_runner(bp_async1_dispatch_ptr, sink_receiver{&sink});
-    auto r9d = run_bench("full.flux.runner.async1.dispatch", 5000, 300000, [&](int i) {
+    auto r9d = run_bench("full.flux.on_asio.runner.async1.dispatch", 5000, 300000, [&](int i) {
         flux_async1_dispatch_runner(i);
         drain(io_full_flux_dispatch);
     });
@@ -487,13 +633,13 @@ int main() {
 
     auto bp_async1_fast_dispatch = make_async_1_bp(&ex_full_dispatch);
     auto flux_async1_fast_dispatch_runner = make_fast_runner_view(bp_async1_fast_dispatch, sink_receiver{&sink});
-    auto r9e = run_bench("full.flux.fast_runner.async1.dispatch", 5000, 300000, [&](int i) {
+    auto r9e = run_bench("full.flux.on_asio.fast_runner.async1.dispatch", 5000, 300000, [&](int i) {
         flux_async1_fast_dispatch_runner(i);
         drain(io_full_flux_dispatch);
     });
     print_result(r9e);
 
-    auto r9f = run_bench("full.asio.dispatch.async1", 5000, 300000, [&](int i) {
+    auto r9f = run_bench("full.asio.raw.dispatch.async1", 5000, 300000, [&](int i) {
         asio_dispatch_async1(io_full_asio_dispatch, i, &sink);
     });
     print_result(r9f);
@@ -501,7 +647,7 @@ int main() {
     auto bp_async1 = make_async_1_bp(&ex_full_post);
     auto bp_async1_ptr = make_lite_ptr<decltype(bp_async1)>(std::move(bp_async1));
     auto flux_async1_runner = make_runner(bp_async1_ptr, sink_receiver{&sink});
-    auto r9a = run_bench("full.flux.runner.async1.post", 5000, 300000, [&](int i) {
+    auto r9a = run_bench("full.flux.on_asio.runner.async1.post", 5000, 300000, [&](int i) {
         flux_async1_runner(i);
         drain(io_full_flux);
     });
@@ -509,13 +655,13 @@ int main() {
 
     auto bp_async1_fast = make_async_1_bp(&ex_full_post);
     auto flux_async1_fast_runner = make_fast_runner_view(bp_async1_fast, sink_receiver{&sink});
-    auto r9b = run_bench("full.flux.fast_runner.async1.post", 5000, 300000, [&](int i) {
+    auto r9b = run_bench("full.flux.on_asio.fast_runner.async1.post", 5000, 300000, [&](int i) {
         flux_async1_fast_runner(i);
         drain(io_full_flux);
     });
     print_result(r9b);
 
-    auto r9c = run_bench("full.asio.post.async1", 5000, 300000, [&](int i) {
+    auto r9c = run_bench("full.asio.raw.post.async1", 5000, 300000, [&](int i) {
         asio_post_async1(io_full_asio, i, &sink);
     });
     print_result(r9c);
@@ -536,7 +682,7 @@ int main() {
     auto bp_all_ptr = make_lite_ptr<decltype(bp_all)>(std::move(bp_all));
     auto flux_when_all_runner = make_runner(bp_all_ptr, sink_receiver{&sink});
 
-    auto r10 = run_bench("full.flux.runner.when_all2.post", 5000, 120000, [&](int i) {
+    auto r10 = run_bench("full.flux.on_asio.runner.when_all2.post", 5000, 120000, [&](int i) {
         flux_when_all_runner(i, i + 1);
         drain(io_full_flux);
     });
@@ -556,7 +702,7 @@ int main() {
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_all_fast, p2_all_fast) | end();
     auto flux_when_all_fast_runner = make_fast_runner_view(bp_all_fast, sink_receiver{&sink});
-    auto r11 = run_bench("full.flux.fast_runner.when_all2.post", 5000, 120000, [&](int i) {
+    auto r11 = run_bench("full.flux.on_asio.fast_runner.when_all2.post", 5000, 120000, [&](int i) {
         flux_when_all_fast_runner(i, i + 1);
         drain(io_full_flux);
     });
@@ -576,13 +722,13 @@ int main() {
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_all_ffast, p2_all_ffast) | end();
     auto flux_when_all_ffast_runner = make_fast_runner_view(bp_all_ffast, sink_receiver{&sink});
-    auto r11b = run_bench("full.flux.fast_runner.when_all2.fastagg.post", 5000, 120000, [&](int i) {
+    auto r11b = run_bench("full.flux.on_asio.fast_runner.when_all2.fastagg.post", 5000, 120000, [&](int i) {
         flux_when_all_ffast_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r11b);
 
-    auto r12 = run_bench("full.asio.post.when_all2", 5000, 120000, [&](int i) {
+    auto r12 = run_bench("full.asio.raw.post.when_all2", 5000, 120000, [&](int i) {
         asio_post_when_all2(io_full_asio, i, i + 1, &sink);
     });
     print_result(r12);
@@ -603,7 +749,7 @@ int main() {
     auto bp_any_ptr = make_lite_ptr<decltype(bp_any)>(std::move(bp_any));
     auto flux_when_any_runner = make_runner(bp_any_ptr, sink_receiver{&sink});
 
-    auto r13 = run_bench("full.flux.runner.when_any2.post", 5000, 120000, [&](int i) {
+    auto r13 = run_bench("full.flux.on_asio.runner.when_any2.post", 5000, 120000, [&](int i) {
         flux_when_any_runner(i, i + 1);
         drain(io_full_flux);
     });
@@ -623,7 +769,7 @@ int main() {
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_any_fast, p2_any_fast) | end();
     auto flux_when_any_fast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
-    auto r14 = run_bench("full.flux.fast_runner.when_any2.post", 5000, 120000, [&](int i) {
+    auto r14 = run_bench("full.flux.on_asio.fast_runner.when_any2.post", 5000, 120000, [&](int i) {
         flux_when_any_fast_runner(i, i + 1);
         drain(io_full_flux);
     });
@@ -643,13 +789,13 @@ int main() {
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1_any_ffast, p2_any_ffast) | end();
     auto flux_when_any_ffast_runner = make_fast_runner_view(bp_any_ffast, sink_receiver{&sink});
-    auto r14b = run_bench("full.flux.fast_runner.when_any2.fastagg.post", 5000, 120000, [&](int i) {
+    auto r14b = run_bench("full.flux.on_asio.fast_runner.when_any2.fastagg.post", 5000, 120000, [&](int i) {
         flux_when_any_ffast_runner(i, i + 1);
         drain(io_full_flux);
     });
     print_result(r14b);
 
-    auto r15 = run_bench("full.asio.post.when_any2", 5000, 120000, [&](int i) {
+    auto r15 = run_bench("full.asio.raw.post.when_any2", 5000, 120000, [&](int i) {
         asio_post_when_any2(io_full_asio, i, i + 1, &sink);
     });
     print_result(r15);

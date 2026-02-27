@@ -17,14 +17,14 @@ namespace flux_foundry {
     public:
         error_t() = delete;
 
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
         template <typename E_ = E, std::enable_if_t<std::is_nothrow_copy_constructible<E_>::value>* = nullptr>
 #endif
         constexpr explicit error_t(const E &e)
             noexcept(std::is_nothrow_copy_constructible<E>::value) : _error(e) {
         }
 
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
         template <typename E_ = E, std::enable_if_t<std::is_nothrow_move_constructible<E_>::value>* = nullptr>
 #endif
         constexpr explicit error_t(E &&e)
@@ -33,7 +33,7 @@ namespace flux_foundry {
 
         template <typename... Args,
             std::enable_if_t<conjunction_v<negation<is_self_constructing<error_t, Args&&...>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<E, Args &&...>
 #else
             std::is_nothrow_constructible<E, Args &&...>
@@ -45,7 +45,7 @@ namespace flux_foundry {
 
         template <typename T, typename... Args,
             std::enable_if_t<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<E, std::initializer_list<T>, Args &&...>::value
 #else
             std::is_nothrow_constructible<E, std::initializer_list<T>, Args &&...>::value
@@ -171,7 +171,7 @@ namespace flux_foundry {
 
         template <typename T_, std::enable_if_t<conjunction_v<
             negation<std::is_void<T_>>, negation<is_error_t<T_>>, negation<is_self_constructing<result_t, T_>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<T, T_&&>
 #else
             std::is_nothrow_constructible<T, T_&&>
@@ -190,7 +190,7 @@ namespace flux_foundry {
         }
 
         template <bool B =
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_copy_constructible<error_t<E>>::value
 #else
             std::is_nothrow_copy_constructible<error_t<E>>::value
@@ -204,7 +204,7 @@ namespace flux_foundry {
         }
 
         template <bool B = 
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_move_constructible<error_t<E>>::value
 #else
             std::is_nothrow_move_constructible<error_t<E>>::value
@@ -218,7 +218,7 @@ namespace flux_foundry {
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<base, other_base &&>
 #else
                 std::is_constructible<base, other_base &&>
@@ -232,7 +232,7 @@ namespace flux_foundry {
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<base, const other_base &>
 #else
                 std::is_nothrow_constructible<base, const other_base &>
@@ -247,7 +247,7 @@ namespace flux_foundry {
             class other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_assignable<base&, other_base &&>
 #else
                 std::is_nothrow_assignable<base&, other_base &&>
@@ -262,7 +262,7 @@ namespace flux_foundry {
         template <typename U, typename F, typename other_base = typename result_t<U, F>::base,
             std::enable_if_t<conjunction_v<negation<std::is_void<U>>,
                 negation<conjunction<std::is_same<T, U>, std::is_same<E, F> > >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_assignable<base&, const other_base &>
 #else
                 std::is_nothrow_assignable<base&, const other_base &>
@@ -276,7 +276,7 @@ namespace flux_foundry {
 
         template <typename T_ = T,
             std::enable_if_t<conjunction_v<negation<std::is_void<T_>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_move_constructible<T_>, can_strong_replace<T_>
 #else
                 std::is_nothrow_move_constructible<T_>
@@ -290,7 +290,7 @@ namespace flux_foundry {
 
         template <typename T_ = T,
             std::enable_if_t<conjunction_v<negation<std::is_void<T_>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_copy_constructible<T_>, can_strong_replace<T_>
 #else
                 std::is_nothrow_copy_constructible<T_>
@@ -303,7 +303,7 @@ namespace flux_foundry {
         }
 
         template <typename F_ = error_t<E>, std::enable_if_t<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_move_constructible<F_>::value
 #else
             std::is_nothrow_move_constructible<F_>::value
@@ -316,7 +316,7 @@ namespace flux_foundry {
         }
 
         template <typename F_ = error_t<E>, std::enable_if_t<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_copy_constructible<F_>::value
 #else
             std::is_nothrow_copy_constructible<F_>::value
@@ -335,7 +335,7 @@ namespace flux_foundry {
 
         template <typename T_ = T, typename ... Args,
             std::enable_if_t<conjunction_v<negation<std::is_void<T_>>,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T_, Args&&...>
 #else
                 std::is_nothrow_constructible<T_, Args&&...>
@@ -348,7 +348,7 @@ namespace flux_foundry {
 
         template <typename F_ = error_t<E>, typename... Args,
             std::enable_if_t<conjunction_v<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<F_, Args &&...>
 #else
             std::is_nothrow_constructible<F_, Args &&...>

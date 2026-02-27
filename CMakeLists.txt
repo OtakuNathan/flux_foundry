@@ -6,11 +6,11 @@ option(FLUX_FOUNDRY_BUILD_TESTS "Build test/probe targets under test/" ON)
 option(FLUX_FOUNDRY_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 # Backward-compatible aliases for previous option names.
-if(DEFINED FLUEX_FOUNDRY_BUILD_TESTS)
-    set(FLUX_FOUNDRY_BUILD_TESTS "${FLUEX_FOUNDRY_BUILD_TESTS}" CACHE BOOL "Build test/probe targets under test/" FORCE)
+if(DEFINED FLUX_FOUNDRY_BUILD_TESTS)
+    set(FLUX_FOUNDRY_BUILD_TESTS "${FLUX_FOUNDRY_BUILD_TESTS}" CACHE BOOL "Build test/probe targets under test/" FORCE)
 endif()
-if(DEFINED FLUEX_FOUNDRY_WARNINGS_AS_ERRORS)
-    set(FLUX_FOUNDRY_WARNINGS_AS_ERRORS "${FLUEX_FOUNDRY_WARNINGS_AS_ERRORS}" CACHE BOOL "Treat compiler warnings as errors" FORCE)
+if(DEFINED FLUX_FOUNDRY_WARNINGS_AS_ERRORS)
+    set(FLUX_FOUNDRY_WARNINGS_AS_ERRORS "${FLUX_FOUNDRY_WARNINGS_AS_ERRORS}" CACHE BOOL "Treat compiler warnings as errors" FORCE)
 endif()
 
 set(CMAKE_CXX_STANDARD 14)

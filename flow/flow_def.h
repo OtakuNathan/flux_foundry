@@ -34,7 +34,7 @@ struct cancel_error {
     }
 };
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct cancel_error<std::exception_ptr> {
     static std::exception_ptr make(cancel_kind kind) noexcept {
@@ -60,7 +60,7 @@ struct awaitable_creating_error {
     }
 };
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct awaitable_creating_error<std::exception_ptr> {
     static std::exception_ptr make() noexcept {
@@ -83,7 +83,7 @@ struct async_submission_failed_error {
     }
 };
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct async_submission_failed_error<std::exception_ptr> {
     static std::exception_ptr make() noexcept {
@@ -106,7 +106,7 @@ struct async_all_failed_error {
     }
 };
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct async_all_failed_error<std::exception_ptr> {
     static std::exception_ptr make() {
@@ -129,7 +129,7 @@ struct async_any_failed_error {
         }
     };
 
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <>
     struct async_any_failed_error<std::exception_ptr> {
         static std::exception_ptr make(size_t i) {

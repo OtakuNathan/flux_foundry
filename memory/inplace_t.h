@@ -33,7 +33,7 @@ namespace flux_foundry {
             typename = std::enable_if_t<conjunction_v<
                     negation<is_self_constructing<inplace_storage_base, Args&&...>>,
                     disjunction<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
 #else
                 std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
@@ -47,7 +47,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<T, const U &>
 #else
             std::is_nothrow_constructible<T, const U &>
@@ -64,7 +64,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<T, U &&>
 #else
             std::is_nothrow_constructible<T, U &&>
@@ -80,7 +80,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<T, const U &>
 #else
                 std::is_nothrow_constructible<T, const U &>
@@ -100,7 +100,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::is_constructible<T, U &&>
 #else
             std::is_nothrow_constructible<T, U &&>
@@ -120,7 +120,7 @@ namespace flux_foundry {
         // this must be called when no value have been created yet.
         template <typename... Args, typename = std::enable_if_t<
             disjunction_v<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
 #else
                 std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
@@ -206,7 +206,7 @@ namespace flux_foundry {
                 typename = std::enable_if_t<conjunction_v<
                     negation<is_self_constructing<inplace_storage_base, Args&&...>>,
                     disjunction<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                         std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
 #else
                         std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
@@ -220,7 +220,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, const U &>
 #else
                 std::is_nothrow_constructible<T, const U &>
@@ -236,7 +236,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, U &&>
 #else
                 std::is_nothrow_constructible<T, U &&>
@@ -252,7 +252,7 @@ namespace flux_foundry {
 
         template <typename U, size_t _len, size_t _align,
             std::enable_if_t<conjunction_v<negation<std::is_same<T, U> >,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, const U &>
 #else
                 std::is_nothrow_constructible<T, const U &>
@@ -288,7 +288,7 @@ namespace flux_foundry {
         // this must be called when no value have been created yet.
         template <typename... Args, typename = std::enable_if_t<
             disjunction_v<
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<T, Args &&...>, is_aggregate_constructible<T, Args &&...>
 #else
                 std::is_nothrow_constructible<T, Args &&...>, is_nothrow_aggregate_constructible<T, Args &&...>
@@ -517,7 +517,7 @@ namespace flux_foundry {
         }
 
         template <typename U = T,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             typename = std::enable_if_t<std::is_move_constructible<U>::value>
 #else
             typename = std::enable_if_t<std::is_nothrow_move_constructible<U>::value>

@@ -61,7 +61,7 @@ namespace flux_foundry {
 
         template <typename Callable, typename object, typename R, typename... Args>
         class task_impl<true, Callable, object, R, Args...> {
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_result_t<R>::value, "The invoke result of Callable with the given params must be a result_t.");
 #endif
             using obj_param_t = std::remove_reference_t<object>;
@@ -100,7 +100,7 @@ namespace flux_foundry {
             task_impl(Callable, std::remove_pointer_t<obj_param_t> &&, Args &&...) = delete;
 
             template <typename ... P, typename OP = obj_param_t,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<conjunction_v<is_shared_ptr<OP>,
                     std::is_move_constructible<callable_t>,
                     std::is_constructible<param_type, P&&...>>>* = nullptr
@@ -119,7 +119,7 @@ namespace flux_foundry {
             }
 
             template <typename... P, typename OP = obj_param_t,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
                     std::is_move_constructible<callable_t>,
                     std::is_constructible<param_type, P&&...>>>* = nullptr
@@ -138,7 +138,7 @@ namespace flux_foundry {
             }
 
             template <typename ... P, typename OP = obj_param_t,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<conjunction_v<negation<is_shared_ptr<OP>>,
                     std::is_move_constructible<callable_t>,
                     std::is_constructible<param_type, P&&...> >>* = nullptr
@@ -156,7 +156,7 @@ namespace flux_foundry {
                 assert(obj && pmf);
             }
 
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
             template <typename D = data_type, std::enable_if_t<is_nothrow_swappable<D>::value>* = nullptr>
 #endif
             void swap(task_impl &rhs)
@@ -185,7 +185,7 @@ namespace flux_foundry {
         private:
             template <size_t ... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::true_type) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     auto& obj = get<data_index::data_object>(_data);
@@ -193,7 +193,7 @@ namespace flux_foundry {
                     auto& params = get<data_index::data_params>(_data);
                     ((*obj).*_callable)(unpack_param(get<idx>(params))...);
                     return result_type(value_tag);
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     return result_type(error_tag, std::current_exception());
                 }
@@ -202,13 +202,13 @@ namespace flux_foundry {
 
             template <size_t ... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::false_type) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     auto& obj = get<data_index::data_object>(_data);
                     auto& _callable = get<data_index::data_callable>(_data);
                     auto& params = get<data_index::data_params>(_data);
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     return make_success_result<R>(((*obj).*_callable)(unpack_param(get<idx>(params))...));
                 } catch (...) {
                     return make_error_result<R>(std::current_exception());
@@ -221,7 +221,7 @@ namespace flux_foundry {
 
         template<typename Callable, typename R, typename ... Args>
         class task_impl<false, Callable, R, Args...> {
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_result_t<R>::value, "The invoke result of Callable with the given params must be a result_t.");
 #endif
         public:
@@ -248,7 +248,7 @@ namespace flux_foundry {
 
             ~task_impl() = default;
 
-#if !FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
             template <typename D = data_type, std::enable_if_t<is_nothrow_swappable<D>::value>* = nullptr>
 #endif
             void swap(task_impl &rhs)
@@ -260,7 +260,7 @@ namespace flux_foundry {
             }
 
             template <typename ... P, typename T = callable_t,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<conjunction_v<
                     std::is_pointer<T>,
                     std::is_move_constructible<T>,
@@ -280,7 +280,7 @@ namespace flux_foundry {
             }
 
             template <typename ... P, typename T = callable_t,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::enable_if_t<conjunction_v<
                     negation<std::is_pointer<T>>,
                     std::is_nothrow_move_constructible<T>,
@@ -314,14 +314,14 @@ namespace flux_foundry {
         private:
             template<size_t... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...>&, std::true_type) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     auto &callable = get<data_index::data_callable>(_data);
                     auto &params = get<data_index::data_params>(_data);
                     callable(unpack_param(get<idx>(params))...);
                     return result_type(value_tag);
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
                     return result_type(error_tag, std::current_exception());
                 }
@@ -330,12 +330,12 @@ namespace flux_foundry {
 
             template <size_t... idx>
             result_type do_execute(const std::integer_sequence<size_t, idx...> &, std::false_type) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
                     auto &callable = get<data_index::data_callable>(_data);
                     auto &params = get<data_index::data_params>(_data);
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     return make_success_result<R>(callable(unpack_param(get<idx>(params))...));
                 } catch (...) {
                     return make_error_result<R>(std::current_exception());

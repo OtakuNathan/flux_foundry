@@ -18,7 +18,7 @@
 namespace flux_foundry {
     // Contract: Awaitables in flux_foundry MUST NOT start any side effects before submit_async() is called.
     template <typename derived, typename T, typename E>
-    struct awaitable_base : public pooling_base<derived, FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
+    struct awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
     private:
         // State transitions:
         // idle -> waiting (via submit_async, atomic CAS)
@@ -42,11 +42,11 @@ namespace flux_foundry {
         }
 
         void do_resume(result_t<T, E>&& result) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
                 this->next_step(std::move(result));
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             } catch (...) {
                 this->next_step(result_t<T, E>(error_tag, std::current_exception()));
             }
@@ -129,7 +129,7 @@ namespace flux_foundry {
         // IF AND ONLY IF the async backend holds a reference to this object (i.e., it will trigger a callback later).
         // This releases a "Backend Reference" preventing the object from being leaked
         void release() noexcept {
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
 #else
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
@@ -161,7 +161,7 @@ namespace flux_foundry {
     // 2) cancel() may request backend cancellation call resume once, directly or indirectly by derived class.
     // 3) resume() must be the last operation touching this. and must be called exactly once.
     template <typename derived, typename T, typename E>
-    struct fast_awaitable_base : public pooling_base<derived, FLUEX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
+    struct fast_awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
     private:
         using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
         std::atomic<size_t> refcount;
@@ -171,11 +171,11 @@ namespace flux_foundry {
         static void cancel(void* self_, cancel_kind) noexcept {}
 
         void do_resume(result_t<T, E>&& result) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
                 this->next_step(std::move(result));
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             } catch (...) {
                 this->next_step(result_t<T, E>(error_tag, std::current_exception()));
             }
@@ -221,7 +221,7 @@ namespace flux_foundry {
         }
 
         void release() noexcept {
-#if FLUEX_FOUNDRY_WITH_TSAN
+#if FLUX_FOUNDRY_WITH_TSAN
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
 #else
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
@@ -291,7 +291,7 @@ namespace flux_foundry {
             "awaitable requirement: Missing 'void cancel() noexcept'.\n"
             "Must be able to cancel pending async operation and release resources.");
 
- #if !FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS       
+ #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         template <typename U>
         constexpr static auto detect_available(int) 
             -> conjunction<std::is_convertible<decltype(std::declval<U&>().available()), int>,
@@ -313,14 +313,14 @@ namespace flux_foundry {
         using awaitable_t = awaitable;
 
         template <typename A = awaitable, typename ... Args,
-#if FLUEX_FOUNDRY_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
             std::enable_if_t<std::is_constructible<A, Args&&...>::value>* = nullptr
 #else
             std::enable_if_t<std::is_nothrow_constructible<A, Args&&...>::value>* = nullptr
 #endif
         >
         result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {
-#if FLUEX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
                 auto aw = new awaitable(std::forward<Args>(param)...);
                 return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
