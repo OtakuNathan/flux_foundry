@@ -157,18 +157,22 @@ namespace flux_foundry {
     };
 
     // Fast awaitable contract:
-    // 1) submit() success means backend will eventually invoke resume() exactly once.
-    // 2) cancel() may request backend cancellation call resume once, directly or indirectly by derived class.
-    // 3) resume() must be the last operation touching this. and must be called exactly once.
+    // 1) If submit() returns 0, the external async mechanism must eventually invoke resume()
+    //    exactly once.
+    // 2) If submit() returns non-zero, it is a submit failure path; backend must NOT invoke
+    //    resume() afterward.
+    // 3) runner does not register flow_controller cancel handlers for fast awaitable.
+    // 4) if the external async mechanism supports cancellation, cancel-completion must also
+    //    invoke resume() exactly once (typically with an error/canceled result).
+    // 5) success-completion and cancel-completion are mutually exclusive: only one path may win.
+    //    After one path invokes resume(), the other path must not invoke resume() again.
+    // 6) resume() must be the last operation touching this and must be called exactly once.
     template <typename derived, typename T, typename E>
     struct fast_awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
     private:
         using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
         std::atomic<size_t> refcount;
         next_step_t next_step;
-
-        static void notify_cancel_handler_dropped(void* self_) noexcept {}
-        static void cancel(void* self_, cancel_kind) noexcept {}
 
         void do_resume(result_t<T, E>&& result) noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -193,18 +197,12 @@ namespace flux_foundry {
 
             int submit_async() noexcept {
                 // Keep one backend ref from successful submit() until resume().
+                // submit()==0: external backend owns exactly one terminal resume().
+                // submit()!=0: synchronous submit failure, no later resume() allowed.
                 self->retain();
                 auto code = static_cast<derived*>(self)->submit();
                 self->release();
                 return code;
-            }
-
-            void provide_cancel_handler(detail::flow_async_cancel_handler_t* cancel_handler,
-                detail::flow_async_notify_handler_dropped_t* drop,
-                detail::flow_async_cancel_param_t* param) noexcept {
-                *cancel_handler = cancel;
-                *drop = notify_cancel_handler_dropped;
-                *param = nullptr;
             }
 
             void release() noexcept {
@@ -232,6 +230,8 @@ namespace flux_foundry {
         }
 
         void resume(result_t<T, E>&& io_result) noexcept {
+            // Contract-critical: call from exactly one terminal path.
+            // Do not call from both success and cancel completion.
             do_resume(std::move(io_result));
         }
 
@@ -280,16 +280,20 @@ namespace flux_foundry {
             "awaitable requirement: Missing or invalid 'submit'.\n"
             "Expected signature: int submit() noexcept.");
 
+        static_assert(is_awaitable_v<awaitable> || is_fast_awaitable_v<awaitable>,
+            "Awaitable must be a valid awaitable (inherits awaitable_base) "
+            "or fast_awaitable (inherits fast_awaitable_base).");
+
         template <typename U>
         constexpr static auto detect_cancel(int) ->
             std::integral_constant<bool, noexcept(std::declval<U&>().cancel())>;
 
         template <typename U>
         constexpr static auto detect_cancel(...) -> std::false_type;
-        
-        static_assert(decltype(detect_cancel<awaitable>(0))::value,
+
+        static_assert(!is_awaitable_v<awaitable> || decltype(detect_cancel<awaitable>(0))::value,
             "awaitable requirement: Missing 'void cancel() noexcept'.\n"
-            "Must be able to cancel pending async operation and release resources.");
+            "Only awaitable_base-derived types require this.");
 
  #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         template <typename U>
@@ -305,9 +309,6 @@ namespace flux_foundry {
             "awaitable requirement: Missing 'bool available() noexcept'.\n"
             "Must be able to provide whether the awaitable is fully created and initialized.");
 #endif
-
-        static_assert(is_awaitable_v<awaitable>,
-            "the providing type Awaitable must can be an class that inherits awaitable_base.");
 
         using node_error_t = typename awaitable::async_result_type::error_type;
         using awaitable_t = awaitable;

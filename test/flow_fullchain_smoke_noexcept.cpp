@@ -177,6 +177,36 @@ struct plus_one_async_awaitable final : awaitable_base<plus_one_async_awaitable,
     }
 };
 
+struct plus_one_fast_async_awaitable final : fast_awaitable_base<plus_one_fast_async_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    int v;
+
+    explicit plus_one_fast_async_awaitable(async_result_type&& in) noexcept
+        : v(in.has_value() ? in.value() : 0) {
+    }
+
+    int submit() noexcept {
+        auto* ex = g_exec;
+        if (ex == nullptr) {
+            return -1;
+        }
+
+        int value = v;
+        ex->dispatch(task_wrapper_sbo([self = this, value]() noexcept {
+            self->resume(async_result_type(value_tag, value + 1));
+        }));
+        return 0;
+    }
+
+    void cancel() noexcept {
+    }
+
+    bool available() const noexcept {
+        return true;
+    }
+};
+
 struct submit_fail_awaitable final : awaitable_base<submit_fail_awaitable, int, err_t> {
     using async_result_type = out_t;
 
@@ -227,6 +257,42 @@ int test_full_chain_success() {
     check(wait_done(obs, 1000), "noexc full_chain wait done", failed);
     check(obs.has_value.load(std::memory_order_acquire) == 1, "noexc full_chain has value", failed);
     check(obs.value.load(std::memory_order_acquire) == 13, "noexc full_chain value == 13", failed);
+
+    g_exec = nullptr;
+    return failed;
+}
+
+int test_full_chain_fast_awaitable_success() {
+    executor_env env;
+    g_exec = &env.ex;
+
+    run_observer obs;
+    auto bp = make_blueprint<int, err_t>()
+        | transform([](int x) noexcept { return x + 1; })
+        | then([](out_t&& in) noexcept -> out_t {
+            if (!in.has_value()) {
+                return out_t(error_tag, in.error());
+            }
+            return out_t(value_tag, in.value() * 2);
+        })
+        | on_error([](out_t&& in) noexcept -> out_t {
+            if (!in.has_value()) {
+                return out_t(value_tag, -100);
+            }
+            return out_t(value_tag, in.value());
+        })
+        | via(&env.ex)
+        | await<plus_one_fast_async_awaitable>(&env.ex)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(5);
+
+    int failed = 0;
+    check(wait_done(obs, 1000), "noexc full_chain fast wait done", failed);
+    check(obs.has_value.load(std::memory_order_acquire) == 1, "noexc full_chain fast has value", failed);
+    check(obs.value.load(std::memory_order_acquire) == 13, "noexc full_chain fast value == 13", failed);
 
     g_exec = nullptr;
     return failed;
@@ -375,6 +441,7 @@ int main() {
     int failed = 0;
 
     failed += test_full_chain_success();
+    failed += test_full_chain_fast_awaitable_success();
     failed += test_on_error_recover();
     failed += test_when_all();
     failed += test_when_any();

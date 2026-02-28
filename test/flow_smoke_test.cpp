@@ -33,6 +33,26 @@ struct plus_one_awaitable final : awaitable_base<plus_one_awaitable, int, err_t>
     void cancel() noexcept {}
 };
 
+struct plus_one_fast_awaitable final : fast_awaitable_base<plus_one_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+    int v;
+
+    explicit plus_one_fast_awaitable(async_result_type&& in) noexcept
+        : v(in.has_value() ? in.value() : 0) {
+    }
+
+    int submit() noexcept {
+        this->resume(async_result_type(value_tag, v + 1));
+        return 0;
+    }
+
+    bool available() const noexcept {
+        return true;
+    }
+
+    void cancel() noexcept {}
+};
+
 struct submit_fail_awaitable final : awaitable_base<submit_fail_awaitable, int, err_t> {
     using async_result_type = out_t;
 
@@ -108,6 +128,26 @@ int test_async_async() {
     check(obs.called, "async|async called", failed);
     check(obs.has_value, "async|async has value", failed);
     check(obs.value == 7, "async|async value == 7", failed);
+    return failed;
+}
+
+int test_async_async_fast() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto bp = make_blueprint<int>()
+        | await<plus_one_fast_awaitable>(&ex)
+        | await<plus_one_fast_awaitable>(&ex)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(5);
+
+    int failed = 0;
+    check(obs.called, "fast_async|fast_async called", failed);
+    check(obs.has_value, "fast_async|fast_async has value", failed);
+    check(obs.value == 7, "fast_async|fast_async value == 7", failed);
     return failed;
 }
 
@@ -360,6 +400,7 @@ int main() {
     int failed = 0;
 
     failed += test_async_async();
+    failed += test_async_async_fast();
     failed += test_when_all();
     failed += test_when_any();
     failed += test_when_all_fast();

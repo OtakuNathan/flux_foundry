@@ -61,6 +61,29 @@ struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_aw
     }
 };
 
+struct immediate_plus_one_fast_awaitable final
+    : fast_awaitable_base<immediate_plus_one_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    int v;
+
+    explicit immediate_plus_one_fast_awaitable(async_result_type&& in) noexcept
+        : v(in.has_value() ? in.value() : 0) {
+    }
+
+    int submit() noexcept {
+        this->resume(async_result_type(value_tag, v + 1));
+        return 0;
+    }
+
+    bool available() const noexcept {
+        return true;
+    }
+
+    void cancel() noexcept {
+    }
+};
+
 struct sink_receiver {
     using value_type = out_t;
     volatile long long* sink;
@@ -151,6 +174,17 @@ auto make_async_4_bp(ExecutorPtr ex) {
         | await<immediate_plus_one_awaitable>(ex)
         | await<immediate_plus_one_awaitable>(ex)
         | await<immediate_plus_one_awaitable>(ex)
+        | end();
+    return bp;
+}
+
+template <typename ExecutorPtr>
+auto make_async_4_fast_bp(ExecutorPtr ex) {
+    auto bp = make_blueprint<int>()
+        | await<immediate_plus_one_fast_awaitable>(ex)
+        | await<immediate_plus_one_fast_awaitable>(ex)
+        | await<immediate_plus_one_fast_awaitable>(ex)
+        | await<immediate_plus_one_fast_awaitable>(ex)
         | end();
     return bp;
 }
@@ -284,10 +318,10 @@ int main() {
 
     auto r0 = run_bench("baseline.direct.loop20", 10000, 3000000, [&](int i) {
         int x = i;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
+        x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);
+        x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);
+        x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);
+        x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);  x = (x ^ 0x5a5a5a5a) + (x >> 3);
         sink += static_cast<long long>(x);
     });
     print_result(r0);
@@ -353,6 +387,23 @@ int main() {
         drain(io_full_flux);
     });
     print_result(r8);
+
+    auto bp_async_fastawait = make_async_4_fast_bp(&ex_full_post);
+    auto bp_async_fastawait_ptr = make_lite_ptr<decltype(bp_async_fastawait)>(std::move(bp_async_fastawait));
+    auto flux_async_fastawait_runner = make_runner(bp_async_fastawait_ptr, sink_receiver{&sink});
+    auto r8a = run_bench("full.flux.runner.fast_awaitable.async4.post", 5000, 180000, [&](int i) {
+        flux_async_fastawait_runner(i);
+        drain(io_full_flux);
+    });
+    print_result(r8a);
+
+    auto bp_async_fastawait_fast = make_async_4_fast_bp(&ex_full_post);
+    auto flux_async_fastawait_fast_runner = make_fast_runner_view(bp_async_fastawait_fast, sink_receiver{&sink});
+    auto r8b = run_bench("full.flux.fast_runner.fast_awaitable.async4.post", 5000, 180000, [&](int i) {
+        flux_async_fastawait_fast_runner(i);
+        drain(io_full_flux);
+    });
+    print_result(r8b);
 
     auto r9 = run_bench("full.asio.post.async4", 5000, 180000, [&](int i) {
         asio_post_async4(io_full_asio, i, &sink);

@@ -144,6 +144,36 @@ struct delayed_plus_one_awaitable final : awaitable_base<delayed_plus_one_awaita
     }
 };
 
+struct delayed_plus_one_fast_awaitable final : fast_awaitable_base<delayed_plus_one_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    int input;
+
+    explicit delayed_plus_one_fast_awaitable(async_result_type&& in) noexcept
+        : input(in.has_value() ? in.value() : 0) {
+    }
+
+    int submit() noexcept {
+        g_backend_inflight.fetch_add(1, std::memory_order_relaxed);
+
+        int v = input;
+        unsigned delay = 10 + (fast_rand_u32() % 150);
+        backend_pool().post([self = this, v, delay]() noexcept {
+            spin_for_us(delay);
+            self->resume(async_result_type(value_tag, v + 1));
+            g_backend_inflight.fetch_sub(1, std::memory_order_release);
+        });
+        return 0;
+    }
+
+    void cancel() noexcept {
+    }
+
+    bool available() const noexcept {
+        return true;
+    }
+};
+
 struct always_fail_submit_awaitable final : awaitable_base<always_fail_submit_awaitable, int, err_t> {
     using async_result_type = out_t;
 
@@ -155,6 +185,24 @@ struct always_fail_submit_awaitable final : awaitable_base<always_fail_submit_aw
     }
 
     void cancel() noexcept {
+    }
+};
+
+struct always_fail_submit_fast_awaitable final : fast_awaitable_base<always_fail_submit_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    explicit always_fail_submit_fast_awaitable(async_result_type&&) noexcept {
+    }
+
+    int submit() noexcept {
+        return -1;
+    }
+
+    void cancel() noexcept {
+    }
+
+    bool available() const noexcept {
+        return true;
     }
 };
 
@@ -319,12 +367,13 @@ void consume_outcome(const std::shared_ptr<receiver_state>& st, test_stat& s) {
     }
 }
 
-test_stat stress_async_cancel_race(int iters) {
+template <typename AwaitableT>
+test_stat stress_async_cancel_race_case(const char* tag, int iters) {
     const int timeout_abort = std::max(50, iters / 100);
     const int step = progress_step(iters);
 
     auto bp = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | await<AwaitableT>(&g_inline_executor)
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
@@ -335,7 +384,7 @@ test_stat stress_async_cancel_race(int iters) {
 
     for (int i = 0; i < iters; ++i) {
         if (((i + 1) % step) == 0 || (i + 1) == iters) {
-            std::printf("[async cancel race] progress %d/%d\n", i + 1, iters);
+            std::printf("%s progress %d/%d\n", tag, i + 1, iters);
             std::fflush(stdout);
         }
 
@@ -367,12 +416,13 @@ test_stat stress_async_cancel_race(int iters) {
     return s;
 }
 
-test_stat stress_submit_fail_path(int iters) {
+template <typename AwaitableT>
+test_stat stress_submit_fail_path_case(const char* tag, int iters) {
     const int timeout_abort = std::max(50, iters / 100);
     const int step = progress_step(iters);
 
     auto bp = make_blueprint<int>()
-        | await<always_fail_submit_awaitable>(&g_inline_executor)
+        | await<AwaitableT>(&g_inline_executor)
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
@@ -383,7 +433,7 @@ test_stat stress_submit_fail_path(int iters) {
 
     for (int i = 0; i < iters; ++i) {
         if (((i + 1) % step) == 0 || (i + 1) == iters) {
-            std::printf("[submit fail] progress %d/%d\n", i + 1, iters);
+            std::printf("%s progress %d/%d\n", tag, i + 1, iters);
             std::fflush(stdout);
         }
 
@@ -626,38 +676,44 @@ int main(int argc, char** argv) {
 
     auto whole_begin = std::chrono::steady_clock::now();
 
-    auto t1 = stress_async_cancel_race(cfg.async_cancel_iters);
-    auto t2 = stress_submit_fail_path(cfg.submit_fail_iters);
-    auto t3 = stress_when_all_matrix_case<false, false>("[when_all normal/cancel]", cfg.when_all_iters);
-    auto t4 = stress_when_all_matrix_case<false, true>("[when_all normal/no_cancel]", cfg.when_all_iters);
-    auto t5 = stress_when_all_matrix_case<true, false>("[when_all fast/cancel]", cfg.when_all_iters);
-    auto t6 = stress_when_all_matrix_case<true, true>("[when_all fast/no_cancel]", cfg.when_all_iters);
-    auto t7 = stress_when_any_matrix_case<false, false>("[when_any normal/cancel]", cfg.when_any_iters);
-    auto t8 = stress_when_any_matrix_case<false, true>("[when_any normal/no_cancel]", cfg.when_any_iters);
-    auto t9 = stress_when_any_matrix_case<true, false>("[when_any fast/cancel]", cfg.when_any_iters);
-    auto t10 = stress_when_any_matrix_case<true, true>("[when_any fast/no_cancel]", cfg.when_any_iters);
+    auto t1 = stress_async_cancel_race_case<delayed_plus_one_awaitable>("[async cancel race awaitable]", cfg.async_cancel_iters);
+    auto t2 = stress_async_cancel_race_case<delayed_plus_one_fast_awaitable>("[async cancel race fast_awaitable]", cfg.async_cancel_iters);
+    auto t3 = stress_submit_fail_path_case<always_fail_submit_awaitable>("[submit fail awaitable]", cfg.submit_fail_iters);
+    auto t4 = stress_submit_fail_path_case<always_fail_submit_fast_awaitable>("[submit fail fast_awaitable]", cfg.submit_fail_iters);
+    auto t5 = stress_when_all_matrix_case<false, false>("[when_all normal/cancel]", cfg.when_all_iters);
+    auto t6 = stress_when_all_matrix_case<false, true>("[when_all normal/no_cancel]", cfg.when_all_iters);
+    auto t7 = stress_when_all_matrix_case<true, false>("[when_all fast/cancel]", cfg.when_all_iters);
+    auto t8 = stress_when_all_matrix_case<true, true>("[when_all fast/no_cancel]", cfg.when_all_iters);
+    auto t9 = stress_when_any_matrix_case<false, false>("[when_any normal/cancel]", cfg.when_any_iters);
+    auto t10 = stress_when_any_matrix_case<false, true>("[when_any normal/no_cancel]", cfg.when_any_iters);
+    auto t11 = stress_when_any_matrix_case<true, false>("[when_any fast/cancel]", cfg.when_any_iters);
+    auto t12 = stress_when_any_matrix_case<true, true>("[when_any fast/no_cancel]", cfg.when_any_iters);
 
-    print_stat("async cancel race", t1);
-    print_stat("submit fail path", t2);
-    print_stat("when_all normal/cancel", t3);
-    print_stat("when_all normal/no_cancel", t4);
-    print_stat("when_all fast/cancel", t5);
-    print_stat("when_all fast/no_cancel", t6);
-    print_stat("when_any normal/cancel", t7);
-    print_stat("when_any normal/no_cancel", t8);
-    print_stat("when_any fast/cancel", t9);
-    print_stat("when_any fast/no_cancel", t10);
+    print_stat("async cancel race awaitable", t1);
+    print_stat("async cancel race fast_awaitable", t2);
+    print_stat("submit fail awaitable", t3);
+    print_stat("submit fail fast_awaitable", t4);
+    print_stat("when_all normal/cancel", t5);
+    print_stat("when_all normal/no_cancel", t6);
+    print_stat("when_all fast/cancel", t7);
+    print_stat("when_all fast/no_cancel", t8);
+    print_stat("when_any normal/cancel", t9);
+    print_stat("when_any normal/no_cancel", t10);
+    print_stat("when_any fast/cancel", t11);
+    print_stat("when_any fast/no_cancel", t12);
 
     failed += score_failures(t1);
-    failed += score_failures(t2, true);
-    failed += score_failures(t3);
-    failed += score_failures(t4);
+    failed += score_failures(t2);
+    failed += score_failures(t3, true);
+    failed += score_failures(t4, true);
     failed += score_failures(t5);
     failed += score_failures(t6);
     failed += score_failures(t7);
     failed += score_failures(t8);
     failed += score_failures(t9);
     failed += score_failures(t10);
+    failed += score_failures(t11);
+    failed += score_failures(t12);
 
     if (!wait_backend_drained(15000)) {
         std::printf("[FAIL] backend tasks not drained in time\n");

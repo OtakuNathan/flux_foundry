@@ -532,7 +532,7 @@ namespace detail {
             return 0;
         }
 
-        void cancel() noexcept {}
+        // fast awaitable does not participate in flow_controller cancel registration.
     };
 
 // when_any state
@@ -830,8 +830,7 @@ namespace detail {
             return 0;
         }
 
-        // no cancel, do nothing
-        void cancel() noexcept {}
+        // fast awaitable does not participate in flow_controller cancel registration.
     };
 
     template<typename... BPs>
@@ -966,6 +965,10 @@ namespace detail {
                       "awaitable requirement: Missing or invalid 'submit'.\n"
                       "Expected signature: int submit() noexcept.");
 
+        static_assert(is_awaitable_v<awaitable> || is_fast_awaitable_v<awaitable>,
+                      "Awaitable must be an valid awaitable(see flux_foundry::awaitable_base)\n"
+                      "or a valid fast_awaitable(see flux_foundry::fast_awaitable_base)");
+
         template<typename U>
         constexpr static auto
         detect_cancel(int) -> std::integral_constant<bool, noexcept(std::declval<U &>().cancel())>;
@@ -973,9 +976,9 @@ namespace detail {
         template<typename U>
         constexpr static auto detect_cancel(...) -> std::false_type;
 
-        static_assert(decltype(detect_cancel<awaitable>(0))::value,
+        static_assert(!is_awaitable_v<awaitable> || decltype(detect_cancel<awaitable>(0))::value,
                       "awaitable requirement: Missing 'void cancel() noexcept'.\n"
-                      "Must be able to cancel pending async operation and release resources.");
+                      "Only awaitable_base-derived types require this.");
 
 #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         template <typename U>
@@ -990,10 +993,6 @@ namespace detail {
             "awaitable requirement: Missing 'bool available() noexcept'.\n"
             "Must be able to provide whether the awaitable is fully created and initialized.");
 #endif
-
-        static_assert(is_awaitable_v<awaitable> || is_fast_awaitable_v<awaitable>,
-                      "Awaitable must be an valid awaitable(see flux_foundry::awaitable_base)\n"
-                      "or a valid fast_awaitable(see flux_foundry::fast_awaitable_base)");
 
         using node_error_t = typename awaitable::async_result_type::error_type;
         using awaitable_t = awaitable;

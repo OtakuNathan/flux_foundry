@@ -378,12 +378,14 @@ namespace flux_foundry {
 
             // dispatch impl
             template <typename dispatcher_t, typename param_t>
-            static void dispatch_impl(dispatcher_t&, flow_runner& self, param_t&& in, std::true_type) noexcept {
+            static void dispatch_impl(dispatcher_t&, flow_runner& self, param_t&& in,
+                                      std::true_type  /* inline executor? */) noexcept {
                 ipc<I - 1>::run(self, std::forward<param_t>(in));
             }
 
             template <typename dispatcher_t, typename param_t>
-            static void dispatch_impl(dispatcher_t& dispatcher, flow_runner& self, param_t&& in, std::false_type) noexcept {
+            static void dispatch_impl(dispatcher_t& dispatcher, flow_runner& self, param_t&& in,
+                                      std::false_type /* inline executor? */) noexcept {
                 dispatcher(
                     task_wrapper_sbo([data = self.data,
                                       controller = std::move(self.controller),

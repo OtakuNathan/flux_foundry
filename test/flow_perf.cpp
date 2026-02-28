@@ -17,12 +17,6 @@ using out_t = result_t<int, err_t>;
 constexpr int kBenchRounds = 7;
 constexpr long long kBenchMinRoundNs = 50LL * 1000 * 1000;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
 
@@ -35,6 +29,28 @@ struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_aw
     int submit() noexcept {
         this->resume(async_result_type(value_tag, v + 1));
         return 0;
+    }
+
+    void cancel() noexcept {
+    }
+};
+
+struct immediate_plus_one_fast_awaitable final : fast_awaitable_base<immediate_plus_one_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    int v;
+
+    explicit immediate_plus_one_fast_awaitable(async_result_type&& in) noexcept
+        : v(in.has_value() ? in.value() : 0) {
+    }
+
+    int submit() noexcept {
+        this->resume(async_result_type(value_tag, v + 1));
+        return 0;
+    }
+
+    bool available() const noexcept {
+        return true;
     }
 
     void cancel() noexcept {
@@ -169,12 +185,36 @@ auto make_sync_20_bp() {
     return bp;
 }
 
-auto make_async_4_bp(inline_executor* ex) {
+auto make_async_4_bp() {
     auto bp = make_blueprint<int>()
-        | await<immediate_plus_one_awaitable>(ex)
-        | await<immediate_plus_one_awaitable>(ex)
-        | await<immediate_plus_one_awaitable>(ex)
-        | await<immediate_plus_one_awaitable>(ex)
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | end();
+    return bp;
+}
+
+auto make_async_4_fast_bp() {
+    auto bp = make_blueprint<int>()
+        | await<immediate_plus_one_fast_awaitable>()
+        | await<immediate_plus_one_fast_awaitable>()
+        | await<immediate_plus_one_fast_awaitable>()
+        | await<immediate_plus_one_fast_awaitable>()
+        | end();
+    return bp;
+}
+
+auto make_async_1_bp() {
+    auto bp = make_blueprint<int>()
+        | await<immediate_plus_one_awaitable>()
+        | end();
+    return bp;
+}
+
+auto make_async_1_fast_bp() {
+    auto bp = make_blueprint<int>()
+        | await<immediate_plus_one_fast_awaitable>()
         | end();
     return bp;
 }
@@ -185,14 +225,12 @@ int main() {
     std::printf("[flow perf] compiler baseline: clang++ -std=c++14 -O3\n");
 
     volatile long long sink = 0;
-    inline_executor ex;
-
     auto r0 = run_bench("direct.loop20", 20000, 5000000, [&](int i) {
         int x = i;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
-        x += 1; x += 1; x += 1; x += 1; x += 1;
+        x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3);
+        x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3);
+        x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3);
+        x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3);
         sink += static_cast<long long>(x);
     });
     print_result(r0);
@@ -214,14 +252,65 @@ int main() {
     });
     print_result(r2);
 
-    auto bp_async = make_async_4_bp(&ex);
-    auto bp_async_ptr = make_lite_ptr<decltype(bp_async)>(std::move(bp_async));
-    auto async_runner = make_runner(bp_async_ptr, sink_receiver{&sink});
-
-    auto r3 = run_bench("runner.async.4nodes", 10000, 800000, [&](int i) {
-        async_runner(i);
+    auto bp_async4 = make_async_4_bp();
+    auto bp_async4_ptr = make_lite_ptr<decltype(bp_async4)>(std::move(bp_async4));
+    auto runner_await4 = make_runner(bp_async4_ptr, sink_receiver{&sink});
+    auto r3 = run_bench("runner.awaitable.async4", 10000, 800000, [&](int i) {
+        runner_await4(i);
     });
     print_result(r3);
+
+    auto bp_async4_fast_runner = make_async_4_bp();
+    auto fast_runner_await4 = make_fast_runner_view(bp_async4_fast_runner, sink_receiver{&sink});
+    auto r3f = run_bench("fast_runner.awaitable.async4", 10000, 800000, [&](int i) {
+        fast_runner_await4(i);
+    });
+    print_result(r3f);
+
+    auto bp_async4_fast = make_async_4_fast_bp();
+    auto bp_async4_fast_ptr = make_lite_ptr<decltype(bp_async4_fast)>(std::move(bp_async4_fast));
+    auto runner_fastawait4 = make_runner(bp_async4_fast_ptr, sink_receiver{&sink});
+    auto r3ff = run_bench("runner.fast_awaitable.async4", 10000, 800000, [&](int i) {
+        runner_fastawait4(i);
+    });
+    print_result(r3ff);
+
+    auto bp_async4_fast_fast_runner = make_async_4_fast_bp();
+    auto fast_runner_fastawait4 = make_fast_runner_view(bp_async4_fast_fast_runner, sink_receiver{&sink});
+    auto r3fff = run_bench("fast_runner.fast_awaitable.async4", 10000, 800000, [&](int i) {
+        fast_runner_fastawait4(i);
+    });
+    print_result(r3fff);
+
+    auto bp_async1 = make_async_1_bp();
+    auto bp_async1_ptr = make_lite_ptr<decltype(bp_async1)>(std::move(bp_async1));
+    auto runner_await1 = make_runner(bp_async1_ptr, sink_receiver{&sink});
+    auto r3a1 = run_bench("runner.awaitable.async1", 10000, 1200000, [&](int i) {
+        runner_await1(i);
+    });
+    print_result(r3a1);
+
+    auto bp_async1_fast_runner = make_async_1_bp();
+    auto fast_runner_await1 = make_fast_runner_view(bp_async1_fast_runner, sink_receiver{&sink});
+    auto r3a1f = run_bench("fast_runner.awaitable.async1", 10000, 1200000, [&](int i) {
+        fast_runner_await1(i);
+    });
+    print_result(r3a1f);
+
+    auto bp_async1_fast = make_async_1_fast_bp();
+    auto bp_async1_fast_ptr = make_lite_ptr<decltype(bp_async1_fast)>(std::move(bp_async1_fast));
+    auto runner_fastawait1 = make_runner(bp_async1_fast_ptr, sink_receiver{&sink});
+    auto r3a1ff = run_bench("runner.fast_awaitable.async1", 10000, 1200000, [&](int i) {
+        runner_fastawait1(i);
+    });
+    print_result(r3a1ff);
+
+    auto bp_async1_fast_fast_runner = make_async_1_fast_bp();
+    auto fast_runner_fastawait1 = make_fast_runner_view(bp_async1_fast_fast_runner, sink_receiver{&sink});
+    auto r3a1fff = run_bench("fast_runner.fast_awaitable.async1", 10000, 1200000, [&](int i) {
+        fast_runner_fastawait1(i);
+    });
+    print_result(r3a1fff);
 
     auto leaf1_all = make_blueprint<int>()
         | transform([](int x) noexcept { return x + 10; })
@@ -234,7 +323,6 @@ int main() {
     auto p2_all = make_lite_ptr<decltype(leaf2_all)>(std::move(leaf2_all));
 
     auto bp_all = await_when_all(
-        &ex,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -254,7 +342,6 @@ int main() {
     print_result(r4);
 
     auto bp_all_fast = await_when_all_fast(
-        &ex,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -264,6 +351,12 @@ int main() {
         p1_all,
         p2_all)
         | end();
+
+    auto when_all_ffast_runner = make_fast_runner_view(bp_all_fast, sink_receiver{&sink});
+    auto r4ff = run_bench("fast_runner.when_all_fast.2", 5000, 300000, [&](int i) {
+        when_all_ffast_runner(i, i + 1);
+    });
+    print_result(r4ff);
 
     auto bp_all_fast_ptr = make_lite_ptr<decltype(bp_all_fast)>(std::move(bp_all_fast));
     auto when_all_fast_runner = make_runner(bp_all_fast_ptr, sink_receiver{&sink});
@@ -284,7 +377,6 @@ int main() {
     auto p2_any = make_lite_ptr<decltype(leaf2_any)>(std::move(leaf2_any));
 
     auto bp_any = await_when_any(
-        &ex,
         [](size_t i, int v) noexcept {
             return out_t(value_tag, v);
         },
@@ -304,7 +396,6 @@ int main() {
     print_result(r5);
 
     auto bp_any_fast = await_when_any_fast(
-        &ex,
         [](size_t i, int v) noexcept {
             return out_t(value_tag, v);
         },
@@ -314,6 +405,12 @@ int main() {
         p1_any,
         p2_any)
         | end();
+
+    auto when_any_ffast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
+    auto r5ff = run_bench("fast_runner.when_any_fast.2", 5000, 300000, [&](int i) {
+        when_any_ffast_runner(i, i + 1);
+    });
+    print_result(r5ff);
 
     auto bp_any_fast_ptr = make_lite_ptr<decltype(bp_any_fast)>(std::move(bp_any_fast));
     auto when_any_fast_runner = make_runner(bp_any_fast_ptr, sink_receiver{&sink});
