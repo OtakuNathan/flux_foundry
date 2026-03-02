@@ -15,7 +15,7 @@
 namespace flux_foundry {
     inline void* aligned_alloc(size_t align, size_t size) noexcept {
         assert((align & (align - 1)) == 0 && "align must be power of 2");
-        assert(align >= alignof(nullptr_t) && "align must be >= alignof(void*)");
+        assert(align >= alignof(std::nullptr_t) && "align must be >= alignof(void*)");
 #ifndef _WIN32
         void* _p = nullptr;
         UNLIKELY_IF (posix_memalign(&_p, align, size) != 0) {

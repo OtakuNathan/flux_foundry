@@ -13,53 +13,10 @@
 
 #include "flow_def.h"
 #include "flow_blueprint.h"
+#include "flow_receiver.h"
 
 namespace flux_foundry {
     namespace flow_impl {
-        template <typename T, typename D = void>
-        struct check_receiver : std::false_type {};
-
-        template <typename T>
-        struct check_receiver<T,
-            void_t<typename T::value_type,
-                std::enable_if_t<
-                    conjunction_v<
-                        std::is_nothrow_move_constructible<T>,
-                        std::is_nothrow_copy_constructible<T>,
-                        is_result_t<typename T::value_type>
-                    >
-                >
-            >
-        > : std::true_type { };
-
-        template <typename T, typename R>
-        struct check_receiver_compatible {
-            template <typename ...>
-            static auto check(...) -> std::false_type;
-
-
-            template <typename T_, typename R_>
-            static auto check(int) -> std::integral_constant<bool,
-                noexcept(std::declval<R_&>().emplace(std::declval<T_>()))>;
-
-            constexpr static bool value = decltype(check<T, R>(0))::value;
-        };
-
-        template <typename T>
-        struct stub_receiver {
-            using value_type = T;
-            void emplace(T&& val) noexcept { }
-        };
-
-        template <typename T>
-        struct is_stub_receiver : std::false_type {};
-
-        template <typename T>
-        struct is_stub_receiver <stub_receiver<T>> : std::true_type {};
-
-        template <typename T>
-        constexpr bool is_stub_receiver_v = is_stub_receiver<T>::value;
-
         template <typename T, typename = void>
         struct awaitable_supports_cancel : std::true_type {};
 
@@ -247,12 +204,12 @@ namespace flux_foundry {
         using receiver_t = std::decay_t<receiver_type>;
 
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
@@ -282,12 +239,12 @@ namespace flux_foundry {
     public:
         flow_runner() = delete;
 
-        template <typename R = receiver_t, std::enable_if_t<flow_impl::is_stub_receiver_v<R>>* = nullptr>
+        template <typename R = receiver_t, std::enable_if_t<is_stub_receiver_v<R>>* = nullptr>
         explicit flow_runner(bp_ptr bp_, controller_ptr controller_, receiver_t receiver_ = receiver_t()) noexcept
             : data(std::move(bp_), std::move(receiver_)), controller(std::move(controller_)) {
         }
 
-        template <typename R = receiver_t, std::enable_if_t<!flow_impl::is_stub_receiver_v<R>>* = nullptr>
+        template <typename R = receiver_t, std::enable_if_t<!is_stub_receiver_v<R>>* = nullptr>
         explicit flow_runner(bp_ptr bp_, controller_ptr controller_, receiver_t receiver_) 
             noexcept(std::is_nothrow_move_constructible<receiver_t>::value)
             : data(std::move(bp_), std::move(receiver_)), controller(std::move(controller_)) {
@@ -297,6 +254,40 @@ namespace flux_foundry {
         // this will return the controller for the THIS run.
         controller_ptr get_controller() const noexcept {
             return controller;
+        }
+
+        void operator()(const I_t& param)
+            noexcept(std::is_nothrow_copy_constructible<I_t>::value) {
+            // Controller is created lazily per run-start so a moved-from runner can be
+            // safely resumed by internal continuations without sharing external controller state.
+            if (!bp()) {
+                return;
+            }
+
+            LIKELY_IF (!controller) {
+                init_controller();
+                UNLIKELY_IF (!controller) {
+                    return;
+                }
+            }
+            ipc<node_count - 1>::run(*this, I_t(param));
+        }
+
+        void operator()(I_t&& param) noexcept {
+            // Controller is created lazily per run-start so a moved-from runner can be
+            // safely resumed by internal continuations without sharing external controller state.
+            if (!bp()) {
+                return;
+            }
+
+            LIKELY_IF (!controller) {
+                init_controller();
+                UNLIKELY_IF (!controller) {
+                    return;
+                }
+            }
+
+            ipc<node_count - 1>::run(*this, std::move(param));
         }
 
         template <typename ... Args,
@@ -603,18 +594,18 @@ namespace flux_foundry {
     template <typename bp_t>
     auto make_runner(lite_ptr<bp_t> bp) {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        return flow_runner<bp_t, flow_impl::stub_receiver<typename bp_t::O_t>>(std::move(bp), make_lite_ptr<flow_controller>());
+        return flow_runner<bp_t, stub_receiver<typename bp_t::O_t>>(std::move(bp), make_lite_ptr<flow_controller>());
     }
 
     template <typename bp_t, typename receiver_t>
     auto make_runner(lite_ptr<bp_t> bp, receiver_t receiver) {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
@@ -745,18 +736,18 @@ namespace flux_foundry {
         using receiver_t = std::decay_t<receiver_type>;
 
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
 
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
@@ -782,14 +773,30 @@ namespace flux_foundry {
     public:
         flow_fast_runner() = delete;
 
-        template <typename R = receiver_t, std::enable_if_t<flow_impl::is_stub_receiver_v<R>>* = nullptr>
+        template <typename R = receiver_t, std::enable_if_t<is_stub_receiver_v<R>>* = nullptr>
         explicit flow_fast_runner(flow_bp_storage&& bp_, receiver_t receiver_ = receiver_t())
             : data(std::move(bp_), std::move(receiver_)) {
         }
 
-        template <typename R = receiver_t, std::enable_if_t<!flow_impl::is_stub_receiver_v<R>>* = nullptr>
+        template <typename R = receiver_t, std::enable_if_t<!is_stub_receiver_v<R>>* = nullptr>
         explicit flow_fast_runner(flow_bp_storage&& bp_, receiver_t receiver_)
             : data(std::move(bp_), std::move(receiver_)) {
+        }
+
+        void operator()(const I_t& param)
+            noexcept(std::is_nothrow_copy_constructible<I_t>::value) {
+            if (!bp()) {
+                return;
+            }
+
+            ipc<node_count - 1>::run(*this, I_t(param));
+        }
+
+        void operator()(I_t&& param) noexcept {
+            if (!bp()) {
+                return;
+            }
+            ipc<node_count - 1>::run(*this, std::move(param));
         }
 
         template <typename ... Args,
@@ -909,7 +916,7 @@ namespace flux_foundry {
     auto make_fast_runner(bp_t&& bp) noexcept {
         using bp_decay = std::decay_t<bp_t>;
         using bp_storage = fast_runner_impl::bp_storage<bp_decay&&>;
-        return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_decay::O_t>>(bp_storage(std::move(bp)));
+        return flow_fast_runner<bp_storage, stub_receiver<typename bp_decay::O_t>>(bp_storage(std::move(bp)));
     }
 
     template <typename bp_t,
@@ -920,21 +927,21 @@ namespace flux_foundry {
     auto make_fast_runner(lite_ptr<bp_t> bp) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         using bp_storage = fast_runner_impl::bp_storage<lite_ptr<bp_t>>;
-        return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
+        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
     }
 
     template <typename bp_t>
     auto make_fast_runner_view(bp_t* bp) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         using bp_storage = fast_runner_impl::bp_storage<bp_t*>;
-        return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
+        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
     }
 
     template <typename bp_t>
     auto make_fast_runner_view(bp_t& bp) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         using bp_storage = fast_runner_impl::bp_storage<bp_t&>;
-        return flow_fast_runner<bp_storage, flow_impl::stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
+        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
     }
 
     template <typename bp_t, typename receiver_t,
@@ -945,12 +952,12 @@ namespace flux_foundry {
     auto make_fast_runner(bp_t&& bp, receiver_t receiver) noexcept {
         using bp_decay = std::decay_t<bp_t>;
         static_assert(flow_impl::is_blueprint_v<bp_decay>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_decay::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_decay::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
@@ -965,12 +972,12 @@ namespace flux_foundry {
     template <typename bp_t, typename receiver_t>
     auto make_fast_runner(lite_ptr<bp_t> bp, receiver_t receiver) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
@@ -981,12 +988,12 @@ namespace flux_foundry {
     template <typename bp_t, typename receiver_t>
     auto make_fast_runner_view(bp_t* bp, receiver_t receiver) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
@@ -997,12 +1004,12 @@ namespace flux_foundry {
     template <typename bp_t, typename receiver_t>
     auto make_fast_runner_view(bp_t& bp, receiver_t receiver) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(flow_impl::check_receiver<receiver_t>::value,
+        static_assert(check_receiver_v<receiver_t>,
             "a valid receiver should:\n"
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(flow_impl::check_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
+        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");

@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1920" viewBox="0 0 2400 1920" role="img" aria-labelledby="title desc">
+  <title id="title">flux_foundry Architecture and Runtime Sequence</title>
+  <desc id="desc">Two-layer architecture view with DSL/internal modules, optional fork fan-out receiver template path, plus runtime sequence.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #334155; stroke-width: 1.8; rx: 14; ry: 14; }
+      .layer { fill: #eff6ff; stroke: #2563eb; stroke-width: 2.2; rx: 12; ry: 12; }
+      .layer-impl { fill: #f8fafc; stroke: #334155; stroke-width: 2.2; rx: 12; ry: 12; }
+      .layer-ext { fill: #ecfeff; stroke: #0891b2; stroke-width: 2.2; rx: 12; ry: 12; }
+      .module { fill: #ffffff; stroke: #64748b; stroke-width: 1.5; rx: 10; ry: 10; }
+      .node { fill: #ffffff; stroke: #475569; stroke-width: 1.3; rx: 8; ry: 8; }
+      .seq-lane { fill: #ffffff; stroke: #64748b; stroke-width: 1.3; }
+      .seq-note { fill: #f8fafc; stroke: #475569; stroke-width: 1.3; rx: 6; ry: 6; }
+      .seq-opt { fill: none; stroke: #b45309; stroke-width: 1.7; stroke-dasharray: 8 6; rx: 8; ry: 8; }
+      .title { font: 620 34px "Segoe UI", "Arial", sans-serif; fill: #0f172a; }
+      .subtitle { font: 600 22px "Segoe UI", "Arial", sans-serif; fill: #0f172a; }
+      .label { font: 600 18px "Segoe UI", "Arial", sans-serif; fill: #0f172a; }
+      .text { font: 450 15px "Segoe UI", "Arial", sans-serif; fill: #1f2937; }
+      .small { font: 430 14px "Segoe UI", "Arial", sans-serif; fill: #475569; }
+      .arrow { stroke: #1e293b; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .arrow-soft { stroke: #1e293b; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .arrow-dash { stroke: #b45309; stroke-width: 1.8; fill: none; stroke-dasharray: 8 6; marker-end: url(#arrow-orange); }
+      .divider { stroke: #cbd5e1; stroke-width: 1.6; }
+    </style>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#1e293b"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#b45309"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2400" height="1920"/>
+  <text class="title" x="64" y="62">flux_foundry Architecture + Runtime Sequence</text>
+
+  <!-- A) Architecture -->
+  <rect class="panel" x="40" y="90" width="2320" height="1060"/>
+  <text class="subtitle" x="68" y="132">A) Architecture View</text>
+
+  <!-- DSL Layer -->
+  <rect class="layer" x="70" y="152" width="2260" height="170"/>
+  <text class="label" x="94" y="184">DSL Layer (Public API)</text>
+
+  <rect class="node" x="110" y="206" width="300" height="78"/>
+  <text class="text" x="136" y="252">make_blueprint()</text>
+
+  <rect class="node" x="440" y="206" width="1840" height="78"/>
+  <text class="text" x="468" y="238">operator chain:</text>
+  <text class="text" x="468" y="262">transform / then / on_error / catch_exception / via / await / await_when_all / await_when_any / end</text>
+
+  <path class="arrow" d="M410 245 L440 245"/>
+
+  <!-- Internal Layer -->
+  <rect class="layer-impl" x="70" y="344" width="2260" height="640"/>
+  <text class="label" x="94" y="376">Internal Implementation Layer (4 modules)</text>
+
+  <!-- Module 3 (swapped to top-left): Async/Cancel -->
+  <rect class="module" x="100" y="394" width="1060" height="250"/>
+  <text class="label" x="122" y="426">Module 3: Async / Cancel Control</text>
+
+  <rect class="node" x="120" y="442" width="500" height="84"/>
+  <text class="text" x="140" y="476">awaitable_factory / aggregator_awaitable_factory</text>
+
+  <rect class="node" x="640" y="442" width="500" height="84"/>
+  <text class="text" x="660" y="476">awaitable_base / fast_awaitable_base</text>
+  <text class="small" x="660" y="498">access_delegate: submit_async / resume</text>
+
+  <rect class="node" x="120" y="540" width="500" height="84"/>
+  <text class="text" x="140" y="574">flow_controller state machine</text>
+  <text class="small" x="140" y="596">normal runner: cancel handler registration</text>
+
+  <rect class="node" x="640" y="540" width="500" height="84"/>
+  <text class="text" x="660" y="574">when_all / when_any awaitables</text>
+  <text class="small" x="660" y="596">launch sub-runners + merge/winner</text>
+
+  <path class="arrow-soft" d="M620 484 L640 484"/>
+  <path class="arrow-soft" d="M890 540 L890 526"/>
+  <path class="arrow-dash" d="M620 582 L760 526"/>
+
+  <!-- Module 1 (swapped to top-right): BP Builder -->
+  <rect class="module" x="1210" y="394" width="1060" height="250"/>
+  <text class="label" x="1232" y="426">Module 1: BP Builder / Normalizer</text>
+
+  <rect class="node" x="1230" y="442" width="500" height="84"/>
+  <text class="text" x="1250" y="476">node wrappers: calc / via / async / end</text>
+
+  <rect class="node" x="1750" y="442" width="500" height="84"/>
+  <text class="text" x="1770" y="476">build rules:</text>
+  <text class="small" x="1770" y="498">calc+calc fusion, via+via newest, async+via forbidden, end terminal</text>
+
+  <rect class="node" x="1230" y="540" width="1020" height="84"/>
+  <text class="text" x="1250" y="574">normalized blueprint: flat_storage + node tags, end at index 0</text>
+
+  <path class="arrow-soft" d="M1480 526 L1480 540"/>
+  <path class="arrow-soft" d="M2000 526 L2000 540"/>
+
+  <!-- Module 2 (swapped to bottom-left): Runner -->
+  <rect class="module" x="100" y="664" width="1060" height="290"/>
+  <text class="label" x="122" y="696">Module 2: Runner Engine</text>
+
+  <rect class="node" x="120" y="712" width="320" height="84"/>
+  <text class="text" x="140" y="746">flow_runner</text>
+  <text class="small" x="140" y="768">normal path (cancel-aware)</text>
+
+  <rect class="node" x="460" y="712" width="320" height="84"/>
+  <text class="text" x="480" y="746">flow_fast_runner</text>
+  <text class="small" x="480" y="768">fast path (no controller)</text>
+
+  <rect class="node" x="800" y="712" width="340" height="84"/>
+  <text class="text" x="820" y="746">shared execution core</text>
+  <text class="small" x="820" y="768">ipc(N-1) + node_tag dispatch</text>
+
+  <rect class="node" x="120" y="814" width="1020" height="120"/>
+  <text class="text" x="140" y="848">calc inline, via dispatch continuation, async submit/resume continuation</text>
+
+  <path class="arrow-soft" d="M280 796 L280 814"/>
+  <path class="arrow-soft" d="M620 796 L620 814"/>
+  <path class="arrow-soft" d="M970 796 L970 814"/>
+
+  <!-- Module 4 (unchanged bottom-right): Runtime Core -->
+  <rect class="module" x="1210" y="664" width="1060" height="290"/>
+  <text class="label" x="1232" y="696">Module 4: Runtime Core</text>
+
+  <rect class="node" x="1230" y="712" width="500" height="84"/>
+  <text class="text" x="1250" y="746">task_wrapper + callable_wrapper</text>
+  <text class="small" x="1250" y="768">continuation transport (type-erasure + SBO)</text>
+
+  <rect class="node" x="1750" y="712" width="500" height="84"/>
+  <text class="text" x="1770" y="746">result_t / lite_ptr / flat_storage</text>
+  <text class="small" x="1770" y="768">typed payload and storage model</text>
+
+  <rect class="node" x="1230" y="814" width="1020" height="120"/>
+  <text class="text" x="1250" y="848">pooling allocator + queue/static_list primitives</text>
+
+  <path class="arrow-soft" d="M1480 796 L1480 814"/>
+  <path class="arrow-soft" d="M2000 796 L2000 814"/>
+
+  <!-- External -->
+  <rect class="layer-ext" x="70" y="1000" width="2260" height="130"/>
+  <text class="label" x="94" y="1030">External Integration</text>
+
+  <rect class="node" x="110" y="1038" width="620" height="72"/>
+  <text class="text" x="136" y="1068">optional fork template: flow/flow_fork_receiver_tmp.h</text>
+  <text class="small" x="136" y="1090">fork_receiver&lt;Derived, FromBP, To...&gt; + forward(copy result_t)</text>
+
+  <rect class="node" x="760" y="1038" width="760" height="72"/>
+  <text class="text" x="786" y="1082">external executor: simple_executor / gsource_executor / custom executor</text>
+
+  <rect class="node" x="1560" y="1038" width="720" height="72"/>
+  <text class="text" x="1586" y="1082">result sink: receiver.emplace(result_t(T, E))</text>
+
+  <!-- Cross-module arrows (reduced set) -->
+  <path class="arrow" d="M1320 284 L1740 442"/>
+  <text class="small" x="1440" y="340">operator normalization to blueprint nodes</text>
+
+  <path class="arrow" d="M1740 624 L970 712"/>
+  <text class="small" x="1340" y="700">blueprint consumed by runner engines</text>
+
+  <path class="arrow" d="M970 814 L760 526"/>
+  <text class="small" x="774" y="690">await/aggregate factory path</text>
+
+  <path class="arrow" d="M890 526 L970 712"/>
+  <text class="small" x="904" y="626">resume(result_t) back to runner</text>
+
+  <path class="arrow" d="M1140 754 L1230 754"/>
+  <text class="small" x="1144" y="740">runner uses runtime core</text>
+
+  <path class="arrow" d="M930 934 L1080 1038"/>
+  <path class="arrow" d="M1200 1038 L1010 934"/>
+  <text class="small" x="850" y="970">via/non-inline continuation submit + re-enter</text>
+
+  <path class="arrow" d="M1040 934 L1920 1038"/>
+  <text class="small" x="1420" y="970">final result delivery</text>
+
+  <path class="arrow-soft" d="M1560 1074 L730 1074"/>
+  <text class="small" x="952" y="1060">optional fan-out receiver path</text>
+
+  <path class="arrow-soft" d="M420 1038 L900 934"/>
+  <text class="small" x="510" y="970">start downstream runner(s), optional join bp</text>
+
+  <!-- B) Sequence -->
+  <rect class="panel" x="40" y="1180" width="2320" height="700"/>
+  <text class="subtitle" x="68" y="1222">B) Runtime Sequence View</text>
+  <line class="divider" x1="40" y1="1242" x2="2360" y2="1242"/>
+
+  <rect class="seq-lane" x="90" y="1260" width="300" height="590"/>
+  <rect class="seq-lane" x="390" y="1260" width="360" height="590"/>
+  <rect class="seq-lane" x="750" y="1260" width="500" height="590"/>
+  <rect class="seq-lane" x="1250" y="1260" width="430" height="590"/>
+  <rect class="seq-lane" x="1680" y="1260" width="360" height="590"/>
+  <rect class="seq-lane" x="2040" y="1260" width="280" height="590"/>
+
+  <text class="label" x="170" y="1294">User Code</text>
+  <text class="label" x="470" y="1294">DSL / BP Builder</text>
+  <text class="label" x="940" y="1294">Runner</text>
+  <text class="label" x="1320" y="1294">Factory + Awaitable</text>
+  <text class="label" x="1772" y="1294">Executor</text>
+  <text class="label" x="2108" y="1294">Receiver</text>
+
+  <path class="arrow" d="M240 1330 L570 1330"/>
+  <text class="small" x="258" y="1318">1) build pipeline by operator chain</text>
+
+  <path class="arrow" d="M570 1390 L1000 1390"/>
+  <text class="small" x="598" y="1378">2) make_runner(bp, receiver) / make_fast_runner(...)</text>
+
+  <path class="arrow" d="M240 1450 L1000 1450"/>
+  <text class="small" x="268" y="1438">3) operator()(input...)</text>
+
+  <rect class="seq-note" x="790" y="1480" width="420" height="54"/>
+  <text class="small" x="810" y="1512">4) ipc(N-1) + node_tag dispatch</text>
+
+  <path class="arrow" d="M1000 1580 L1860 1580"/>
+  <text class="small" x="1030" y="1568">5) via/non-inline: dispatch(task_wrapper)</text>
+
+  <path class="arrow" d="M1860 1630 L1000 1630"/>
+  <text class="small" x="1350" y="1618">6) executor runs continuation and re-enters runner</text>
+
+  <path class="arrow" d="M1000 1690 L1465 1690"/>
+  <text class="small" x="1026" y="1678">7) factory(input result_t) -> access_delegate</text>
+
+  <path class="arrow" d="M1000 1740 L1465 1740"/>
+  <text class="small" x="1026" y="1728">8) submit_async()</text>
+
+  <path class="arrow" d="M1465 1790 L1000 1790"/>
+  <text class="small" x="1110" y="1778">9) resume(result_t) exactly once</text>
+
+  <path class="arrow" d="M1000 1840 L2180 1840"/>
+  <text class="small" x="1470" y="1828">10) end output -> receiver.emplace(...)</text>
+
+  <rect class="seq-opt" x="110" y="1660" width="1540" height="180"/>
+  <text class="small" x="132" y="1686">optional cancel (normal runner): user triggers flow_controller.cancel() -> cancel handler -> resume(cancel_error)</text>
+</svg>

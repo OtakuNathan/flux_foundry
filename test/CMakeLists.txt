@@ -38,6 +38,10 @@ lfnds_add_noexc_probe(lfnds_flow_fullchain_smoke_noexc flow_fullchain_smoke_noex
 add_test(NAME flow_fullchain_smoke_noexc COMMAND lfnds_flow_fullchain_smoke_noexc)
 set_tests_properties(flow_fullchain_smoke_noexc PROPERTIES LABELS "smoke;noexc")
 
+lfnds_add_probe(lfnds_flow_fork_join_semantics flow_fork_join_semantics_test.cpp)
+add_test(NAME flow_fork_join_semantics COMMAND lfnds_flow_fork_join_semantics)
+set_tests_properties(flow_fork_join_semantics PROPERTIES LABELS "smoke")
+
 # Stress
 lfnds_add_probe(lfnds_flow_state_stress flow_state_stress.cpp)
 add_test(NAME flow_state_stress COMMAND lfnds_flow_state_stress)

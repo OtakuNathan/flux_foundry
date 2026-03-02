@@ -1,26 +1,37 @@
 # horizontal_compare
 
-`flux_foundry` 与 standalone Asio 的同机同编译器微基准入口。
-输出分为两层：
+Microbenchmark entry point for `flux_foundry` vs standalone Asio on the same host and toolchain.
+Results are split into two layers:
 
-- `pure scheduling overhead`: 尽量只看调度路径开销（`via` vs `dispatch/post`）
-- `full semantics overhead`: 保留 `result/await/when_all/when_any` 的完整语义路径
+- `pure scheduling overhead`: isolates scheduling-path cost as much as possible (`via` vs `dispatch/post`)
+- `full semantics overhead`: keeps full `result/await/when_all/when_any` semantics in the path
 
-## 运行
+## Run
 
 ```bash
 bench/horizontal_compare/run.sh
 ```
 
-脚本会在首次运行时自动拉取 Asio 到 `/tmp/flux_foundry_asio`，不会把第三方仓库塞进当前项目目录。
+On first run, the script auto-fetches Asio into `/tmp/flux_foundry_asio` and does not place third-party code inside this repository.
 
-`noexcept` 兼容版本：
+`noexcept` variant:
 
 ```bash
 bench/horizontal_compare/run_noexcept.sh
 ```
 
-## 当前覆盖
+3-run consolidated collection (recommended for README snapshots):
+
+```bash
+bash bench/horizontal_compare/run_collect_3x.sh
+```
+
+This writes one timestamped result file under `bench/horizontal_compare/results/` containing:
+
+- raw output of all 6 runs (`run.sh` x3 + `run_noexcept.sh` x3)
+- per-case `run1/run2/run3/median/mean` summary tables
+
+## Current Coverage
 
 - `baseline.direct.loop20`
 
@@ -47,7 +58,14 @@ Full semantics overhead:
 - `full.flux.fast_runner.when_any2.fastagg.post`
 - `full.asio.post.when_any2`
 
-## 注意
+Real backend async overhead (noexcept matrix):
 
-这是“同语义近似”的微基准，不是完整功能对等评测。
-如需发布级横评，建议进一步统一取消语义、错误传播语义、调度模型和 alloc 统计口径。
+- `real.flux.fast_runner.fast_awaitable.async4.backend`
+- `real.asio.raw.async4.backend`
+- `real.flux.fast_runner.fast_awaitable.async1.backend`
+- `real.asio.raw.async1.backend`
+
+## Notes
+
+This is a "semantics-near" microbenchmark, not a full feature-equivalence evaluation.
+For publication-grade comparisons, further align cancel semantics, error propagation semantics, scheduling model, and allocation accounting methodology.

@@ -40,7 +40,7 @@ namespace flux_foundry {
 #endif
         >>>>
         explicit inplace_storage_base(Args &&... args)
-            noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) :
+            noexcept(noexcept(std::declval<base&>().construct(std::declval<Args&&>()...))) :
             _has_value{false} {
             this->construct(std::forward<Args>(args)...);
         }
@@ -127,7 +127,7 @@ namespace flux_foundry {
 #endif
         > > >
         void construct(Args &&... args)
-                noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) {
+                noexcept(noexcept(std::declval<base&>().construct(std::declval<Args&&>()...))) {
             assert(!_has_value && "construct() requires no live object");
             static_cast<base &>(*this).construct(std::forward<Args>(args)...);
             _has_value = true;
@@ -136,7 +136,7 @@ namespace flux_foundry {
         template <typename... Args, std::enable_if_t<conjunction_v<
             std::is_constructible<T, Args &&...>, can_strong_replace<T> >, int>  = 0>
         void emplace(Args &&... args)
-            noexcept(noexcept(static_cast<base*>(nullptr)->emplace(std::declval<Args&&>()...))) {
+            noexcept(noexcept(std::declval<base&>().emplace(std::declval<Args&&>()...))) {
             if (!this->has_value()) {
                 this->construct(std::forward<Args>(args)...);
                 return;
@@ -160,7 +160,7 @@ namespace flux_foundry {
             return _has_value;
         }
 
-        void destroy() noexcept(noexcept(static_cast<base*>(nullptr)->destroy())) {
+        void destroy() noexcept(noexcept(std::declval<base&>().destroy())) {
             if (has_value()) {
                 static_cast<base &>(*this).destroy();
                 _has_value = false;
@@ -213,7 +213,7 @@ namespace flux_foundry {
 #endif
         >>>>
         explicit inplace_storage_base(Args &&... args)
-            noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) :
+            noexcept(noexcept(std::declval<base&>().construct(std::declval<Args&&>()...))) :
             _has_value{false} {
             this->construct(std::forward<Args>(args)...);
         }
@@ -295,7 +295,7 @@ namespace flux_foundry {
 #endif
             > > >
         void construct(Args &&... args)
-            noexcept(noexcept(static_cast<base*>(nullptr)->construct(std::declval<Args&&>()...))) {
+            noexcept(noexcept(std::declval<base&>().construct(std::declval<Args&&>()...))) {
             assert(!_has_value && "construct() requires no live object");
             static_cast<base &>(*this).construct(std::forward<Args>(args)...);
             _has_value = true;
@@ -304,7 +304,7 @@ namespace flux_foundry {
         template <typename... Args, std::enable_if_t<conjunction_v<
             std::is_constructible<T, Args &&...>, can_strong_replace<T> >, int>  = 0>
         void emplace(Args &&... args)
-            noexcept(noexcept(static_cast<base*>(nullptr)->emplace(std::declval<Args&&>()...))) {
+            noexcept(noexcept(std::declval<base&>().emplace(std::declval<Args&&>()...))) {
             if (!this->has_value()) {
                 this->construct(std::forward<Args>(args)...);
                 return;
@@ -328,7 +328,7 @@ namespace flux_foundry {
             return _has_value;
         }
 
-        void destroy() noexcept(noexcept(static_cast<base*>(nullptr)->destroy())) {
+        void destroy() noexcept(noexcept(std::declval<base&>().destroy())) {
             if (has_value()) {
                 static_cast<base &>(*this).destroy();
                 _has_value = false;

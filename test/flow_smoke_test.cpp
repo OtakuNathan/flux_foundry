@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <exception>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "flow/flow.h"
@@ -60,6 +61,22 @@ struct submit_fail_awaitable final : awaitable_base<submit_fail_awaitable, int, 
 
     int submit() noexcept {
         return -1;
+    }
+
+    void cancel() noexcept {}
+};
+
+struct submit_fail_fast_awaitable final : fast_awaitable_base<submit_fail_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    explicit submit_fail_fast_awaitable(async_result_type&&) noexcept {}
+
+    int submit() noexcept {
+        return -1;
+    }
+
+    bool available() const noexcept {
+        return true;
     }
 
     void cancel() noexcept {}
@@ -303,6 +320,77 @@ int test_when_any_fast() {
     return failed;
 }
 
+int test_when_all_fast_rejects_null_bp() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto leaf = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 10; })
+        | end();
+
+    using leaf_t = decltype(leaf);
+    auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
+    lite_ptr<leaf_t> p_null;
+
+    auto bp = await_when_all_fast(
+        &ex,
+        [](int a, int b) noexcept {
+            return out_t(value_tag, a + b);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p_valid,
+        p_null)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(1, 2);
+
+    int failed = 0;
+    check(obs.called, "when_all_fast null bp called", failed);
+    check(!obs.has_value, "when_all_fast null bp has error", failed);
+    check(has_logic_error_message(obs.err, "failed to submit async operation"),
+          "when_all_fast null bp submit-fail message", failed);
+    return failed;
+}
+
+int test_when_any_fast_accepts_null_bp() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto leaf = make_blueprint<int>()
+        | transform([](int x) noexcept { return x + 100; })
+        | end();
+
+    using leaf_t = decltype(leaf);
+    lite_ptr<leaf_t> p_null;
+    auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
+
+    auto bp = await_when_any_fast(
+        &ex,
+        [](size_t i, int x) noexcept {
+            return out_t(value_tag, x);
+        },
+        [](flow_async_agg_err_t e) noexcept {
+            return out_t(error_tag, std::move(e));
+        },
+        p_null,
+        p_valid)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(7, 1);
+
+    int failed = 0;
+    check(obs.called, "when_any_fast null bp called", failed);
+    check(obs.has_value, "when_any_fast null bp has value", failed);
+    check(obs.value == 101, "when_any_fast null bp value == 101", failed);
+    return failed;
+}
+
 int test_when_all_rejects_null_bp() {
     inline_executor ex;
     run_observer obs;
@@ -394,6 +482,100 @@ int test_submit_fail_path() {
     return failed;
 }
 
+int test_submit_fail_fast_path() {
+    inline_executor ex;
+    run_observer obs;
+
+    auto bp = make_blueprint<int>()
+        | await<submit_fail_fast_awaitable>(&ex)
+        | end();
+
+    auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+    auto runner = make_runner(bp_ptr, int_receiver{&obs});
+    runner(9);
+
+    int failed = 0;
+    check(obs.called, "submit fail fast path called", failed);
+    check(!obs.has_value, "submit fail fast path has error", failed);
+    check(has_logic_error_message(obs.err, "failed to submit async operation"),
+          "submit fail fast path error message", failed);
+    return failed;
+}
+
+int test_runner_input_overloads() {
+    int failed = 0;
+    {
+        run_observer obs;
+        auto bp = make_blueprint<int>() | transform([](int x) noexcept { return x + 1; }) | end();
+        auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+        auto runner = make_runner(bp_ptr, int_receiver{&obs});
+        runner(4);
+        check(obs.called, "runner input args called", failed);
+        check(obs.has_value, "runner input args has value", failed);
+        check(obs.value == 5, "runner input args value == 5", failed);
+    }
+    {
+        run_observer obs;
+        auto bp = make_blueprint<int>() | transform([](int x) noexcept { return x + 1; }) | end();
+        auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+        auto runner = make_runner(bp_ptr, int_receiver{&obs});
+        const out_t in(value_tag, 7);
+        runner(in);
+        check(obs.called, "runner input const result_t called", failed);
+        check(obs.has_value, "runner input const result_t has value", failed);
+        check(obs.value == 8, "runner input const result_t value == 8", failed);
+    }
+    {
+        run_observer obs;
+        auto bp = make_blueprint<int>() | end();
+        auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+        auto runner = make_runner(bp_ptr, int_receiver{&obs});
+        runner(out_t(error_tag, std::make_exception_ptr(std::logic_error("runner-injected-error"))));
+        check(obs.called, "runner input rvalue result_t called", failed);
+        check(!obs.has_value, "runner input rvalue result_t has error", failed);
+        check(has_logic_error_message(obs.err, "runner-injected-error"),
+            "runner input rvalue result_t passthrough", failed);
+    }
+    return failed;
+}
+
+int test_fast_runner_input_overloads() {
+    int failed = 0;
+    {
+        run_observer obs;
+        auto bp = make_blueprint<int>() | transform([](int x) noexcept { return x + 1; }) | end();
+        auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+        auto runner = make_fast_runner(bp_ptr, int_receiver{&obs});
+        runner(4);
+        check(obs.called, "fast_runner input args called", failed);
+        check(obs.has_value, "fast_runner input args has value", failed);
+        check(obs.value == 5, "fast_runner input args value == 5", failed);
+    }
+    {
+        run_observer obs;
+        auto bp = make_blueprint<int>() | transform([](int x) noexcept { return x + 1; }) | end();
+        auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+        auto runner = make_fast_runner(bp_ptr, int_receiver{&obs});
+        const out_t in(value_tag, 7);
+        runner(in);
+        check(obs.called, "fast_runner input const result_t called", failed);
+        check(obs.has_value, "fast_runner input const result_t has value", failed);
+        check(obs.value == 8, "fast_runner input const result_t value == 8", failed);
+    }
+    {
+        run_observer obs;
+        auto bp = make_blueprint<int>() | end();
+        auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
+        auto runner = make_fast_runner(bp_ptr, int_receiver{&obs});
+        runner(out_t(error_tag, std::make_exception_ptr(std::logic_error("fast-runner-injected-error"))));
+        check(obs.called, "fast_runner input rvalue result_t called", failed);
+        check(!obs.has_value, "fast_runner input rvalue result_t has error", failed);
+        check(has_logic_error_message(obs.err, "fast-runner-injected-error"),
+            "fast_runner input rvalue result_t passthrough", failed);
+    }
+    return failed;
+}
+
 } // namespace
 
 int main() {
@@ -405,9 +587,14 @@ int main() {
     failed += test_when_any();
     failed += test_when_all_fast();
     failed += test_when_any_fast();
+    failed += test_when_all_fast_rejects_null_bp();
+    failed += test_when_any_fast_accepts_null_bp();
     failed += test_when_all_rejects_null_bp();
     failed += test_when_any_accepts_null_bp();
     failed += test_submit_fail_path();
+    failed += test_submit_fail_fast_path();
+    failed += test_runner_input_overloads();
+    failed += test_fast_runner_input_overloads();
 
     if (failed == 0) {
         std::printf("[PASS] smoke test passed\n");

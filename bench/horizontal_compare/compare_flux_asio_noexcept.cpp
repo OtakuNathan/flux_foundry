@@ -171,6 +171,35 @@ struct immediate_plus_one_fast_awaitable final
     }
 };
 
+asio::thread_pool* g_real_backend_pool = nullptr;
+
+struct backend_plus_one_fast_awaitable final
+    : fast_awaitable_base<backend_plus_one_fast_awaitable, int, err_t> {
+    using async_result_type = out_t;
+
+    int v;
+
+    explicit backend_plus_one_fast_awaitable(async_result_type&& in) noexcept
+        : v(in.has_value() ? in.value() : 0) {
+    }
+
+    int submit() noexcept {
+        auto* self = this;
+        const int out = v + 1;
+        asio::post(*g_real_backend_pool, [self, out]() noexcept {
+            self->resume(async_result_type(value_tag, out));
+        });
+        return 0;
+    }
+
+    bool available() const noexcept {
+        return g_real_backend_pool != nullptr;
+    }
+
+    void cancel() noexcept {
+    }
+};
+
 struct sink_receiver {
     using value_type = out_t;
     volatile long long* sink;
@@ -181,6 +210,25 @@ struct sink_receiver {
         } else {
             *sink -= 1;
         }
+    }
+};
+
+struct sync_wait_state {
+    std::atomic<int> done{0};
+};
+
+struct sync_wait_receiver {
+    using value_type = out_t;
+    volatile long long* sink;
+    sync_wait_state* state;
+
+    void emplace(value_type&& r) noexcept {
+        if (r.has_value()) {
+            *sink += static_cast<long long>(r.value());
+        } else {
+            *sink -= 1;
+        }
+        state->done.store(1, std::memory_order_release);
     }
 };
 
@@ -322,6 +370,23 @@ auto make_async_4_fast_bp_inline() {
         | await<immediate_plus_one_fast_awaitable>()
         | await<immediate_plus_one_fast_awaitable>()
         | await<immediate_plus_one_fast_awaitable>()
+        | end();
+    return bp;
+}
+
+auto make_async_1_real_backend_fast_bp() {
+    auto bp = make_blueprint<int, err_t>()
+        | await<backend_plus_one_fast_awaitable>()
+        | end();
+    return bp;
+}
+
+auto make_async_4_real_backend_fast_bp() {
+    auto bp = make_blueprint<int, err_t>()
+        | await<backend_plus_one_fast_awaitable>()
+        | await<backend_plus_one_fast_awaitable>()
+        | await<backend_plus_one_fast_awaitable>()
+        | await<backend_plus_one_fast_awaitable>()
         | end();
     return bp;
 }
@@ -531,6 +596,33 @@ void asio_post_when_any2(asio::io_context& io, int a_in, int b_in, volatile long
 
     drain(io);
     *sink += static_cast<long long>(out);
+}
+
+struct asio_real_backend_async_hop {
+    asio::thread_pool* pool;
+    volatile long long* sink;
+    std::atomic<int>* done;
+    int x;
+    int remaining;
+
+    void operator()() const noexcept {
+        const int nx = x + 1;
+        const int nr = remaining - 1;
+        if (nr > 0) {
+            asio::post(*pool, asio_real_backend_async_hop{pool, sink, done, nx, nr});
+            return;
+        }
+        *sink += static_cast<long long>(nx);
+        done->store(1, std::memory_order_release);
+    }
+};
+
+void asio_real_backend_async4(asio::thread_pool& pool, int in, volatile long long* sink, std::atomic<int>& done) noexcept {
+    asio::post(pool, asio_real_backend_async_hop{&pool, sink, &done, in, 4});
+}
+
+void asio_real_backend_async1(asio::thread_pool& pool, int in, volatile long long* sink, std::atomic<int>& done) noexcept {
+    asio::post(pool, asio_real_backend_async_hop{&pool, sink, &done, in, 1});
 }
 
 } // namespace
@@ -1072,6 +1164,58 @@ int main() {
         asio_post_when_any2(io_full_asio, i, i + 1, &sink);
     });
     print_result(r15);
+
+    std::printf("\n[real backend async overhead]\n");
+    asio::thread_pool real_backend_pool(1);
+    g_real_backend_pool = &real_backend_pool;
+
+    sync_wait_state flux_real_done4;
+    sync_wait_state flux_real_done1;
+    std::atomic<int> asio_real_done4{0};
+    std::atomic<int> asio_real_done1{0};
+
+    auto bp_real_flux4 = make_async_4_real_backend_fast_bp();
+    auto flux_real_backend_fast_runner4 = make_fast_runner(std::move(bp_real_flux4), sync_wait_receiver{&sink, &flux_real_done4});
+    auto r16 = run_bench("real.flux.fast_runner.fast_awaitable.async4.backend", 2000, 120000, [&](int i) {
+        flux_real_done4.done.store(0, std::memory_order_relaxed);
+        flux_real_backend_fast_runner4(i);
+        while (flux_real_done4.done.load(std::memory_order_acquire) == 0) {
+            std::this_thread::yield();
+        }
+    });
+    print_result(r16);
+
+    auto r17 = run_bench("real.asio.raw.async4.backend", 2000, 120000, [&](int i) {
+        asio_real_done4.store(0, std::memory_order_relaxed);
+        asio_real_backend_async4(real_backend_pool, i, &sink, asio_real_done4);
+        while (asio_real_done4.load(std::memory_order_acquire) == 0) {
+            std::this_thread::yield();
+        }
+    });
+    print_result(r17);
+
+    auto bp_real_flux1 = make_async_1_real_backend_fast_bp();
+    auto flux_real_backend_fast_runner1 = make_fast_runner(std::move(bp_real_flux1), sync_wait_receiver{&sink, &flux_real_done1});
+    auto r18 = run_bench("real.flux.fast_runner.fast_awaitable.async1.backend", 2000, 200000, [&](int i) {
+        flux_real_done1.done.store(0, std::memory_order_relaxed);
+        flux_real_backend_fast_runner1(i);
+        while (flux_real_done1.done.load(std::memory_order_acquire) == 0) {
+            std::this_thread::yield();
+        }
+    });
+    print_result(r18);
+
+    auto r19 = run_bench("real.asio.raw.async1.backend", 2000, 200000, [&](int i) {
+        asio_real_done1.store(0, std::memory_order_relaxed);
+        asio_real_backend_async1(real_backend_pool, i, &sink, asio_real_done1);
+        while (asio_real_done1.load(std::memory_order_acquire) == 0) {
+            std::this_thread::yield();
+        }
+    });
+    print_result(r19);
+
+    real_backend_pool.join();
+    g_real_backend_pool = nullptr;
 
     std::printf("sink=%lld\n", sink);
     return 0;
