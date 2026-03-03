@@ -22,7 +22,7 @@ int main(){
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     std::thread worker([&](){ ex.run(); });
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    ex.shutdown();
+    ex.try_shutdown();
 
     producer.join();
     worker.join();

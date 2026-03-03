@@ -2,11 +2,8 @@
 #define FLUX_FOUNDRY_POOLING_H
 
 #include <new>
-#include <cstdint>
-#include <stdexcept>
 
 #include "aligned_alloc.h"
-#include "utility/static_list.h"
 #include "static_mem_pool.h"
 #include "base/traits.h"
 
@@ -28,7 +25,7 @@ namespace flux_foundry {
     }
 
     template <size_t size, size_t align, size_t cache_cap = detail::flux_foundry_default_cache_cap,
-            bool = (align <= alignof(std::max_align_t))>
+            bool = (align <= alignof(std::max_align_t)) && detail::alloc_size(size, align) <= detail::pool_max_block_size>
     struct flux_foundry_allocator {
         struct cache_stack {
             void* ptrs[cache_cap];

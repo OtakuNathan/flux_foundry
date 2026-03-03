@@ -8,7 +8,6 @@
 
 #include <atomic>
 #include <new>
-#include <cstdint>
 #include <type_traits>
 #include "../memory/pooling.h"
 #include "../memory/result_t.h"

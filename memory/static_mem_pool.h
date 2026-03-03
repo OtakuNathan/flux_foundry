@@ -1,7 +1,7 @@
 #ifndef FLUX_FOUNDRY_STATIC_MEM_POOL_H
 #define FLUX_FOUNDRY_STATIC_MEM_POOL_H
 
-#include "../utility/static_list.h"
+#include "../utility/static_stack.h"
 #include "../base/traits.h"
 
 namespace flux_foundry {
@@ -15,17 +15,21 @@ namespace flux_foundry {
         constexpr static size_t min_block_size = max_block_size >> maxoff;
         constexpr static size_t line_width = max_block_size * max_block_count;
 
+        static_assert((min_block_size % alignof(std::max_align_t)) == 0,
+                      "min_block_size must be multiple of max_align_t alignment");
+
         alignas(std::max_align_t) uint8_t buff[epoch * line_width];
 
         using slot_t = uint8_t*;
 
         template <size_t line>
-        using list_t = static_list<slot_t, (max_block_count << (maxoff - line))>;
+        using list_t = static_stack<slot_t, (max_block_count << (maxoff - line))>;
 
         list_t<0> free_0;
         list_t<1> free_1;
         list_t<2> free_2;
         list_t<3> free_3;
+
 
         static size_t match(size_t n) noexcept {
             if (n <= (min_block_size << 0)) return 0;

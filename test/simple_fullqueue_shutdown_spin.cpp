@@ -18,7 +18,7 @@ int main(){
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    ex.shutdown();
+    ex.try_shutdown();
     p.join();
     std::printf("done=%d\n", done.load(std::memory_order_relaxed));
     return 0;

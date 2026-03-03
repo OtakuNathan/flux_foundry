@@ -2,7 +2,6 @@
 #define FLUX_FOUNDRY_LOCK_FREE_QUEUES_H
 
 #include <atomic>
-#include <thread>
 #include "../base/traits.h"
 #include "../memory/padded_t.h"
 #include "../memory/inplace_t.h"

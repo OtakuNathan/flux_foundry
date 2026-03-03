@@ -8,7 +8,7 @@ This directory contains small TLA+ models for the two concurrency-heavy pieces t
 - `flow_runner` async-node handshake (factory/lock/set-next/submit/cancel/resume) (`FlowRunnerAsyncNode.tla`)
 - `flow_async_aggregator` 2-way `when_all` / `when_any` normal+fast completion protocol (`AsyncAggregator2Way.tla`)
 - `utility` queue protocols (`ReadyBitRingQueue.tla`, `MpmcQueueSeq.tla`, `SpmcDequeState.tla`)
-- `utility::static_list` dual-list ownership / sequence-tag discipline (`StaticListDualStack.tla`)
+- `utility::static_stack` dual-list ownership / sequence-tag discipline (`StaticListDualStack.tla`)
 
 These are *abstract* models, not line-by-line translations of the C++ implementation. They are meant to validate key safety properties and make reasoning explicit.
 
@@ -72,9 +72,9 @@ Modeled properties:
 - `mpmc_queue` slot state/round discipline (empty/full claim/publish protocol)
 - `spmc_deque` owner/thief slot-state protocol (`private/shared/claimed/empty`)
 
-### 7) `utility::static_list`
+### 7) `utility::static_stack`
 Source reference:
-- `utility/static_list.h`
+- `utility/static_stack.h`
 
 Modeled properties:
 - explicit tagged heads (`head_` / `free_`) and per-node `next` tags (`nodes[i].next`)
@@ -113,5 +113,5 @@ If you use the TLA+ Toolbox, open the `.tla` file and use the provided `.cfg` co
 - The `flow_controller` model abstracts callback function pointers into a boolean `handlerInstalled`.
 - The `flow_runner` model focuses on the async-node handshake path; it does not model the full pipeline interpreter.
 - The `async_aggregator` model focuses on successful-launch completion races (the most concurrency-sensitive part).
-- Queue/static-list models are protocol abstractions; `StaticListDualStack.tla` is closer to code structure (tagged heads + `next` tags) but still abstracts CAS retries/backoff and payload lifetime.
+- Queue/static-stack models are protocol abstractions; `StaticListDualStack.tla` is closer to code structure (tagged heads + `next` tags) but still abstracts CAS retries/backoff and payload lifetime.
 - These are safety-oriented models; they do not attempt to fully prove all liveness/throughput properties.

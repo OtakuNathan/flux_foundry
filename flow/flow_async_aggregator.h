@@ -6,9 +6,7 @@
 #define FLUX_FOUNDRY_FLOW_ASYNC_AGGREGATOR_H
 
 #include <system_error>
-#include <numeric>
 #include <array>
-#include <cstdint>
 #include <type_traits>
 
 #include "../memory/padded_t.h"
@@ -34,26 +32,22 @@ namespace detail {
     struct intrusive_awaitable_ptr {
         Awaitable *p;
 
-        intrusive_awaitable_ptr() noexcept
-                : p(nullptr) {
+        intrusive_awaitable_ptr() noexcept : p(nullptr) {
         }
 
-        explicit intrusive_awaitable_ptr(Awaitable *p_) noexcept
-                : p(p_) {
+        explicit intrusive_awaitable_ptr(Awaitable *p_) noexcept : p(p_) {
             if (p) {
                 p->retain();
             }
         }
 
-        intrusive_awaitable_ptr(const intrusive_awaitable_ptr &rhs) noexcept
-                : p(rhs.p) {
+        intrusive_awaitable_ptr(const intrusive_awaitable_ptr &rhs) noexcept : p(rhs.p) {
             if (p) {
                 p->retain();
             }
         }
 
-        intrusive_awaitable_ptr(intrusive_awaitable_ptr &&rhs) noexcept
-                : p(rhs.p) {
+        intrusive_awaitable_ptr(intrusive_awaitable_ptr &&rhs) noexcept : p(rhs.p) {
             rhs.p = nullptr;
         }
 
@@ -101,7 +95,7 @@ namespace detail {
         }
     };
 
-// when_all state
+    // when_all state
     template<typename Awaitable, typename... Ts>
     struct flow_when_all_state {
         using state_t = flow_when_all_state;
@@ -535,7 +529,7 @@ namespace detail {
         // fast awaitable does not participate in flow_controller cancel registration.
     };
 
-// when_any state
+    // when_any state
     template<typename Awaitable, typename... Ts>
     struct flow_when_any_state {
         using state_t = flow_when_any_state;

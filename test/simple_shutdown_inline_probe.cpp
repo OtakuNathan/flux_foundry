@@ -15,7 +15,7 @@ int main(){
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    ex.shutdown();
+    ex.try_shutdown();
 
     producer.join();
     std::printf("c1=%d c2=%d\n", c1.load(), c2.load());

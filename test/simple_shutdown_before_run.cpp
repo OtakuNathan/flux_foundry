@@ -12,7 +12,7 @@ int main(){
         done.fetch_add(1, std::memory_order_relaxed);
     }));
 
-    ex.shutdown();
+    ex.try_shutdown();
 
     std::thread worker([&](){ ex.run(); });
     worker.join();

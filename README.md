@@ -1,4 +1,4 @@
-﻿# flux_foundry
+# <img src="logo_thumbnail.jpg" width="50" height="50" valign="middle"/> flux_foundry
 
 > Lightweight C++14 foundations for async flow orchestration, lock-free queues, and low-level memory building blocks.
 
@@ -276,7 +276,7 @@ flowchart TB
     subgraph CORE_MOD["Module 4: Runtime Core"]
       C0["task_wrapper + callable_wrapper<br/>continuation transport (SBO/type-erasure)"]
       C1["result_t / lite_ptr / flat_storage<br/>typed payload and storage"]
-      C2["pooling allocator + queue/static_list primitives"]
+      C2["pooling allocator + queue/static_stack primitives"]
       C0 --> C1 --> C2
     end
   end
@@ -805,4 +805,3 @@ README.md
 ## 📜 License
 
 MIT
-

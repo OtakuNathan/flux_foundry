@@ -23,7 +23,7 @@ int main(){
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    ex.shutdown();
+    ex.try_shutdown();
 
     producer.join();
     worker.join();

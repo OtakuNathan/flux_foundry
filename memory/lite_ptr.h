@@ -6,7 +6,6 @@
 #define LF_TEST_REF_COUNT_H
 
 #include <atomic>
-#include <stdexcept>
 #include <cassert>
 #include <new>
 #include <memory>

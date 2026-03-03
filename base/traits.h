@@ -6,10 +6,8 @@
 #define FLUX_FOUNDRY_TRAITS_H
 
 #include <cstddef>
-#include <cstdint>
 #include <type_traits>
 #include <memory>
-#include <atomic>
 #include <cassert>
 
 #ifndef FLUX_FOUNDRY_NO_EXCEPTION_STRICT

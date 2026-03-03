@@ -5,7 +5,6 @@
 #ifndef FLUX_FOUNDRY_GSOURCE_EXECUTOR_H
 #define FLUX_FOUNDRY_GSOURCE_EXECUTOR_H
 
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <cerrno>

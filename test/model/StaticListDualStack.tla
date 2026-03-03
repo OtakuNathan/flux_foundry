@@ -1,7 +1,7 @@
 ---- MODULE StaticListDualStack ----
 EXTENDS Naturals, Sequences, FiniteSets
 
-\* Closer-to-code abstract model for utility/static_list.h:
+\* Closer-to-code abstract model for utility/static_stack.h:
 \* - explicit tagged heads: head_ / free_
 \* - explicit per-node next tag (nodes[i].next)
 \* - successful pop_from_list / append_to_list linearization steps

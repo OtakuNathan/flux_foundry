@@ -3,17 +3,14 @@
 
 #include <atomic>
 #include <thread>
-#include <memory>
 #include <vector>
 #include <stdexcept>
 #include <cstdlib>
-#include <cassert>
 
 #include "../base/traits.h"
 #include "../memory/flat_storage.h"
 #include "../utility/callable_wrapper.h"
 #include "../utility/back_off.h"
-#include "../utility/static_list.h"
 
 namespace flux_foundry {
 

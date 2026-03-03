@@ -1,7 +1,6 @@
 #ifndef FLUX_FOUNDRY_TYPE_ERASE_BASE_H
 #define FLUX_FOUNDRY_TYPE_ERASE_BASE_H
 
-#include <memory>
 #include <new>
 #include <cstring>
 #include <stdexcept>
