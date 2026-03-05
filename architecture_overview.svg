@@ -134,8 +134,8 @@
   <text class="text" x="140" y="476">awaitable_factory / aggregator_awaitable_factory</text>
 
   <rect class="node-async" x="640" y="442" width="500" height="84"/>
-  <text class="text" x="660" y="476">awaitable_base / fast_awaitable_base</text>
-  <text class="small" x="660" y="498">access_delegate: submit_async / resume</text>
+  <text class="text" x="660" y="476">when_all / when_any awaitables</text>
+  <text class="small" x="660" y="498">launch sub-runners + merge/winner</text>
 
   <rect class="node-async" x="120" y="540" width="500" height="84"/>
   <text class="text" x="140" y="574">flow_controller state machine</text>
@@ -143,12 +143,13 @@
   <text class="small" x="140" y="616">CAS state machine: idle -> waiting -> done</text>
 
   <rect class="node-async" x="640" y="540" width="500" height="84"/>
-  <text class="text" x="660" y="574">when_all / when_any awaitables</text>
-  <text class="small" x="660" y="596">launch sub-runners + merge/winner</text>
+  <text class="text" x="660" y="574">awaitable_base / fast_awaitable_base</text>
+  <text class="small" x="660" y="596">external_async_awaitable (extension)</text>
+  <text class="small" x="660" y="616">access_delegate: submit_async / resume</text>
 
-  <path class="arrow-async-int" d="M620 484 L640 484"/>
-  <path class="arrow-async-int" d="M890 540 L890 526"/>
-  <path class="arrow-async-dash" d="M620 582 L760 526"/>
+  <path class="arrow-async-int" d="M620 520 L640 540"/>
+  <path class="arrow-async-int" d="M890 526 L890 540"/>
+  <path class="arrow-async-dash" d="M620 582 L640 582"/>
 
   <!-- Module 1 (swapped to top-right): BP Builder -->
   <rect class="module-bp" x="1210" y="394" width="1060" height="250"/>
@@ -167,7 +168,7 @@
   <path class="arrow-bp-int" d="M1480 526 L1480 540"/>
   <path class="arrow-bp-int" d="M2000 526 L2000 540"/>
 
-  <!-- Module 2 (swapped to bottom-left): Runner -->
+  <!-- Module 3 (swapped to bottom-left): Runner -->
   <rect class="module-run" x="100" y="664" width="1060" height="290"/>
   <text class="label" x="122" y="696">Module 3: Runner Engine</text>
 
@@ -229,17 +230,17 @@
   <path class="arrow-inter-bp-run" d="M1220 645 L1155 665"/>
   <text class="small txt-indigo" x="1180" y="661">blueprint consumed by runner engines</text>
 
-  <path class="arrow-inter-run-async" d="M790 814 L790 526"/>
+  <path class="arrow-inter-run-async" d="M790 814 L790 624"/>
   <text class="small txt-run" x="675" y="660">await/aggregate factory path</text>
 
-  <path class="arrow-inter-async-run" d="M970 526 L970 712"/>
+  <path class="arrow-inter-async-run" d="M970 624 L970 712"/>
   <text class="small txt-async" x="904" y="660">resume(result_t) back to runner</text>
 
   <path class="arrow-inter-run-core" d="M1140 754 L1230 754"/>
   <text class="small txt-core" x="1144" y="735">runner uses</text>
   <text class="small txt-core" x="1144" y="750">runtime core</text>
 
-  <path class="arrow-inter-run-ext" d="M930 934 L930 1038"/>
+  <path class="arrow-inter-run-ext" d="M1000 934 L1000 1038"/>
   <path class="arrow-inter-ext-run" d="M1010 1038 L1010 934"/>
   <text class="small txt-ext" x="850" y="980">via/non-inline continuation submit + re-enter</text>
 

@@ -25,6 +25,7 @@ The project is tuned for predictable behavior and explicit contracts under concu
 | Module | Main files                                                                                                               | What it provides |
 |---|--------------------------------------------------------------------------------------------------------------------------|---|
 | `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h`                        | Pipeline DSL (`transform/then/on_error/catch_exception/via/await`), node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
+| `extension/` | `external_async_awaitable.h`, `cuda_awaitable.h`                                                                      | Generic external-async awaitable contract (`await_external_async`); CUDA naming kept as compatibility alias |
 | `executor/` | `simple_executor.h`, `gsource_executor.h`                                                                                | MPSC single-consumer executor, GLib source-backed executor |
 | `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h`                                                                | Lock-free queues, callable type-erasure with SBO, backoff policies |
 | `task/` | `task_wrapper.h`, `future_task.h`                                                                                        | Task wrappers and future-related task abstraction |
@@ -45,6 +46,7 @@ Run specific suites:
 ctest --test-dir build -C Release -L smoke  --output-on-failure
 ctest --test-dir build -C Release -L stress --output-on-failure
 ctest --test-dir build -C Release -L perf   --output-on-failure
+ctest --test-dir build -C Release -L demo   --output-on-failure
 ```
 
 ## ✅ CI
@@ -238,19 +240,22 @@ High-resolution export (architecture + sequence in one SVG): [`architecture_over
   }
 }}%%
 flowchart TB
-  subgraph DSL["DSL Layer (Public API)"]
-    D0["make_blueprint()"]
-    D1["operators:<br/>transform / then / on_error / catch_exception / via / await / await_when_all / await_when_any / end"]
-    D2["output blueprint:<br/>flow_blueprint(I, O, Nodes...)"]
-    D0 --> D1 --> D2
-  end
+  subgraph LAYERS[" "]
+    direction LR
 
-  subgraph IMPL["Internal Implementation Layer"]
+    subgraph DSL["DSL Layer (Public API)"]
+      D0["make_blueprint()"]
+      D1["operators:<br/>transform / then / on_error / catch_exception / via / await / await_when_all / await_when_any / end"]
+      D2["output blueprint:<br/>flow_blueprint(I, O, Nodes...)"]
+      D0 --> D1 --> D2
+    end
+
+    subgraph IMPL["Internal Implementation Layer"]
     direction LR
 
     subgraph ASYNC_MOD["Module 3: Async/Cancel Control"]
       A0["awaitable_factory / aggregator_awaitable_factory"]
-      A1["awaitable_base / fast_awaitable_base<br/>access_delegate: submit_async / resume"]
+      A1["awaitable_base / fast_awaitable_base<br/>external_async_awaitable (extension)<br/>access_delegate: submit_async / resume"]
       A2["flow_controller state machine<br/>(normal runner only)"]
       A3["when_all / when_any awaitables:<br/>launch sub-runners + merge/winner"]
       A0 --> A1
@@ -280,6 +285,7 @@ flowchart TB
       C0 --> C1 --> C2
     end
   end
+  end
 
   subgraph EXT["External Integration"]
     X0["external executor:<br/>simple_executor / gsource_executor / custom"]
@@ -305,6 +311,7 @@ flowchart TB
   classDef big font-size:16px,stroke-width:1.8px,padding:12px;
   class D0,D1,D2,B0,B1,B2,R0,R1,R2,A0,A1,A2,A3,C0,C1,C2,X0,X1,X2 big;
 
+  style LAYERS fill:transparent,stroke:transparent,stroke-width:0px
   style DSL fill:#eef6ff,stroke:#2563eb,stroke-width:3px
   style IMPL fill:#f8fafc,stroke:#334155,stroke-width:3px
   style EXT fill:#ecfeff,stroke:#0891b2,stroke-width:3px
@@ -742,7 +749,7 @@ Command:
 
 ```bash
 cmake -S . -B build -DFLUX_FOUNDRY_BUILD_TESTS=ON
-cmake --build build --config Release --target lfnds_flow_state_stress
+cmake --build build --config Release --target flux_foundry_flow_state_stress
 ctest --test-dir build -C Release -R flow_state_stress --output-on-failure
 ```
 
@@ -781,6 +788,7 @@ See `test/model/README.md` for the full model list, assumptions, and additional 
 base/
 CMakeLists.txt
 executor/
+extension/
 flow/
 memory/
 task/
@@ -800,6 +808,7 @@ README.md
 
 - Core library remains header-only.
 - Probe/stress/perf sources live in `test/` (`*.cpp`).
+- CUDA runtime/image backends are shipped as demo targets (`ctest -L demo`).
 - Generated binaries are written to `test/bin/`.
 
 ## 📜 License

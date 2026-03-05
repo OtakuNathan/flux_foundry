@@ -18,14 +18,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
-    add_compile_options(/W4 /permissive-)
+    add_compile_options(
+        $<$<COMPILE_LANGUAGE:CXX>:/W4>
+        $<$<COMPILE_LANGUAGE:CXX>:/permissive->)
     if(FLUX_FOUNDRY_WARNINGS_AS_ERRORS)
-        add_compile_options(/WX)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/WX>)
     endif()
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
+    add_compile_options(
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>)
     if(FLUX_FOUNDRY_WARNINGS_AS_ERRORS)
-        add_compile_options(-Werror)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Werror>)
     endif()
 endif()
 
