@@ -51,15 +51,17 @@ InstallNextStep ==
                  cancelCallbackCalls, dropCalls, submitOkCalls, submitFailCalls, cancelRequests >>
 
 ProvideCancelReg ==
+  /\ IsNormal
   /\ ~cancelRegProvided
   /\ cancelRegProvided' = TRUE
   /\ UNCHANGED << phase, nextStepInstalled, callbackCalls, resumeCalls,
                  cancelCallbackCalls, dropCalls, submitOkCalls, submitFailCalls, cancelRequests >>
 
 DropCancelReg ==
+  /\ IsNormal
   /\ cancelRegProvided
   /\ cancelRegProvided' = FALSE
-  /\ dropCalls' = dropCalls + IF IsNormal THEN 1 ELSE 0
+  /\ dropCalls' = dropCalls + 1
   /\ UNCHANGED << phase, nextStepInstalled, callbackCalls, resumeCalls,
                  cancelCallbackCalls, submitOkCalls, submitFailCalls, cancelRequests >>
 
@@ -164,7 +166,7 @@ CallbackNeedsNextStepInv ==
   (callbackCalls > 0) => nextStepInstalled
 
 FastCancelNoOpInv ==
-  IsFast => (cancelCallbackCalls = 0 /\ dropCalls = 0)
+  IsFast => (cancelCallbackCalls = 0 /\ dropCalls = 0 /\ ~cancelRegProvided)
 
 NormalCancelSingleInv ==
   IsNormal => cancelCallbackCalls <= 1

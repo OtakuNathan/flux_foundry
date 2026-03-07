@@ -104,8 +104,27 @@
 #define FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
 #endif
 
+#ifndef FLUX_FOUNDRY_CACHE_LINE_SIZE
+#  if defined(__APPLE__) && defined(__aarch64__)
+#    define FLUX_FOUNDRY_CACHE_LINE_SIZE 128
+#  else
+#    define FLUX_FOUNDRY_CACHE_LINE_SIZE 64
+#  endif
+#endif
+
+#ifndef FLUX_FOUNDRY_OPTIMIZED_ALIGN
+#  if defined(__APPLE__) && defined(__aarch64__)
+#    define FLUX_FOUNDRY_OPTIMIZED_ALIGN 64
+#  else
+#    define FLUX_FOUNDRY_OPTIMIZED_ALIGN FLUX_FOUNDRY_CACHE_LINE_SIZE
+#  endif
+#endif
+
 namespace flux_foundry {
-    static constexpr size_t CACHE_LINE_SIZE = 64;
+    // CACHE_LINE_SIZE reflects the hardware line size. OPTIMIZED_ALIGN is the
+    // empirically better default padding/alignment for hot runtime structures.
+    static constexpr size_t CACHE_LINE_SIZE = FLUX_FOUNDRY_CACHE_LINE_SIZE;
+    static constexpr size_t OPTIMIZED_ALIGN = FLUX_FOUNDRY_OPTIMIZED_ALIGN;
 
     template <typename T>
     struct is_shared_ptr_impl : std::false_type {};

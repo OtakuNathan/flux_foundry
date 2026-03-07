@@ -1,35 +1,51 @@
 ---- MODULE ReadyBitRingQueue ----
 EXTENDS Naturals, FiniteSets
 
-\* Abstracts the ready-bit ring queue protocol used by:
-\* - spsc_queue (direct publish)
-\* - mpsc_queue (claim tail -> publish slot)
+\* Abstracts:
+\* - spsc_queue: ready-bit ring
+\* - mpsc_queue: generation-tagged slot protocol (claim tail, publish odd seq, consume to next even seq)
 
 CONSTANTS Mode, Capacity, MaxSteps
 
 Modes == {"spsc", "mpsc"}
-SlotStates == {"empty", "claimed", "ready"}
+SlotStates == {"empty", "ready"}
 Slots == 0..(Capacity - 1)
 NoneTicket == 2 * MaxSteps + 1
 
 Idx(x) == x % Capacity
+RoundNo(x) == x \div Capacity
 StateCount(slots, st) == Cardinality({ i \in Slots : slots[i] = st })
 
-VARIABLES head, tail, slots, slotTicket, issued, published, consumed, steps
+MPSCReady(slotSeq, slotTicket, reserved, i) ==
+  /\ i \notin reserved
+  /\ slotTicket[i] # NoneTicket
+  /\ slotSeq[i] = 2 * RoundNo(slotTicket[i]) + 1
 
-vars == << head, tail, slots, slotTicket, issued, published, consumed, steps >>
+VARIABLES head, tail, slotState, slotSeq, slotTicket, reserved, issued, published, consumed, steps
 
-ReadyCount == StateCount(slots, "ready")
-ClaimedCount == StateCount(slots, "claimed")
-BusySlots == { i \in Slots : slots[i] # "empty" }
+vars == << head, tail, slotState, slotSeq, slotTicket, reserved, issued, published, consumed, steps >>
+
+ReadyCount ==
+  IF Mode = "spsc"
+    THEN StateCount(slotState, "ready")
+    ELSE Cardinality({ i \in Slots : MPSCReady(slotSeq, slotTicket, reserved, i) })
+
+ClaimedCount == IF Mode = "mpsc" THEN Cardinality(reserved) ELSE 0
+
+BusySlots ==
+  IF Mode = "spsc"
+    THEN { i \in Slots : slotState[i] = "ready" }
+    ELSE { i \in Slots : i \in reserved \/ MPSCReady(slotSeq, slotTicket, reserved, i) }
 
 Init ==
   /\ Mode \in Modes
   /\ Capacity \in Nat \ {0}
   /\ head = 0
   /\ tail = 0
-  /\ slots = [i \in Slots |-> "empty"]
+  /\ slotState = [i \in Slots |-> "empty"]
+  /\ slotSeq = [i \in Slots |-> 0]
   /\ slotTicket = [i \in Slots |-> NoneTicket]
+  /\ reserved = {}
   /\ issued = 0
   /\ published = 0
   /\ consumed = 0
@@ -37,40 +53,59 @@ Init ==
 
 EnqSPSC ==
   /\ Mode = "spsc"
-  /\ slots[Idx(tail)] = "empty"
-  /\ slots' = [slots EXCEPT ![Idx(tail)] = "ready"]
+  /\ slotState[Idx(tail)] = "empty"
+  /\ slotState' = [slotState EXCEPT ![Idx(tail)] = "ready"]
   /\ slotTicket' = [slotTicket EXCEPT ![Idx(tail)] = tail]
   /\ tail' = tail + 1
   /\ issued' = issued + 1
   /\ published' = published + 1
-  /\ UNCHANGED << head, consumed >>
+  /\ UNCHANGED << head, slotSeq, reserved, consumed >>
 
 ClaimTailMPSC ==
   /\ Mode = "mpsc"
-  /\ slots[Idx(tail)] = "empty"
-  /\ slots' = [slots EXCEPT ![Idx(tail)] = "claimed"]
-  /\ slotTicket' = [slotTicket EXCEPT ![Idx(tail)] = tail]
+  /\ LET i == Idx(tail) IN
+     LET seq == 2 * RoundNo(tail) IN
+     /\ slotSeq[i] = seq
+     /\ i \notin reserved
+     /\ slotTicket[i] = NoneTicket
+     /\ reserved' = reserved \cup {i}
+     /\ slotTicket' = [slotTicket EXCEPT ![i] = tail]
   /\ tail' = tail + 1
   /\ issued' = issued + 1
-  /\ UNCHANGED << head, published, consumed >>
+  /\ UNCHANGED << head, slotState, slotSeq, published, consumed >>
 
 PublishClaim ==
   /\ Mode = "mpsc"
-  /\ \E i \in Slots : slots[i] = "claimed"
-  /\ \E i \in Slots :
-       /\ slots[i] = "claimed"
-       /\ slots' = [slots EXCEPT ![i] = "ready"]
+  /\ \E i \in reserved :
+       LET t == slotTicket[i] IN
+       /\ slotSeq[i] = 2 * RoundNo(t)
+       /\ reserved' = reserved \ {i}
+       /\ slotSeq' = [slotSeq EXCEPT ![i] = 2 * RoundNo(t) + 1]
        /\ UNCHANGED slotTicket
   /\ published' = published + 1
-  /\ UNCHANGED << head, tail, issued, consumed >>
+  /\ UNCHANGED << head, tail, slotState, issued, consumed >>
 
-Pop ==
-  /\ slots[Idx(head)] = "ready"
-  /\ slots' = [slots EXCEPT ![Idx(head)] = "empty"]
+PopSPSC ==
+  /\ Mode = "spsc"
+  /\ slotState[Idx(head)] = "ready"
+  /\ slotState' = [slotState EXCEPT ![Idx(head)] = "empty"]
   /\ slotTicket' = [slotTicket EXCEPT ![Idx(head)] = NoneTicket]
   /\ head' = head + 1
   /\ consumed' = consumed + 1
-  /\ UNCHANGED << tail, issued, published >>
+  /\ UNCHANGED << tail, slotSeq, reserved, issued, published >>
+
+PopMPSC ==
+  /\ Mode = "mpsc"
+  /\ LET i == Idx(head) IN
+     LET seq == 2 * RoundNo(head) + 1 IN
+     /\ i \notin reserved
+     /\ slotSeq[i] = seq
+     /\ slotTicket[i] = head
+     /\ slotSeq' = [slotSeq EXCEPT ![i] = seq + 1]
+     /\ slotTicket' = [slotTicket EXCEPT ![i] = NoneTicket]
+  /\ head' = head + 1
+  /\ consumed' = consumed + 1
+  /\ UNCHANGED << tail, slotState, reserved, issued, published >>
 
 WithStep(A) ==
   /\ steps < MaxSteps
@@ -81,38 +116,62 @@ Next ==
   \/ WithStep(EnqSPSC)
   \/ WithStep(ClaimTailMPSC)
   \/ WithStep(PublishClaim)
-  \/ WithStep(Pop)
+  \/ WithStep(PopSPSC)
+  \/ WithStep(PopMPSC)
 
 Spec == Init /\ [][Next]_vars
 
 TypeInv ==
   /\ Mode \in Modes
-  /\ head \in 0..MaxSteps
+  /\ head \in 0..(2 * MaxSteps)
   /\ tail \in 0..(2 * MaxSteps)
-  /\ slots \in [Slots -> SlotStates]
+  /\ slotState \in [Slots -> SlotStates]
+  /\ slotSeq \in [Slots -> 0..(2 * MaxSteps + 1)]
   /\ slotTicket \in [Slots -> 0..NoneTicket]
+  /\ reserved \subseteq Slots
   /\ issued \in 0..(2 * MaxSteps)
   /\ published \in 0..(2 * MaxSteps)
   /\ consumed \in 0..(2 * MaxSteps)
   /\ steps \in 0..MaxSteps
 
 QueueAccountingInv ==
-  /\ issued = published + ClaimedCount
-  /\ published = consumed + ReadyCount
-  /\ tail - head = ReadyCount + ClaimedCount
+  /\ IF Mode = "spsc"
+        THEN
+          /\ issued = published
+          /\ published = consumed + ReadyCount
+          /\ tail - head = ReadyCount
+        ELSE
+          /\ issued = published + ClaimedCount
+          /\ published = consumed + ReadyCount
+          /\ tail - head = ReadyCount + ClaimedCount
 
 BoundedOccupancyInv ==
   /\ ReadyCount + ClaimedCount <= Capacity
   /\ head <= tail
 
 SPSCNoClaimInv ==
-  Mode = "spsc" => ClaimedCount = 0
+  Mode = "spsc" => reserved = {}
 
 TicketPlacementInv ==
-  /\ \A i \in Slots :
-       (slots[i] = "empty") <=> (slotTicket[i] = NoneTicket)
-  /\ \A i \in Slots :
-       (slots[i] # "empty") => (slotTicket[i] < tail /\ Idx(slotTicket[i]) = i)
+  /\ IF Mode = "spsc"
+        THEN
+          /\ \A i \in Slots :
+               (slotState[i] = "empty") <=> (slotTicket[i] = NoneTicket)
+          /\ \A i \in Slots :
+               (slotState[i] = "ready") => (slotTicket[i] < tail /\ Idx(slotTicket[i]) = i)
+        ELSE
+          /\ \A i \in reserved :
+               /\ slotTicket[i] # NoneTicket
+               /\ Idx(slotTicket[i]) = i
+               /\ slotSeq[i] = 2 * RoundNo(slotTicket[i])
+          /\ \A i \in Slots :
+               MPSCReady(slotSeq, slotTicket, reserved, i) =>
+                 /\ slotTicket[i] < tail
+                 /\ Idx(slotTicket[i]) = i
+          /\ \A i \in Slots :
+               /\ i \notin reserved
+               /\ slotSeq[i] % 2 = 0
+               => slotTicket[i] = NoneTicket
   /\ \A i, j \in BusySlots : i # j => slotTicket[i] # slotTicket[j]
 
 =============================================================================

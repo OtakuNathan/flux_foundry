@@ -10,7 +10,7 @@
 
 namespace flux_foundry {
 #if FLUX_FOUNDRY_PADDED_DEFAULT_CACHE_ALIGN
-    template <typename T, size_t align = (alignof(T) > CACHE_LINE_SIZE ? alignof(T) : CACHE_LINE_SIZE)>
+    template <typename T, size_t align = (alignof(T) > OPTIMIZED_ALIGN ? alignof(T) : OPTIMIZED_ALIGN)>
 #else
     template <typename T, size_t align = alignof(T)>
 #endif

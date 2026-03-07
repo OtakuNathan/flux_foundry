@@ -161,7 +161,7 @@ protected:
     static constexpr size_t MASK = capacity - 1;
 
     struct alignas(CACHE_LINE_SIZE) slot_t {
-        std::atomic<uint32_t> ready;
+        std::atomic<size_t> ready;
         raw_inplace_storage_base<T> storage;
 
         slot_t() noexcept : ready { 0 } { }
@@ -180,7 +180,7 @@ protected:
 
     alignas(CACHE_LINE_SIZE) slot_t _data[capacity];
 
-    static_assert(alignof(slot_t) == CACHE_LINE_SIZE, "slot_t must be cache-line aligned");
+    static_assert(alignof(slot_t) == CACHE_LINE_SIZE, "slot_t must use the hardware cache-line alignment");
 public:
     mpsc_queue() = default;
 
@@ -194,9 +194,10 @@ public:
         const size_t t = t_.load(std::memory_order_relaxed);
         while (_h != t) {
             slot_t& s = _data[_h & MASK];
-            if (s.ready.load(std::memory_order_relaxed)) {
+            auto seq = s.ready.load(std::memory_order_relaxed);
+            if (seq & 1) {
                 s.destroy();
-                s.ready.store(0, std::memory_order_relaxed);
+                s.ready.store(seq + 1, std::memory_order_relaxed);
             }
             ++_h;
         }
@@ -207,12 +208,13 @@ public:
     bool try_emplace(Args&& ... args) noexcept {
         auto& t_ = _t.get();
 
-        size_t t = t_.load(std::memory_order_relaxed);
+        size_t t = t_.load(std::memory_order_relaxed), seq = (t / capacity) << 1;
+
         slot_t &slot = _data[t & MASK];
-        if (slot.ready.load(std::memory_order_acquire) == 0
+        if (slot.ready.load(std::memory_order_acquire) == seq
             && t_.compare_exchange_strong(t, t + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
             slot.storage.construct(std::forward<Args>(args)...);
-            slot.ready.store(1, std::memory_order_release);
+            slot.ready.store(seq + 1, std::memory_order_release);
             return true;
         }
 
@@ -233,13 +235,13 @@ public:
     bool try_emplace(T&& object) noexcept {
         auto& t_ = _t.get();
 
-        size_t t = t_.load(std::memory_order_relaxed);
+        size_t t = t_.load(std::memory_order_relaxed), seq = (t / capacity) << 1;
 
         slot_t &slot = _data[t & MASK];
-        if (slot.ready.load(std::memory_order_acquire) == 0
+        if (slot.ready.load(std::memory_order_acquire) == seq
             && t_.compare_exchange_strong(t, t + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
             slot.storage.construct(std::move(object));
-            slot.ready.store(1, std::memory_order_release);
+            slot.ready.store(seq + 1, std::memory_order_release);
             return true;
         }
 
@@ -252,13 +254,13 @@ public:
         auto& t_ = _t.get();
         backoff_strategy<> backoff;
         for (;; backoff.yield()) {
-            size_t t = t_.load(std::memory_order_relaxed);
+            size_t t = t_.load(std::memory_order_relaxed), seq = (t / capacity) << 1;
 
-            slot_t& slot = _data[t & MASK];
-            if (slot.ready.load(std::memory_order_acquire) == 0
+            slot_t &slot = _data[t & MASK];
+            if (slot.ready.load(std::memory_order_acquire) == seq
                 && t_.compare_exchange_weak(t, t + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
                 slot.storage.construct(std::forward<Args>(args)...);
-                slot.ready.store(1, std::memory_order_release);
+                slot.ready.store(seq + 1, std::memory_order_release);
                 return;
             }
         }
@@ -280,13 +282,13 @@ public:
         auto& t_ = _t.get();
         backoff_strategy<> backoff;
         for (;; backoff.yield()) {
-            size_t t = t_.load(std::memory_order_relaxed);
+            size_t t = t_.load(std::memory_order_relaxed), seq = (t / capacity) << 1;
 
-            slot_t& slot = _data[t & MASK];
-            if (slot.ready.load(std::memory_order_acquire) == 0
+            slot_t &slot = _data[t & MASK];
+            if (slot.ready.load(std::memory_order_acquire) == seq
                 && t_.compare_exchange_weak(t, t + 1, std::memory_order_relaxed, std::memory_order_relaxed)) {
                 slot.storage.construct(std::move(object));
-                slot.ready.store(1, std::memory_order_release);
+                slot.ready.store(seq + 1, std::memory_order_release);
                 return;
             }
         }
@@ -296,13 +298,14 @@ public:
         inplace_t<T> res;
 
         slot_t& slot = this->_data[_h & MASK];
-        if (!slot.ready.load(std::memory_order_acquire)) {
+        auto seq = slot.ready.load(std::memory_order_acquire);
+        if (!(seq & 1)) {
             return res;
         }
 
         res.emplace(std::move(slot.data()));
         slot.destroy();
-        slot.ready.store(0, std::memory_order_release);
+        slot.ready.store(seq + 1, std::memory_order_release);
         ++_h;
         return res;
     }
@@ -311,13 +314,14 @@ public:
         backoff_strategy<> backoff;
         for (;; backoff.yield()) {
             slot_t& slot = this->_data[_h & MASK];
-            if (!slot.ready.load(std::memory_order_acquire)) {
+            auto seq = slot.ready.load(std::memory_order_acquire);
+            if (!(seq & 1)) {
                 continue;
             }
 
             T tmp = std::move(slot.data());
             slot.destroy();
-            slot.ready.store(0, std::memory_order_release);
+            slot.ready.store(seq + 1, std::memory_order_release);
             ++_h;
             return tmp;
         }

@@ -45,7 +45,7 @@ namespace flux_foundry {
         using storage_t = flat_storage<std::decay_t<Ts>...>;
         using slot_state = detail::slot_state;
     private:
-        struct alignas(CACHE_LINE_SIZE) Data {
+        struct alignas(OPTIMIZED_ALIGN) Data {
             std::atomic<size_t> ready_count;
 
             // Tips: if this is checked very frequently, each flag should be aligned by 64

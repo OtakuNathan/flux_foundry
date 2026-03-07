@@ -27,7 +27,7 @@ namespace detail {
 struct hp_mgr {
     using deleter_t = callable_t<void(void*)>;
     
-    struct alignas(CACHE_LINE_SIZE) hazard_record {
+    struct alignas(OPTIMIZED_ALIGN) hazard_record {
         std::atomic<std::thread::id> tid{std::thread::id()};
         std::atomic<const void*> ptr{nullptr};
         bool used = false;

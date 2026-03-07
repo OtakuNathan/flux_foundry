@@ -41,7 +41,7 @@ Source reference:
 Modeled properties:
 - at-most-once callback delivery (`next_step` invocation)
 - normal awaitable cancel path is single-winner vs resume path
-- fast awaitable cancel-handler path is a no-op (as designed)
+- fast awaitable path never registers a controller cancel handler
 
 ### 4) `flow_runner` async node path
 Source reference:
@@ -68,7 +68,7 @@ Source reference:
 - `utility/concurrent_queues.h`
 
 Modeled properties:
-- `spsc_queue` / `mpsc_queue` ready-bit ring occupancy and accounting
+- `spsc_queue` ready-bit occupancy/accounting and `mpsc_queue` generation-tag occupancy/accounting
 - `mpmc_queue` slot state/round discipline (empty/full claim/publish protocol)
 - `spmc_deque` owner/thief slot-state protocol (`private/shared/claimed/empty`)
 

@@ -90,9 +90,9 @@ namespace flux_foundry {
         a.swap(b);
     }
 
-    using task_wrapper_sbo = task_wrapper<CACHE_LINE_SIZE - 2 * sizeof(std::nullptr_t), alignof(std::max_align_t)>;
-    static_assert(sizeof(task_wrapper_sbo) == CACHE_LINE_SIZE,
-                  "task_wrapper_sbo must fit exactly in one cache line.");
+    using task_wrapper_sbo = task_wrapper<OPTIMIZED_ALIGN - 2 * sizeof(std::nullptr_t), alignof(std::max_align_t)>;
+    static_assert(sizeof(task_wrapper_sbo) == OPTIMIZED_ALIGN,
+                  "task_wrapper_sbo must fit exactly in one optimized alignment block.");
 }
 
 #endif

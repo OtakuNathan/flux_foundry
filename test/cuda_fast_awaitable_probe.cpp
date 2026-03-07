@@ -4,58 +4,16 @@
 #include <new>
 #include <stdexcept>
 #include <string>
-#include <system_error>
 #include <utility>
 
-#include "base/traits.h"
-#include "flow/flow_def.h"
-#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-namespace flux_foundry {
-template <>
-struct cancel_error<std::error_code> {
-    static std::error_code make(cancel_kind kind) noexcept {
-        return std::error_code(kind == cancel_kind::hard ? 1001 : 1002, std::generic_category());
-    }
-};
-
-template <>
-struct awaitable_creating_error<std::error_code> {
-    static std::error_code make() noexcept {
-        return std::error_code(1003, std::generic_category());
-    }
-};
-
-template <>
-struct async_submission_failed_error<std::error_code> {
-    static std::error_code make() noexcept {
-        return std::error_code(1004, std::generic_category());
-    }
-};
-
-template <>
-struct async_all_failed_error<std::error_code> {
-    static std::error_code make() noexcept {
-        return std::error_code(1005, std::generic_category());
-    }
-};
-
-template <>
-struct async_any_failed_error<std::error_code> {
-    static std::error_code make(size_t i) noexcept {
-        return std::error_code(static_cast<int>(1100 + i), std::generic_category());
-    }
-};
-}
-#endif
-
 #include "flow/flow.h"
-#include "extension/external_async_awaitable.h"
+#include "extension/cuda_awaitable.h"
 
 using namespace flux_foundry;
 
 namespace {
 
-using err_t = extension::external_async_error_t;
+using err_t = extension::cuda_error_t;
 
 struct inline_executor {
     void dispatch(task_wrapper_sbo t) noexcept {
@@ -67,6 +25,19 @@ struct cuda_payload {
     int value{0};
     explicit cuda_payload(int v) noexcept : value(v) {}
 };
+
+err_t make_logic_error(const char* msg) noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+    try {
+        throw std::logic_error(msg);
+    } catch (...) {
+        return std::current_exception();
+    }
+#else
+    (void)msg;
+    return std::make_error_code(std::errc::invalid_argument);
+#endif
+}
 
 bool has_logic_error_message(const err_t& ep, const char* expected) {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -150,7 +121,7 @@ struct mock_cuda_op {
         delete p;
     }
 
-    static int submit(context_t* ctx, extension::external_async_callback_fp_t cb, extension::external_async_callback_param_t user) noexcept {
+    static int submit(context_t* ctx, extension::cuda_callback_fp_t cb, extension::cuda_callback_param_t user) noexcept {
         submit_count.fetch_add(1, std::memory_order_relaxed);
         if (ctx == nullptr || cb == nullptr || user == nullptr) {
             return -1;
@@ -184,7 +155,7 @@ std::atomic<int> mock_cuda_op::collect_count{0};
 std::atomic<int> mock_cuda_op::destroy_count{0};
 std::atomic<int> mock_cuda_op::free_result_count{0};
 
-using awaitable_t = extension::external_async_awaitable<mock_cuda_op>;
+using awaitable_t = extension::cuda_awaitable<mock_cuda_op>;
 using out_t = typename awaitable_t::async_result_type;
 
 struct payload_receiver {
@@ -208,25 +179,23 @@ int test_cuda_success_path() {
     inline_executor ex;
     run_observer obs;
 
-    auto bp = make_blueprint<int, err_t>()
-        | await_external_async<mock_cuda_op>(&ex)
-        | end([](out_t&& in) noexcept -> out_t {
-            return std::move(in);
-        });
+    auto bp = make_blueprint<int>()
+        | await_cuda<mock_cuda_op>(&ex)
+        | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, payload_receiver{&obs});
     runner(41);
 
     int failed = 0;
-    check(obs.called, "external_async success called", failed);
-    check(obs.has_value, "external_async success has_value", failed);
-    check(obs.value == 42, "external_async success value == 42", failed);
-    check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "external_async success init_ctx once", failed);
-    check(mock_cuda_op::submit_count.load(std::memory_order_relaxed) == 1, "external_async success submit once", failed);
-    check(mock_cuda_op::collect_count.load(std::memory_order_relaxed) == 1, "external_async success collect once", failed);
-    check(mock_cuda_op::destroy_count.load(std::memory_order_relaxed) == 1, "external_async success destroy_ctx once", failed);
-    check(mock_cuda_op::free_result_count.load(std::memory_order_relaxed) == 1, "external_async success free_result once", failed);
+    check(obs.called, "cuda success called", failed);
+    check(obs.has_value, "cuda success has_value", failed);
+    check(obs.value == 42, "cuda success value == 42", failed);
+    check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "cuda success init_ctx once", failed);
+    check(mock_cuda_op::submit_count.load(std::memory_order_relaxed) == 1, "cuda success submit once", failed);
+    check(mock_cuda_op::collect_count.load(std::memory_order_relaxed) == 1, "cuda success collect once", failed);
+    check(mock_cuda_op::destroy_count.load(std::memory_order_relaxed) == 1, "cuda success destroy_ctx once", failed);
+    check(mock_cuda_op::free_result_count.load(std::memory_order_relaxed) == 1, "cuda success free_result once", failed);
     return failed;
 }
 
@@ -235,30 +204,26 @@ int test_cuda_init_fail_path() {
     inline_executor ex;
     run_observer obs;
 
-    auto bp = make_blueprint<int, err_t>()
-        | await_external_async<mock_cuda_op>(&ex)
-        | end([](out_t&& in) noexcept -> out_t {
-            return std::move(in);
-        });
+    auto bp = make_blueprint<int>()
+        | await_cuda<mock_cuda_op>(&ex)
+        | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, payload_receiver{&obs});
     runner(-1);
 
     int failed = 0;
-    check(obs.called, "external_async init_fail called", failed);
-    check(!obs.has_value, "external_async init_fail has error", failed);
+    check(obs.called, "cuda init_fail called", failed);
+    check(!obs.has_value, "cuda init_fail has error", failed);
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-    check(has_logic_error_message(obs.err, "error occurred when initializing external async operation context"),
-          "external_async init_fail error type", failed);
-#else
-    check(obs.err.value() == 1003, "external_async init_fail awaitable_creating_error", failed);
+    check(has_logic_error_message(obs.err, "error occurred when initializing cuda operation context"),
+          "cuda init_fail error type", failed);
 #endif
-    check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "external_async init_fail init_ctx once", failed);
-    check(mock_cuda_op::submit_count.load(std::memory_order_relaxed) == 0, "external_async init_fail submit skipped", failed);
-    check(mock_cuda_op::collect_count.load(std::memory_order_relaxed) == 0, "external_async init_fail collect skipped", failed);
-    check(mock_cuda_op::destroy_count.load(std::memory_order_relaxed) == 0, "external_async init_fail destroy_ctx skipped", failed);
-    check(mock_cuda_op::free_result_count.load(std::memory_order_relaxed) == 0, "external_async init_fail free_result skipped", failed);
+    check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "cuda init_fail init_ctx once", failed);
+    check(mock_cuda_op::submit_count.load(std::memory_order_relaxed) == 0, "cuda init_fail submit skipped", failed);
+    check(mock_cuda_op::collect_count.load(std::memory_order_relaxed) == 0, "cuda init_fail collect skipped", failed);
+    check(mock_cuda_op::destroy_count.load(std::memory_order_relaxed) == 0, "cuda init_fail destroy_ctx skipped", failed);
+    check(mock_cuda_op::free_result_count.load(std::memory_order_relaxed) == 0, "cuda init_fail free_result skipped", failed);
     return failed;
 }
 
@@ -267,30 +232,26 @@ int test_cuda_submit_fail_path() {
     inline_executor ex;
     run_observer obs;
 
-    auto bp = make_blueprint<int, err_t>()
-        | await_external_async<mock_cuda_op>(&ex)
-        | end([](out_t&& in) noexcept -> out_t {
-            return std::move(in);
-        });
+    auto bp = make_blueprint<int>()
+        | await_cuda<mock_cuda_op>(&ex)
+        | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(bp_ptr, payload_receiver{&obs});
     runner(0);
 
     int failed = 0;
-    check(obs.called, "external_async submit_fail called", failed);
-    check(!obs.has_value, "external_async submit_fail has error", failed);
+    check(obs.called, "cuda submit_fail called", failed);
+    check(!obs.has_value, "cuda submit_fail has error", failed);
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     check(has_logic_error_message(obs.err, "failed to submit async operation"),
-          "external_async submit_fail async_submission_failed_error", failed);
-#else
-    check(obs.err.value() == 1004, "external_async submit_fail async_submission_failed_error", failed);
+          "cuda submit_fail async_submission_failed_error", failed);
 #endif
-    check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "external_async submit_fail init_ctx once", failed);
-    check(mock_cuda_op::submit_count.load(std::memory_order_relaxed) == 1, "external_async submit_fail submit once", failed);
-    check(mock_cuda_op::collect_count.load(std::memory_order_relaxed) == 0, "external_async submit_fail collect skipped", failed);
-    check(mock_cuda_op::destroy_count.load(std::memory_order_relaxed) == 1, "external_async submit_fail destroy_ctx once", failed);
-    check(mock_cuda_op::free_result_count.load(std::memory_order_relaxed) == 0, "external_async submit_fail free_result skipped", failed);
+    check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "cuda submit_fail init_ctx once", failed);
+    check(mock_cuda_op::submit_count.load(std::memory_order_relaxed) == 1, "cuda submit_fail submit once", failed);
+    check(mock_cuda_op::collect_count.load(std::memory_order_relaxed) == 0, "cuda submit_fail collect skipped", failed);
+    check(mock_cuda_op::destroy_count.load(std::memory_order_relaxed) == 1, "cuda submit_fail destroy_ctx once", failed);
+    check(mock_cuda_op::free_result_count.load(std::memory_order_relaxed) == 0, "cuda submit_fail free_result skipped", failed);
     return failed;
 }
 
@@ -302,9 +263,9 @@ int main() {
     failed += test_cuda_init_fail_path();
     failed += test_cuda_submit_fail_path();
     if (failed != 0) {
-        std::printf("[FAIL] external_async_awaitable_probe failures=%d\n", failed);
+        std::printf("[FAIL] cuda_awaitable_probe failures=%d\n", failed);
         return 1;
     }
-    std::printf("[OK] external_async_awaitable_probe\n");
+    std::printf("[OK] cuda_awaitable_probe\n");
     return 0;
 }

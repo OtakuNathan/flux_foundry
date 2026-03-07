@@ -39,7 +39,8 @@ struct context_type_prob : std::false_type {};
 template<typename OP>
 struct context_type_prob<OP, void_t<typename OP::context_t>> : conjunction<
     std::is_standard_layout<typename OP::context_t>,
-    std::is_trivially_copy_constructible<typename OP::context_t>> {};
+    std::is_trivially_copy_constructible<typename OP::context_t>,
+    std::is_trivially_destructible<typename OP::context_t>> {};
 
 template<typename OP>
 constexpr bool context_type_prob_v = context_type_prob<OP>::value;
@@ -145,7 +146,7 @@ struct external_async_awaitable final :
 
     static_assert(detail::context_type_prob_v<external_async_operator_t>,
         "there should be typename external_async_operator_t::context_t which represent the context of the operation.\n"
-        "besides, the context_t should be exact a C-struct.");
+        "besides, the context_t should be exact a C-struct with trivial destruction.");
 
     static_assert(detail::context_destroy_ctx_prob_v<external_async_operator_t>,
         "there should be static function whose signature is like:"

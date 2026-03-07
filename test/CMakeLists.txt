@@ -13,7 +13,7 @@ endif()
 
 function(flux_foundry_add_probe target source)
     add_executable(${target} ${source})
-    target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}")
+    target_link_libraries(${target} PRIVATE flux_foundry::flux_foundry)
 endfunction()
 
 function(flux_foundry_add_noexc_probe target source)
@@ -47,6 +47,10 @@ set_tests_properties(flow_fork_join_semantics PROPERTIES LABELS "smoke")
 flux_foundry_add_probe(flux_foundry_external_async_awaitable_probe external_async_awaitable_probe.cpp)
 add_test(NAME external_async_awaitable_probe COMMAND flux_foundry_external_async_awaitable_probe)
 set_tests_properties(external_async_awaitable_probe PROPERTIES LABELS "smoke;extension")
+
+flux_foundry_add_noexc_probe(flux_foundry_external_async_awaitable_probe_noexc external_async_awaitable_probe.cpp)
+add_test(NAME external_async_awaitable_probe_noexc COMMAND flux_foundry_external_async_awaitable_probe_noexc)
+set_tests_properties(external_async_awaitable_probe_noexc PROPERTIES LABELS "smoke;extension;noexc")
 
 # Stress
 flux_foundry_add_probe(flux_foundry_flow_state_stress flow_state_stress.cpp)
