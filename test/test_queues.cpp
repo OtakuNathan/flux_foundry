@@ -22,11 +22,20 @@ using namespace std::chrono;
 
 // 测试配置
 constexpr size_t CAPACITY = (1u << 16);
+#if FLUX_FOUNDRY_WITH_TSAN
+constexpr int DEFAULT_DURATION_SEC = 1;
+#else
 constexpr int DEFAULT_DURATION_SEC = 5;
+#endif
 constexpr size_t LATENCY_SAMPLE_STRIDE = 4096;
 constexpr uint64_t ID_SAMPLE_MASK = (1u << 13) - 1;
 static_assert((LATENCY_SAMPLE_STRIDE & (LATENCY_SAMPLE_STRIDE - 1)) == 0,
               "latency sample stride must be power-of-two");
+
+enum class run_mode {
+    full,
+    quick
+};
 
 struct alignas(OPTIMIZED_ALIGN) counter_slot {
     uint64_t value = 0;
@@ -221,6 +230,19 @@ int parse_positive_or_default(const char* text, int fallback) noexcept {
         }
     }
     return value > 0 ? value : fallback;
+}
+
+run_mode parse_mode_or_default(const char* text, run_mode fallback) noexcept {
+    if (!text || *text == '\0') {
+        return fallback;
+    }
+    if (std::strcmp(text, "full") == 0) {
+        return run_mode::full;
+    }
+    if (std::strcmp(text, "quick") == 0) {
+        return run_mode::quick;
+    }
+    return fallback;
 }
 
 // SPSC 测试
@@ -639,23 +661,39 @@ void test_spmc(int stealers, int duration_sec) {
 }
 
 int main(int argc, char** argv) {
+    const run_mode default_mode =
+#if FLUX_FOUNDRY_WITH_TSAN
+        run_mode::quick;
+#else
+        run_mode::full;
+#endif
+    const run_mode mode = argc > 2 ? parse_mode_or_default(argv[2], default_mode)
+                                   : default_mode;
     const int duration_sec = argc > 1 ? parse_positive_or_default(argv[1], DEFAULT_DURATION_SEC)
                                       : DEFAULT_DURATION_SEC;
 
     std::cout << "=== flux_foundry Queue Benchmarks ===\n";
     std::cout << "Capacity: " << CAPACITY
               << " Duration: " << duration_sec << "s"
+              << " Mode: " << (mode == run_mode::quick ? "quick" : "full")
               << " LatencySampleStride: " << LATENCY_SAMPLE_STRIDE << '\n';
 
-    test_spsc(duration_sec);
-    test_mpsc(4, duration_sec);
-    test_mpsc(8, duration_sec);
-    test_mpmc(4, 4, duration_sec);
-    test_mpmc(8, 8, duration_sec);
-    test_spmc(1, duration_sec);
-    test_spmc(2, duration_sec);
-    test_spmc(4, duration_sec);
-    test_spmc(8, duration_sec);
+    if (mode == run_mode::quick) {
+        test_spsc(duration_sec);
+        test_mpsc(8, duration_sec);
+        test_mpmc(8, 8, duration_sec);
+        test_spmc(8, duration_sec);
+    } else {
+        test_spsc(duration_sec);
+        test_mpsc(4, duration_sec);
+        test_mpsc(8, duration_sec);
+        test_mpmc(4, 4, duration_sec);
+        test_mpmc(8, 8, duration_sec);
+        test_spmc(1, duration_sec);
+        test_spmc(2, duration_sec);
+        test_spmc(4, duration_sec);
+        test_spmc(8, duration_sec);
+    }
 
     std::cout << "\n=== All tests completed ===\n";
     return 0;

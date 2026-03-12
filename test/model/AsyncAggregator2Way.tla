@@ -14,6 +14,7 @@ ResultKinds == {"none", "value", "error"}
 NoneIdx == 2
 
 VARIABLES launched,
+          launchLoopDone,
           launchSuccess,
           launchFailed,
           childState,
@@ -25,7 +26,7 @@ VARIABLES launched,
           steps
 
 vars ==
-  << launched, launchSuccess, launchFailed, childState, winner, failedIdx,
+  << launched, launchLoopDone, launchSuccess, launchFailed, childState, winner, failedIdx,
      controllersCanceled, resumeCalls, resultKind, steps >>
 
 PendingCount(cs) == Cardinality({ i \in Idx : cs[i] = "pending" })
@@ -34,40 +35,31 @@ AllDone == PendingCount(childState) = 0
 AnyError(cs) == \E i \in Idx : cs[i] = "error"
 AnyValue(cs) == \E i \in Idx : cs[i] = "value"
 
-\* submit() marks launch_success when launching phase returns success:
-\* - when_all: all children launched successfully
-\* - when_any: at least one child launched, and if not all launched then an early winner stopped launching
-LaunchSuccessReady ==
-  IF AggKind = "when_all" THEN
-    AllLaunched
-  ELSE
-    /\ launched # {}
-    /\ (AllLaunched \/ winner # NoneIdx)
-
 FinalizeValueAllowed(cs, w) ==
   /\ resumeCalls = 0
   /\ launchSuccess
   /\ ~launchFailed
-  /\ AllLaunched
   /\ PendingCount(cs) = 0
   /\ IF AggKind = "when_all"
-        THEN \A i \in Idx : cs[i] = "value"
+        THEN /\ AllLaunched
+             /\ \A i \in Idx : cs[i] = "value"
         ELSE w # NoneIdx
 
 FinalizeErrorAllowed(cs, w) ==
   /\ resumeCalls = 0
   /\ launchSuccess
   /\ ~launchFailed
-  /\ AllLaunched
   /\ PendingCount(cs) = 0
   /\ IF AggKind = "when_all"
-        THEN AnyError(cs)
+        THEN /\ AllLaunched
+             /\ AnyError(cs)
         ELSE w = NoneIdx
 
 Init ==
   /\ AggKind \in Kinds
   /\ FastMode \in BOOLEAN
   /\ launched = {}
+  /\ launchLoopDone = FALSE
   /\ launchSuccess = FALSE
   /\ launchFailed = FALSE
   /\ childState = [i \in Idx |-> "none"]
@@ -81,16 +73,45 @@ Init ==
 LaunchChild(i) ==
   /\ i \in Idx
   /\ i \notin launched
+  /\ ~launchLoopDone
   /\ launched' = launched \cup {i}
   /\ childState' = [childState EXCEPT ![i] = "pending"]
-  /\ UNCHANGED << launchSuccess, launchFailed, winner, failedIdx, controllersCanceled, resumeCalls, resultKind >>
+  /\ UNCHANGED << launchLoopDone, launchSuccess, launchFailed, winner, failedIdx, controllersCanceled, resumeCalls, resultKind >>
 
-\* submit() marks launch-success after all child launches are started.
+FinishLaunchAll ==
+  /\ ~launchLoopDone
+  /\ AllLaunched
+  /\ launchLoopDone' = TRUE
+  /\ UNCHANGED << launched, launchSuccess, launchFailed, childState, winner, failedIdx,
+                 controllersCanceled, resumeCalls, resultKind >>
+
+FinishLaunchWinner ==
+  /\ ~launchLoopDone
+  /\ AggKind = "when_any"
+  /\ launched # {}
+  /\ winner # NoneIdx
+  /\ launchLoopDone' = TRUE
+  /\ UNCHANGED << launched, launchSuccess, launchFailed, childState, winner, failedIdx,
+                 controllersCanceled, resumeCalls, resultKind >>
+
+\* when_any submit() treats "at least one child launched" as success even if later
+\* children failed to launch, as long as the launch loop eventually stops.
+FinishLaunchPartialFailure ==
+  /\ ~launchLoopDone
+  /\ AggKind = "when_any"
+  /\ launched # {}
+  /\ ~AllLaunched
+  /\ winner = NoneIdx
+  /\ launchLoopDone' = TRUE
+  /\ UNCHANGED << launched, launchSuccess, launchFailed, childState, winner, failedIdx,
+                 controllersCanceled, resumeCalls, resultKind >>
+
+\* submit() marks launch-success after the launch loop ends.
 \* If children completed synchronously before this flag is set, finalization may happen here.
 MarkLaunchSuccess ==
+  /\ launchLoopDone
   /\ ~launchSuccess
   /\ ~launchFailed
-  /\ LaunchSuccessReady
   /\ launchSuccess' = TRUE
   /\ IF FinalizeValueAllowed(childState, winner) THEN
         /\ resumeCalls' = resumeCalls + 1
@@ -100,15 +121,17 @@ MarkLaunchSuccess ==
         /\ resultKind' = "error"
      ELSE
         /\ UNCHANGED << resumeCalls, resultKind >>
-  /\ UNCHANGED << launched, launchFailed, childState, winner, failedIdx, controllersCanceled >>
+  /\ UNCHANGED << launched, launchLoopDone, launchFailed, childState, winner, failedIdx, controllersCanceled >>
 
 \* Abstract launch-failure marker (e.g. missing bp / launch exception path).
 \* In the real code this causes submit() failure and outer awaitable submit_async() fail path.
 MarkLaunchFailed ==
+  /\ ~launchLoopDone
   /\ ~launchSuccess
   /\ ~launchFailed
   /\ resumeCalls = 0
   /\ IF AggKind = "when_any" THEN launched = {} ELSE ~AllLaunched
+  /\ launchLoopDone' = TRUE
   /\ launchFailed' = TRUE
   /\ IF (~FastMode /\ AggKind = "when_all")
         THEN controllersCanceled' = controllersCanceled \cup launched
@@ -137,7 +160,7 @@ ChildCompleteValue(i) ==
         ELSE
            /\ UNCHANGED << resumeCalls, resultKind >>
      /\ IF failedIdx = NoneIdx THEN UNCHANGED failedIdx ELSE failedIdx' = failedIdx
-  /\ UNCHANGED << launched, launchSuccess, launchFailed >>
+  /\ UNCHANGED << launched, launchLoopDone, launchSuccess, launchFailed >>
 
 ChildCompleteError(i) ==
   /\ i \in Idx
@@ -154,7 +177,7 @@ ChildCompleteError(i) ==
         ELSE
            /\ UNCHANGED << resumeCalls, resultKind >>
      /\ UNCHANGED winner
-  /\ UNCHANGED << launched, launchSuccess, launchFailed >>
+  /\ UNCHANGED << launched, launchLoopDone, launchSuccess, launchFailed >>
 
 WithStep(A) ==
   /\ steps < MaxSteps
@@ -163,6 +186,9 @@ WithStep(A) ==
 
 Next ==
   \/ \E i \in Idx : WithStep(LaunchChild(i))
+  \/ WithStep(FinishLaunchAll)
+  \/ WithStep(FinishLaunchWinner)
+  \/ WithStep(FinishLaunchPartialFailure)
   \/ WithStep(MarkLaunchSuccess)
   \/ WithStep(MarkLaunchFailed)
   \/ \E i \in Idx : WithStep(ChildCompleteValue(i))
@@ -174,6 +200,7 @@ TypeInv ==
   /\ AggKind \in Kinds
   /\ FastMode \in BOOLEAN
   /\ launched \subseteq Idx
+  /\ launchLoopDone \in BOOLEAN
   /\ launchSuccess \in BOOLEAN
   /\ launchFailed \in BOOLEAN
   /\ childState \in [Idx -> ChildStates]
@@ -186,12 +213,13 @@ TypeInv ==
 
 LaunchFlagsInv ==
   /\ ~(launchSuccess /\ launchFailed)
+  /\ launchSuccess => launchLoopDone
+  /\ launchFailed => launchLoopDone
   /\ launchFailed => (resumeCalls = 0 /\ resultKind = "none")
 
 LaunchSuccessShapeInv ==
   /\ (AggKind = "when_all" /\ launchSuccess) => AllLaunched
   /\ (AggKind = "when_any" /\ launchSuccess) => (launched # {})
-  /\ (AggKind = "when_any" /\ launchSuccess /\ ~AllLaunched) => (winner # NoneIdx)
 
 LaunchStateInv ==
   /\ \A i \in Idx : (i \notin launched) => (childState[i] = "none")

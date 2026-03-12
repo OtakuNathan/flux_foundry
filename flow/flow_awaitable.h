@@ -15,21 +15,21 @@
 #include "flow_def.h"
 
 namespace flux_foundry {
-    // State transitions:
-    // idle -> waiting (via submit_async, atomic CAS)
-    // waiting -> done (via resume, atomic CAS)
-    // Only one thread can successfully transition from idle->waiting
-    // Only one thread (either async completion or cancel) can transition waiting->done.
-    enum wait_state {
-        idle, // No operation in progress
-        waiting, // Waiting for async operation
-        done, // Operation done, callback not run yet
-    };
-
     // Contract: Awaitables in flux_foundry MUST NOT start any side effects before submit_async() is called.
     template <typename derived, typename T, typename E>
     struct awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
     private:
+        // State transitions:
+        // idle -> waiting (via submit_async, atomic CAS)
+        // waiting -> done (via resume, atomic CAS)
+        // Only one thread can successfully transition from idle->waiting
+        // Only one thread (either async completion or cancel) can transition waiting->done.
+        enum wait_state {
+            idle, // No operation in progress
+            waiting, // Waiting for async operation
+            done, // Operation done, callback not run yet
+        };
+
         using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
         std::atomic<wait_state> status;
         std::atomic<size_t> refcount;
@@ -166,13 +166,16 @@ namespace flux_foundry {
     // 5) success-completion and cancel-completion are mutually exclusive: only one path may win.
     //    After one path invokes resume(), the other path must not invoke resume() again.
     // 6) resume() must be the last operation touching this and must be called exactly once.
+    // 7) `fast_awaitable_base` does not by itself publish `next_step` across threads.
+    //    The backend, derived awaitable, or executor/dispatch mechanism must ensure
+    //    that `next_step` is visible to the thread or execution context that calls
+    //    `resume()`.
     template <typename derived, typename T, typename E>
     struct fast_awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
     private:
         using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
-        std::atomic<size_t>     refcount;
-        std::atomic<wait_state> status;
-        next_step_t             next_step;
+        std::atomic<size_t> refcount;
+        next_step_t next_step;
 
         void do_resume(result_t<T, E>&& result) noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -196,18 +199,9 @@ namespace flux_foundry {
             }
 
             int submit_async() noexcept {
-                // Temporarily retain across submit() so synchronous completion inside submit()
-                // cannot destroy *this before submit_async() returns.
-                // submit() == 0: external backend owns exactly one terminal resume().
-                // submit() == 1 : this is incorrectly called more than once.
-                // others: synchronous submit failure, no later resume() allowed.
-                // can only submit once
-                auto expected = idle;
-                if (!self->status.compare_exchange_strong(expected, waiting,
-                    std::memory_order_release, std::memory_order_relaxed)) {
-                    return 1;
-                }
-
+                // Keep one backend ref from successful submit() until resume().
+                // submit()==0: external backend owns exactly one terminal resume().
+                // submit()!=0: synchronous submit failure, no later resume() allowed.
                 self->retain();
                 auto code = static_cast<derived*>(self)->submit();
                 self->release();
@@ -239,17 +233,13 @@ namespace flux_foundry {
         }
 
         void resume(result_t<T, E>&& io_result) noexcept {
-            // Contract-critical: call from exactly one terminal path
-            auto expected = waiting;
-            if (!status.compare_exchange_strong(expected, done,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
-                return;
-            }
+            // Contract-critical: call from exactly one terminal path.
+            // Do not call from both success and cancel completion.
             do_resume(std::move(io_result));
         }
 
         fast_awaitable_base() noexcept
-            : refcount(1), status(idle) {
+            : refcount(1) {
         }
     };
 

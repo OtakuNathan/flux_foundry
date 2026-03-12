@@ -133,13 +133,6 @@ work_group& cancel_pool() {
     return pool;
 }
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
-static inline_executor g_inline_executor;
 
 struct delayed_plus_one_awaitable final : awaitable_base<delayed_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
@@ -433,7 +426,7 @@ int main(int argc, char** argv) {
     cfg.timeout_ms = arg_or_default(argv, argc, 5, cfg.timeout_ms);
 
     auto bp = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | await<delayed_plus_one_awaitable>()
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));

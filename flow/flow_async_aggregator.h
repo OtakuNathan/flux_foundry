@@ -506,7 +506,7 @@ namespace detail {
                 }
 
 #if FLUX_FOUNDRY_WITH_TSAN
-                    UNLIKELY_IF (state_.fired.get().fetch_or(detail::launch_success_msk, std::memory_order_acq_rel) == 0) {
+                UNLIKELY_IF (state_.fired.get().fetch_or(detail::launch_success_msk, std::memory_order_acq_rel) == 0) {
 #else
                 UNLIKELY_IF (state_.fired.get().fetch_or(detail::launch_success_msk, std::memory_order_release) == 0) {
                     std::atomic_thread_fence(std::memory_order_acquire);
@@ -646,7 +646,7 @@ namespace detail {
         padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> winner;
 
         flow_when_any_fast_state() noexcept
-                : data{Ts(error_tag, typename Ts::error_type{})...}, fired(0), winner(sizeof...(Ts)) {
+                : data{Ts(error_tag, typename Ts::error_type{})...}, fired(0), winner(-1) {
         }
 
         struct result_delegate {
@@ -709,7 +709,7 @@ namespace detail {
                 }
 
 #if FLUX_FOUNDRY_WITH_TSAN
-                    UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel) == detail::successfully_finished) {
+                UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_acq_rel) == detail::successfully_finished) {
 #else
                 UNLIKELY_IF (state.fired.get().fetch_sub(detail::epoch, std::memory_order_release) ==
                              detail::successfully_finished) {
@@ -803,6 +803,7 @@ namespace detail {
 #endif
 
         int submit() noexcept {
+            state_.winner.get().store(sizeof ... (BPs), std::memory_order_release);
             auto ret = this->submit(std::index_sequence_for<BPs...>{});
 
             UNLIKELY_IF (ret == 0) {
@@ -811,7 +812,7 @@ namespace detail {
             }
 
 #if FLUX_FOUNDRY_WITH_TSAN
-                UNLIKELY_IF (state_.fired.get().fetch_or(detail::launch_success_msk, std::memory_order_acq_rel) == 0) {
+            UNLIKELY_IF (state_.fired.get().fetch_or(detail::launch_success_msk, std::memory_order_acq_rel) == 0) {
 #else
             UNLIKELY_IF (state_.fired.get().fetch_or(detail::launch_success_msk, std::memory_order_release) == 0) {
                 std::atomic_thread_fence(std::memory_order_acquire);

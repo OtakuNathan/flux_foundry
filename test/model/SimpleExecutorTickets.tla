@@ -34,10 +34,19 @@ Init ==
   /\ steps = 0
 
 \* run(): idle -> running, single consumer enters loop.
-RunStart ==
+RunStartFromIdle ==
   /\ state = "idle"
   /\ ~consumerActive
   /\ state' = "running"
+  /\ consumerActive' = TRUE
+  /\ UNCHANGED << pending, qLen, issued, retired, inlined, popped, aborts >>
+
+\* run(): if shutdown was requested before run() starts, the consumer may still enter
+\* once to drain pre-admitted work and then exit.
+RunStartFromShutdown ==
+  /\ state = "shutdown"
+  /\ ~consumerActive
+  /\ state' = state
   /\ consumerActive' = TRUE
   /\ UNCHANGED << pending, qLen, issued, retired, inlined, popped, aborts >>
 
@@ -50,12 +59,12 @@ DispatchEnqueue ==
   /\ issued' = issued + 1
   /\ UNCHANGED << state, consumerActive, retired, inlined, popped, aborts >>
 
-\* dispatch() from the consumer thread while queue is full:
+\* dispatch() from the consumer thread may fall back to inline execution if q.try_emplace()
+\* misses (queue full or transient enqueue miss under contention).
 \* ticket is admitted then executed inline and retired in the same abstract step.
-DispatchInlineWhenFull ==
+DispatchInlineOnEnqueueMiss ==
   /\ state # "shutdown"
   /\ consumerActive
-  /\ qLen = Capacity
   /\ state' = state
   /\ consumerActive' = consumerActive
   /\ pending' = pending
@@ -82,9 +91,9 @@ RunPop ==
   /\ popped' = popped + 1
   /\ UNCHANGED << state, consumerActive, issued, inlined, aborts >>
 
-\* try_shutdown(): running -> shutdown.
+\* try_shutdown(): idle/running -> shutdown.
 TryShutdown ==
-  /\ state = "running"
+  /\ state \in {"idle", "running"}
   /\ state' = "shutdown"
   /\ UNCHANGED << consumerActive, pending, qLen, issued, retired, inlined, popped, aborts >>
 
@@ -102,9 +111,10 @@ WithStep(A) ==
   /\ steps' = steps + 1
 
 Next ==
-  \/ WithStep(RunStart)
+  \/ WithStep(RunStartFromIdle)
+  \/ WithStep(RunStartFromShutdown)
   \/ WithStep(DispatchEnqueue)
-  \/ WithStep(DispatchInlineWhenFull)
+  \/ WithStep(DispatchInlineOnEnqueueMiss)
   \/ WithStep(DispatchAfterShutdownAbort)
   \/ WithStep(RunPop)
   \/ WithStep(TryShutdown)

@@ -12,12 +12,6 @@ namespace {
 using err_t = std::exception_ptr;
 using out_t = result_t<int, err_t>;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 struct plus_one_awaitable final : awaitable_base<plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
     int v;
@@ -129,12 +123,11 @@ void check(bool cond, const char* name, int& failed) {
 }
 
 int test_async_async() {
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await<plus_one_awaitable>(&ex)
-        | await<plus_one_awaitable>(&ex)
+        | await<plus_one_awaitable>()
+        | await<plus_one_awaitable>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -149,12 +142,11 @@ int test_async_async() {
 }
 
 int test_async_async_fast() {
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await<plus_one_fast_awaitable>(&ex)
-        | await<plus_one_fast_awaitable>(&ex)
+        | await<plus_one_fast_awaitable>()
+        | await<plus_one_fast_awaitable>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -169,7 +161,6 @@ int test_async_async_fast() {
 }
 
 int test_when_all() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf1 = make_blueprint<int>()
@@ -184,7 +175,6 @@ int test_when_all() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_all(
-        &ex,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -207,7 +197,6 @@ int test_when_all() {
 }
 
 int test_when_any() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf1 = make_blueprint<int>()
@@ -222,7 +211,6 @@ int test_when_any() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_any(
-        &ex,
         [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
@@ -245,7 +233,6 @@ int test_when_any() {
 }
 
 int test_when_all_fast() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf1 = make_blueprint<int>()
@@ -260,7 +247,6 @@ int test_when_all_fast() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_all_fast(
-        &ex,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -283,7 +269,6 @@ int test_when_all_fast() {
 }
 
 int test_when_any_fast() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf1 = make_blueprint<int>()
@@ -298,7 +283,6 @@ int test_when_any_fast() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_any_fast(
-        &ex,
         [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
@@ -321,7 +305,6 @@ int test_when_any_fast() {
 }
 
 int test_when_all_fast_rejects_null_bp() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf = make_blueprint<int>()
@@ -333,7 +316,6 @@ int test_when_all_fast_rejects_null_bp() {
     lite_ptr<leaf_t> p_null;
 
     auto bp = await_when_all_fast(
-        &ex,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -357,7 +339,6 @@ int test_when_all_fast_rejects_null_bp() {
 }
 
 int test_when_any_fast_accepts_null_bp() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf = make_blueprint<int>()
@@ -369,7 +350,6 @@ int test_when_any_fast_accepts_null_bp() {
     auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
 
     auto bp = await_when_any_fast(
-        &ex,
         [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
@@ -392,7 +372,6 @@ int test_when_any_fast_accepts_null_bp() {
 }
 
 int test_when_all_rejects_null_bp() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf = make_blueprint<int>()
@@ -404,7 +383,6 @@ int test_when_all_rejects_null_bp() {
     lite_ptr<leaf_t> p_null;
 
     auto bp = await_when_all(
-        &ex,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -428,7 +406,6 @@ int test_when_all_rejects_null_bp() {
 }
 
 int test_when_any_accepts_null_bp() {
-    inline_executor ex;
     run_observer obs;
 
     auto leaf = make_blueprint<int>()
@@ -440,7 +417,6 @@ int test_when_any_accepts_null_bp() {
     auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
 
     auto bp = await_when_any(
-        &ex,
         [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
@@ -463,11 +439,10 @@ int test_when_any_accepts_null_bp() {
 }
 
 int test_submit_fail_path() {
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await<submit_fail_awaitable>(&ex)
+        | await<submit_fail_awaitable>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -483,11 +458,10 @@ int test_submit_fail_path() {
 }
 
 int test_submit_fail_fast_path() {
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await<submit_fail_fast_awaitable>(&ex)
+        | await<submit_fail_fast_awaitable>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));

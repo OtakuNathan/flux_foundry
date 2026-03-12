@@ -21,19 +21,29 @@ namespace flux_foundry {
         // - dispatch() before run() is allowed
         // - dispatch() after shutdown is invalid usage (assert + abort)
         // - try_shutdown() requests stop, run() drains all admitted tickets before returning
-        enum class control_flag : uint8_t {
-            idle     = 0,
-            running  = 1,
-            shutdown = 2,
-        };
-        
-        padded_t<std::atomic<size_t>> pending_{0};
-        padded_t<std::atomic<uint8_t>> state_{static_cast<uint8_t>(control_flag::idle)};
+        static constexpr size_t running_flag = size_t{1} << 0;
+        static constexpr size_t shutdown_flag = size_t{1} << 1;
+        static constexpr size_t pending_shift = 2;
+        static constexpr size_t pending_unit = size_t{1} << pending_shift;
+
+        padded_t<std::atomic<size_t>> ctrl_{0};
         mpsc_queue<task_wrapper_sbo, capacity> q;
 
         static simple_executor*& current() noexcept {
             thread_local simple_executor* executor = nullptr;
             return executor;
+        }
+
+        static bool is_running(size_t ctrl) noexcept {
+            return (ctrl & running_flag) != 0;
+        }
+
+        static bool is_shutdown(size_t ctrl) noexcept {
+            return (ctrl & shutdown_flag) != 0;
+        }
+
+        static size_t pending_count(size_t ctrl) noexcept {
+            return ctrl >> pending_shift;
         }
     public:
         simple_executor() noexcept = default;
@@ -43,21 +53,33 @@ namespace flux_foundry {
         // - enqueued and later consumed by run(), or
         // - executed inline by the consumer thread when queue is full.
         void dispatch(task_wrapper_sbo&& sbo) noexcept {
-            auto& pending = pending_.get();
-            auto& state = state_.get();
-            pending.fetch_add(1, std::memory_order_relaxed);
-            if (state.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)) {
-                assert(false && "executor is shutdown.");
-                pending.fetch_sub(1, std::memory_order_relaxed);
-                std::abort();
+            auto& ctrl = ctrl_.get();
+            for (backoff_strategy<> gate_backoff;; gate_backoff.yield()) {
+                auto state = ctrl.load(std::memory_order_acquire);
+                if (is_shutdown(state)) {
+                    assert(false && "executor is shutdown.");
+                    std::abort();
+                }
+
+                if (ctrl.compare_exchange_weak(state, state + pending_unit,
+                    std::memory_order_acq_rel, std::memory_order_acquire)) {
+                    break;
+                }
             }
 
             backoff_strategy<> backoff;
             for (; !q.try_emplace(std::move(sbo)); backoff.yield()) {
                 if (current() == this) {
-                    pending.fetch_sub(1, std::memory_order_relaxed);
                     sbo();
+                    ctrl.fetch_sub(pending_unit, std::memory_order_acq_rel);
                     break;
+                }
+
+                auto state = ctrl.load(std::memory_order_acquire);
+                if (is_shutdown(state) && !is_running(state)) {
+                    ctrl.fetch_sub(pending_unit, std::memory_order_acq_rel);
+                    assert(false && "executor is shutdown.");
+                    std::abort();
                 }
             }
         }
@@ -67,52 +89,59 @@ namespace flux_foundry {
         // - `run()` must NOT be re-entered or nested on the same thread (e.g., calling `run()` from a task).
         // - returns only after shutdown is observed and all admitted tasks are drained.
         void run() noexcept {
-            auto& pending = pending_.get();
-            auto& state = state_.get();
+            auto& ctrl = ctrl_.get();
 
-            auto curr = static_cast<uint8_t>(control_flag::idle);
-            if (!state.compare_exchange_strong(curr, static_cast<uint8_t>(control_flag::running),
-                std::memory_order_relaxed, std::memory_order_relaxed)) {
-                return;
+            for (backoff_strategy<> gate_backoff;; gate_backoff.yield()) {
+                auto state = ctrl.load(std::memory_order_acquire);
+                if (is_running(state)) {
+                    return;
+                }
+
+                if (ctrl.compare_exchange_weak(state, state | running_flag,
+                    std::memory_order_acq_rel, std::memory_order_acquire)) {
+                    break;
+                }
             }
 
             assert(current() == nullptr && "simple_executor::run() must not be nested/re-entered on the same thread");
             current() = this;
-            for (backoff_strategy<> backoff; !(state.load(std::memory_order_relaxed) & static_cast<uint8_t>(control_flag::shutdown)); ) {
+            for (backoff_strategy<> backoff;; backoff.yield()) {
                 auto p = q.try_pop();
                 if (p) {
                     p.get()();
-                    pending.fetch_sub(1, std::memory_order_relaxed);
+                    auto state = ctrl.fetch_sub(pending_unit, std::memory_order_acq_rel);
                     backoff.reset();
-                } else {
-                    backoff.yield();
+                    if (is_shutdown(state) && pending_count(state) == 1) {
+                        break;
+                    }
+                    continue;
                 }
-            }
 
-            // clear pending queue.
-            for (backoff_strategy<> backoff; pending.load(std::memory_order_relaxed); backoff.yield()) {
-                auto p = q.try_pop();
-                if (p) {
-                    p.get()();
-                    pending.fetch_sub(1, std::memory_order_relaxed);
-                    backoff.reset();
+                auto state = ctrl.load(std::memory_order_acquire);
+                if (is_shutdown(state) && pending_count(state) == 0) {
+                    break;
                 }
             }
 
             current() = nullptr;
+            ctrl.fetch_and(~running_flag, std::memory_order_release);
         }
         
         // Producer/control thread API.
         // Returns true when shutdown transition is visible/successful.
         bool try_shutdown() noexcept {
-            auto& state = state_.get();
-            uint8_t exp = static_cast<uint8_t>(control_flag::running);
-            LIKELY_IF (state.compare_exchange_weak(exp,
-                    static_cast<uint8_t>(control_flag::shutdown),
-                    std::memory_order_relaxed, std::memory_order_relaxed)) {
-                return true;
+            auto& ctrl = ctrl_.get();
+            for (backoff_strategy<> backoff;; backoff.yield()) {
+                auto state = ctrl.load(std::memory_order_acquire);
+                if (is_shutdown(state)) {
+                    return true;
+                }
+
+                if (ctrl.compare_exchange_weak(state, state | shutdown_flag,
+                    std::memory_order_acq_rel, std::memory_order_acquire)) {
+                    return true;
+                }
             }
-            return exp == static_cast<uint8_t>(control_flag::shutdown);
         }
     };
 }

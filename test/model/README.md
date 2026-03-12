@@ -33,6 +33,8 @@ Modeled properties:
 - retire accounting splits into `popped + inlined`
 - queue length remains bounded and accounted
 - shutdown-phase post-dispatch abort does not leak tickets
+- shutdown may be requested before `run()` starts; `run()` may still enter once in shutdown state to drain pre-admitted work
+- consumer-thread inline fallback abstracts any enqueue miss (`q.try_emplace()` full/contended miss), not only hard-full queue
 
 ### 3) `awaitable_base` / `fast_awaitable_base`
 Source reference:
@@ -62,6 +64,7 @@ Modeled properties (2-way abstract model):
 - at-most-once aggregator `resume()`
 - `winner` / `failedIdx` consistency
 - normal vs fast cancellation side effects (`controllersCanceled`)
+- `when_any` launch-success means "at least one child launched"; remaining children may stop due to winner or partial launch failure
 
 ### 6) `utility` queues
 Source reference:

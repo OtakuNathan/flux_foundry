@@ -165,7 +165,9 @@ struct external_async_awaitable final :
 
     using context_t = typename external_async_operator_t::context_t;
 
+    std::atomic_flag not_ready = ATOMIC_FLAG_INIT;
     context_t ctx{};
+
 #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     bool initialized = false;
 #endif
@@ -176,6 +178,7 @@ struct external_async_awaitable final :
         noexcept
 #endif
     {
+        not_ready.test_and_set(std::memory_order_relaxed);
         static_assert(detail::context_init_ctx_prob_v<
                 external_async_operator_t,
                 typename std::decay_t<param_t>::value_type*>,
@@ -213,6 +216,10 @@ struct external_async_awaitable final :
 
     static void on_complete(external_async_callback_param_t param) noexcept {
         auto self = static_cast<external_async_awaitable*>(param);
+        if (self->not_ready.test_and_set(std::memory_order_acquire)) {
+            return;
+        }
+
         auto res = external_async_operator_t::collect(&self->ctx);
         LIKELY_IF(res) {
             self->resume(async_result_type(value_tag, res, external_async_result_deleter<external_async_operator_t>{}));
@@ -232,6 +239,7 @@ struct external_async_awaitable final :
     }
 
     int submit() noexcept {
+        not_ready.clear(std::memory_order_release);
         return external_async_operator_t::submit(&ctx, on_complete, this);
     }
 };

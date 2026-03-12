@@ -108,13 +108,6 @@ work_group& backend_pool() {
     return pool;
 }
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
-static inline_executor g_inline_executor;
 
 struct delayed_plus_one_awaitable final : awaitable_base<delayed_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
@@ -373,7 +366,7 @@ test_stat stress_async_cancel_race_case(const char* tag, int iters) {
     const int step = progress_step(iters);
 
     auto bp = make_blueprint<int>()
-        | await<AwaitableT>(&g_inline_executor)
+        | await<AwaitableT>()
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
@@ -422,7 +415,7 @@ test_stat stress_submit_fail_path_case(const char* tag, int iters) {
     const int step = progress_step(iters);
 
     auto bp = make_blueprint<int>()
-        | await<AwaitableT>(&g_inline_executor)
+        | await<AwaitableT>()
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));
@@ -463,7 +456,6 @@ test_stat stress_submit_fail_path_case(const char* tag, int iters) {
 template <typename BP1, typename BP2>
 auto make_when_all_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_all(
-        &g_inline_executor,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -478,7 +470,6 @@ auto make_when_all_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2
 template <typename BP1, typename BP2>
 auto make_when_all_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_all_fast(
-        &g_inline_executor,
         [](int a, int b) noexcept {
             return out_t(value_tag, a + b);
         },
@@ -493,7 +484,6 @@ auto make_when_all_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2)
 template <typename BP1, typename BP2>
 auto make_when_any_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_any(
-        &g_inline_executor,
         [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
@@ -508,7 +498,6 @@ auto make_when_any_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2
 template <typename BP1, typename BP2>
 auto make_when_any_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_any_fast(
-        &g_inline_executor,
         [](size_t i, int x) noexcept {
             return out_t(value_tag, x);
         },
@@ -526,10 +515,10 @@ test_stat stress_when_all_matrix_case(const char* tag, int iters) {
     const int step = progress_step(iters);
 
     auto leaf1 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | await<delayed_plus_one_awaitable>()
         | end();
     auto leaf2 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | await<delayed_plus_one_awaitable>()
         | end();
 
     auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));
@@ -587,10 +576,10 @@ test_stat stress_when_any_matrix_case(const char* tag, int iters) {
     const int step = progress_step(iters);
 
     auto leaf1 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | await<delayed_plus_one_awaitable>()
         | end();
     auto leaf2 = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&g_inline_executor)
+        | await<delayed_plus_one_awaitable>()
         | end();
 
     auto p1 = make_lite_ptr<decltype(leaf1)>(std::move(leaf1));

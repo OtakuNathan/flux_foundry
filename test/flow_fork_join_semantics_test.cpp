@@ -17,12 +17,6 @@ namespace {
 using err_t = std::exception_ptr;
 using out_t = result_t<int, err_t>;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 struct run_state {
     std::atomic<int> done{0};
     std::atomic<int> has_value{-1};
@@ -94,7 +88,6 @@ auto make_right_leaf_bp() {
         | end();
 }
 
-inline_executor g_inline_executor;
 std::atomic<int> g_async_inflight{0};
 
 bool wait_async_drained(int timeout_ms) {
@@ -158,7 +151,6 @@ struct normal_join_receiver final : fork_receiver<normal_join_receiver<FromBP, L
         }
 
         auto join_bp = await_when_all(
-            &g_inline_executor,
             [](int a, int b) noexcept {
                 return out_t(value_tag, a + b);
             },
@@ -197,7 +189,6 @@ struct fast_join_receiver final : fork_receiver<fast_join_receiver<FromBP, LeftB
         }
 
         auto join_bp = await_when_all(
-            &g_inline_executor,
             [](int a, int b) noexcept {
                 return out_t(value_tag, a + b);
             },
@@ -239,7 +230,6 @@ struct canceling_normal_join_receiver final :
         }
 
         auto join_bp = await_when_all(
-            &g_inline_executor,
             [](int a, int b) noexcept {
                 return out_t(value_tag, a + b);
             },
@@ -323,8 +313,8 @@ int test_fork_join_normal_runner_cancel() {
     int failed = 0;
 
     auto upstream_bp = make_blueprint<int>() | end();
-    auto left_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>(&g_inline_executor) | end();
-    auto right_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>(&g_inline_executor) | end();
+    auto left_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>() | end();
+    auto right_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>() | end();
 
     using upstream_bp_t = decltype(upstream_bp);
     using left_bp_t = decltype(left_bp);
@@ -352,8 +342,8 @@ int test_fork_join_normal_runner_soft_cancel() {
     int failed = 0;
 
     auto upstream_bp = make_blueprint<int>() | end();
-    auto left_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>(&g_inline_executor) | end();
-    auto right_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>(&g_inline_executor) | end();
+    auto left_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>() | end();
+    auto right_bp = make_blueprint<int>() | await<delayed_plus_one_awaitable>() | end();
 
     using upstream_bp_t = decltype(upstream_bp);
     using left_bp_t = decltype(left_bp);

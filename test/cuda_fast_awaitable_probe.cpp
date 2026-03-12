@@ -15,12 +15,6 @@ namespace {
 
 using err_t = extension::cuda_error_t;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 struct cuda_payload {
     int value{0};
     explicit cuda_payload(int v) noexcept : value(v) {}
@@ -176,11 +170,10 @@ struct payload_receiver {
 
 int test_cuda_success_path() {
     mock_cuda_op::reset();
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await_cuda<mock_cuda_op>(&ex)
+        | await_cuda<mock_cuda_op>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -201,11 +194,10 @@ int test_cuda_success_path() {
 
 int test_cuda_init_fail_path() {
     mock_cuda_op::reset();
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await_cuda<mock_cuda_op>(&ex)
+        | await_cuda<mock_cuda_op>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -216,7 +208,7 @@ int test_cuda_init_fail_path() {
     check(obs.called, "cuda init_fail called", failed);
     check(!obs.has_value, "cuda init_fail has error", failed);
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-    check(has_logic_error_message(obs.err, "error occurred when initializing cuda operation context"),
+    check(has_logic_error_message(obs.err, "error occurred when initializing external async operation context"),
           "cuda init_fail error type", failed);
 #endif
     check(mock_cuda_op::init_count.load(std::memory_order_relaxed) == 1, "cuda init_fail init_ctx once", failed);
@@ -229,11 +221,10 @@ int test_cuda_init_fail_path() {
 
 int test_cuda_submit_fail_path() {
     mock_cuda_op::reset();
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await_cuda<mock_cuda_op>(&ex)
+        | await_cuda<mock_cuda_op>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));

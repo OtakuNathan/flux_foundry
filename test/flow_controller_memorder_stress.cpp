@@ -96,7 +96,6 @@ err_kind classify_error(const std::exception_ptr& ep) {
     }
 }
 
-// Not recognized as flow_impl::inline_executor by the trait, but executes inline.
 // This deterministically drives make_async_next_step(..., false_type) "success-under-lock"
 // path (the CAS around flow_runner.h:482) when awaitable resumes synchronously in submit().
 struct inline_like_executor {

@@ -21,12 +21,6 @@ namespace {
 using err_t = std::exception_ptr;
 using out_t = result_t<int, err_t>;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 class work_group {
 public:
     explicit work_group(size_t nthreads)
@@ -209,12 +203,11 @@ void print_stat(const test_stat& s) {
 
 test_stat test_inline_async_chain() {
     test_stat s{"inline_async_chain", 200000};
-    inline_executor ex;
 
     auto bp = make_blueprint<int>()
-        | await<immediate_plus_one_awaitable>(&ex)
-        | await<immediate_plus_one_awaitable>(&ex)
-        | await<immediate_plus_one_awaitable>(&ex)
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
+        | await<immediate_plus_one_awaitable>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -241,7 +234,6 @@ test_stat test_inline_async_chain() {
 
 test_stat test_inline_when_all() {
     test_stat s{"inline_when_all", 120000};
-    inline_executor ex;
 
     auto leaf1 = make_blueprint<int>() | transform([](int x) noexcept { return x + 10; }) | end();
     auto leaf2 = make_blueprint<int>() | transform([](int x) noexcept { return x + 20; }) | end();
@@ -250,7 +242,6 @@ test_stat test_inline_when_all() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_all(
-        &ex,
         [](int a, int b) noexcept { return out_t(value_tag, a + b); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1, p2)
@@ -281,7 +272,6 @@ test_stat test_inline_when_all() {
 
 test_stat test_inline_when_any() {
     test_stat s{"inline_when_any", 120000};
-    inline_executor ex;
 
     auto leaf1 = make_blueprint<int>() | transform([](int x) noexcept { return x + 100; }) | end();
     auto leaf2 = make_blueprint<int>() | transform([](int x) noexcept { return x + 200; }) | end();
@@ -290,7 +280,6 @@ test_stat test_inline_when_any() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_any(
-        &ex,
         [](size_t i, int v) noexcept { return out_t(value_tag, v); },
         [](flow_async_agg_err_t e) noexcept { return out_t(error_tag, std::move(e)); },
         p1, p2)
@@ -323,10 +312,9 @@ test_stat test_inline_when_any() {
 
 test_stat test_inline_submit_fail() {
     test_stat s{"inline_submit_fail", 200000};
-    inline_executor ex;
 
     auto bp = make_blueprint<int>()
-        | await<fail_submit_awaitable>(&ex)
+        | await<fail_submit_awaitable>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));
@@ -354,10 +342,9 @@ test_stat test_inline_submit_fail() {
 
 test_stat test_inline_cancel_after_start() {
     test_stat s{"inline_cancel_after_start", 4000};
-    inline_executor ex;
 
     auto bp = make_blueprint<int>()
-        | await<delayed_plus_one_awaitable>(&ex)
+        | await<delayed_plus_one_awaitable>()
         | end();
     using bp_t = decltype(bp);
     auto bp_ptr = make_lite_ptr<bp_t>(std::move(bp));

@@ -16,12 +16,6 @@ namespace {
 
 using err_t = extension::external_async_error_t;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 struct cuda_add_one_result {
     int value{0};
 };
@@ -201,11 +195,10 @@ int main() {
         return 0;
     }
 
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int>()
-        | await_external_async<cuda_add_one_async_op>(&ex)
+        | await_external_async<cuda_add_one_async_op>()
         | end();
 
     auto bp_ptr = make_lite_ptr<decltype(bp)>(std::move(bp));

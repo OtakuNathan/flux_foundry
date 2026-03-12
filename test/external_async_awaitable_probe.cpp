@@ -57,12 +57,6 @@ namespace {
 
 using err_t = extension::external_async_error_t;
 
-struct inline_executor {
-    void dispatch(task_wrapper_sbo t) noexcept {
-        t();
-    }
-};
-
 struct cuda_payload {
     int value{0};
     explicit cuda_payload(int v) noexcept : value(v) {}
@@ -205,11 +199,10 @@ struct payload_receiver {
 
 int test_cuda_success_path() {
     mock_cuda_op::reset();
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int, err_t>()
-        | await_external_async<mock_cuda_op>(&ex)
+        | await_external_async<mock_cuda_op>()
         | end([](out_t&& in) noexcept -> out_t {
             return std::move(in);
         });
@@ -232,11 +225,10 @@ int test_cuda_success_path() {
 
 int test_cuda_init_fail_path() {
     mock_cuda_op::reset();
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int, err_t>()
-        | await_external_async<mock_cuda_op>(&ex)
+        | await_external_async<mock_cuda_op>()
         | end([](out_t&& in) noexcept -> out_t {
             return std::move(in);
         });
@@ -264,11 +256,10 @@ int test_cuda_init_fail_path() {
 
 int test_cuda_submit_fail_path() {
     mock_cuda_op::reset();
-    inline_executor ex;
     run_observer obs;
 
     auto bp = make_blueprint<int, err_t>()
-        | await_external_async<mock_cuda_op>(&ex)
+        | await_external_async<mock_cuda_op>()
         | end([](out_t&& in) noexcept -> out_t {
             return std::move(in);
         });
