@@ -13,6 +13,9 @@
 
 The project is tuned for predictable behavior and explicit contracts under concurrency.
 
+## 🧪 Project Status
+`flux_foundry` is currently an experimental / dogfooding-stage personal systems project. It has not yet been integrated into an external production codebase. The repository focuses on validating the design through focused tests, stress probes, benchmarks, sanitizers, and abstract protocol models. APIs and internal contracts may still evolve.
+
 ## 🎯 Positioning
 
 - `flux_foundry` is built for low-latency C++ systems where predictable behavior, explicit concurrency contracts, and composable flow semantics matter more than beginner ergonomics.
