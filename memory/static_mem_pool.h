@@ -105,6 +105,6 @@ namespace flux_foundry {
         }
     };
 
-} // namespace task_system
+} // namespace flux_foundry
 
 #endif

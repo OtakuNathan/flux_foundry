@@ -242,7 +242,10 @@ public:
     static bool is_hazard(const void* ptr) noexcept {
         auto& self = instance();
         for (size_t i = 0; i < MAX_SLOT; ++i) {
-            if (self.slots[i].ptr.load(std::memory_order_acquire) == ptr) {
+            // seq_cst: must observe the same global total order as protect()'s
+            // slot->store, otherwise the reclaimer could miss a just-published
+            // hazard and delete the pointer.
+            if (self.slots[i].ptr.load(std::memory_order_seq_cst) == ptr) {
                 return true;
             }
         }
@@ -308,11 +311,15 @@ public:
             }
         }
 
+        // seq_cst on slot->store and re-check load is required to establish
+        // a global total order with the reclaimer's is_hazard scan.
+        // acquire/release alone cannot guarantee ordering across two
+        // different atomic variables (slot->ptr and target).
         T* p = nullptr;
         do {
-            p = target.load(std::memory_order_acquire);
-            slot->ptr.store(p, std::memory_order_release);
-        } while (p != target.load(std::memory_order_acquire));
+            p = target.load(std::memory_order_relaxed);
+            slot->ptr.store(p, std::memory_order_seq_cst);
+        } while (p != target.load(std::memory_order_seq_cst));
         return p;
     }
 
