@@ -52,6 +52,18 @@ namespace flux_foundry {
         // Tasks that "buy a ticket" (pending++) are guaranteed to be either:
         // - enqueued and later consumed by run(), or
         // - executed inline by the consumer thread when queue is full.
+        //
+        // CONTRACT (inline recursion): when the queue is full and dispatch() is
+        // called from the consumer thread itself (current() == this), the task
+        // runs inline. If that task dispatches again while the queue is still
+        // full, dispatch nests recursively — stack depth grows with each nested
+        // dispatch. Tasks dispatched from within a task must not rely on the
+        // queue draining between nested dispatches.
+        //
+        // CONTRACT (full-queue spin): a producer thread that is NOT the consumer
+        // spins on try_emplace while the queue is full. If the consumer is (directly
+        // or indirectly) blocked waiting on that producer, this deadlocks. Producers
+        // must never block the consumer's progress path while dispatching.
         void dispatch(task_wrapper_sbo&& sbo) noexcept {
             auto& ctrl = ctrl_.get();
             for (backoff_strategy<> gate_backoff;; gate_backoff.yield()) {

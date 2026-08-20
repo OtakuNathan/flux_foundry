@@ -203,6 +203,8 @@ public:
         }
     }
 
+    // NOTE (spurious failure): returning false means either the queue is full
+    // OR another producer won the _t CAS. Retry or use wait_and_emplace.
     template <typename T_ = T, typename... Args,
         std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>::value>* = nullptr>
     bool try_emplace(Args&& ... args) noexcept {
@@ -447,9 +449,11 @@ public:
         }
     }
 
+    // NOTE (spurious failure): returning false means either the queue is full
+    // OR another producer won the slot CAS. Distinguish by retrying or using
+    // wait_and_emplace; do not treat a single false as a definitive "full".
     bool try_emplace(T&& obj) noexcept {
         auto& t_ = _t.get();
-        auto& h_ = _h.get();
         auto i = t_.load(std::memory_order_relaxed);
         auto& slot = m_q[i & bit_msk];
         auto _seq = slot.sequence.load(std::memory_order_acquire), seq = (i / capacity) << 1;
@@ -467,11 +471,12 @@ public:
         return false;
     }
 
+    // NOTE (spurious failure): same contract as try_emplace(T&&) above —
+    // false means full OR lost the slot CAS.
     template <typename T_ = T, typename... Args,
         std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>::value>* = nullptr>
     bool try_emplace(Args&&... args) noexcept {
         auto& t_ = _t.get();
-        auto& h_ = _h.get();
         auto i = t_.load(std::memory_order_relaxed);
         auto& slot = m_q[i & bit_msk];
         auto _seq = slot.sequence.load(std::memory_order_acquire), seq = (i / capacity) << 1;
@@ -502,6 +507,9 @@ public:
     }
 #endif
 
+    // NOTE (spurious failure): returning an empty inplace_t means either the
+    // queue is empty OR another consumer won the slot CAS. Retry or use
+    // wait_and_pop; do not treat a single miss as a definitive "empty".
     inplace_t<T> try_pop() noexcept {
         auto& h_ = _h.get();
         inplace_t<T> res;
@@ -721,6 +729,10 @@ public:
         return res;
     }
 
+    // NOTE (spurious failure): returning an empty inplace_t means either no
+    // SHARED slot is currently available OR another stealer won the slot CAS.
+    // Retry or treat as "nothing stealable right now", not as a definitive
+    // "deque empty" — the owner may still hold PRIVATE items at the back.
     inplace_t<T> try_pop_front() noexcept {
         if (is_owner()) {
             return {};
