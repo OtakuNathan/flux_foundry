@@ -61,7 +61,7 @@ namespace flux_foundry {
 
     template <typename T, bool sbo_enabled,
         std::enable_if_t<!std::is_copy_constructible<T>::value>* = nullptr>
-    lifespan_op_error copy_construct_impl(void* dst, const void* src) {
+    lifespan_op_error copy_construct_impl(void*, const void*) {
         return lifespan_op_error::unsupported;
     }
 

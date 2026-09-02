@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+set(flux_foundry_gsource_executor_FOUND @FLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR@)
+if(flux_foundry_gsource_executor_FOUND)
+    find_dependency(PkgConfig)
+    pkg_check_modules(FLUX_FOUNDRY_GLIB2 REQUIRED IMPORTED_TARGET glib-2.0)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/flux_foundryTargets.cmake")
+check_required_components(flux_foundry)

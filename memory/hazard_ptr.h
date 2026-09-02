@@ -35,8 +35,6 @@ struct hp_mgr {
 
 private:
     struct retire_record {
-        static void stub_free(void*) noexcept { }
-
         compressed_pair<void*, deleter_t> p;
 
         retire_record(const retire_record&) = delete;
@@ -45,13 +43,23 @@ private:
         retire_record& operator=(retire_record&&) noexcept  = default;
 
         retire_record() noexcept
-            : p(nullptr, stub_free) {
+            : p(nullptr, [](void*) noexcept {}) {
         }
 
         template <typename Deleter>
         retire_record(void* p_, Deleter _deleter) noexcept
-            : p(p_, std::move(_deleter)) {
-            static_assert(noexcept(std::declval<Deleter>()(nullptr)), "Deleter must be noexcept");
+            : p(p_, std::move(_deleter)) {}
+    };
+
+    template <typename T, typename Deleter>
+    struct erased_deleter {
+        Deleter deleter;
+
+        explicit erased_deleter(Deleter d) noexcept
+            : deleter(std::move(d)) {}
+
+        void operator()(void* p) noexcept {
+            deleter(static_cast<T*>(p));
         }
     };
 
@@ -115,35 +123,17 @@ public:
         hazard_record *my_slots[HP_PER_THREAD];
         retire_list    *list;
         size_t         retire_count;
+        bool           sweeping;
 
         hp_owner()
-#if !defined(__cpp_exceptions)
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             noexcept
 #endif
-         : my_slots{}, list{new retire_list}, retire_count{} {
-            auto& mgr = instance();
-            size_t acquired = 0;
-            std::thread::id tid = std::this_thread::get_id();
-            std::thread::id empty_id = std::thread::id();
-
-            for (size_t i = 0; i < MAX_SLOT && acquired < HP_PER_THREAD; ++i) {
-                if (mgr.slots[i].tid.load(std::memory_order_relaxed) != empty_id) continue;
-                if (mgr.slots[i].tid.compare_exchange_strong(empty_id, tid,
-                                            std::memory_order_acq_rel, std::memory_order_relaxed)) {
-                    my_slots[acquired++] = &mgr.slots[i];
-                    mgr.slots[i].ptr.store(nullptr, std::memory_order_release);
-                }
-                empty_id = std::thread::id();
-            }
-
-            if (acquired < HP_PER_THREAD) {
-                while (acquired--) my_slots[acquired]->tid.store(std::thread::id(), std::memory_order_release);
-#if defined(__cpp_exceptions)
-                throw std::runtime_error("Hazard Pointer Slots Exhausted!");
-#else
-                std::abort();
-#endif
-            }
+         : my_slots{}, list{new retire_list}, retire_count{}, sweeping{false} {
+            // Construct the process-wide manager before this TLS owner finishes
+            // initialization.  The resulting destruction order keeps the manager
+            // alive while the owner releases cached slots at thread exit.
+            (void)instance();
         }
 
         hp_owner(const hp_owner&) = delete;
@@ -155,8 +145,11 @@ public:
             for (size_t i = 0; i < HP_PER_THREAD; ++i) {
                 if (my_slots[i]) {
                     my_slots[i]->ptr.store(nullptr, std::memory_order_release);
-                    my_slots[i]->tid.store(std::thread::id(), std::memory_order_release);
                     my_slots[i]->used = false;
+                    // Publish the record as free only after all thread-local state
+                    // has been reset.  A successful acquire CAS on tid then owns
+                    // every subsequent access to the non-atomic used flag.
+                    my_slots[i]->tid.store(std::thread::id(), std::memory_order_release);
                 }
             }
             sweep_and_reclaim();
@@ -174,19 +167,65 @@ public:
 
         void sweep_and_reclaim() noexcept {
             auto& records = list->retired;
-            auto count = records.size();
-            for (size_t i = 0; i < count; ) {
-                auto& record = records[i];
-                if (hp_mgr::is_hazard(record.p.first())) {
-                    ++i;
+            const size_t batch_count = records.size();
+            size_t survivor_count = 0;
+            sweeping = true;
+
+            for (size_t i = 0; i < batch_count; ++i) {
+                if (hp_mgr::is_hazard(records[i].p.first())) {
+                    if (survivor_count != i) {
+                        records[survivor_count] = std::move(records[i]);
+                    }
+                    ++survivor_count;
                 } else {
-                    using std::swap;
-                    record.p.second()(record.p.first());
-                    swap(record, records[count - 1]);
-                     --count;
+                    // Move the record out before invoking user code.  Its deleter
+                    // may retire more objects and reallocate the backing vector.
+                    retire_record reclaiming(std::move(records[i]));
+                    reclaiming.p.second()(reclaiming.p.first());
                 }
             }
-            if (count != records.size()) records.resize(count);
+
+            // Retirements made by reclaim callbacks belong to the next batch.
+            const size_t appended_count = records.size() - batch_count;
+            for (size_t i = 0; i < appended_count; ++i) {
+                records[survivor_count + i] =
+                    std::move(records[batch_count + i]);
+            }
+            records.resize(survivor_count + appended_count);
+            sweeping = false;
+        }
+
+        hazard_record* acquire_slot() noexcept {
+            for (size_t i = 0; i < HP_PER_THREAD; ++i) {
+                if (my_slots[i] && !my_slots[i]->used) {
+                    my_slots[i]->used = true;
+                    return my_slots[i];
+                }
+            }
+
+            auto& mgr = instance();
+            const std::thread::id tid = std::this_thread::get_id();
+            const std::thread::id empty_id{};
+
+            for (size_t local = 0; local < HP_PER_THREAD; ++local) {
+                if (my_slots[local]) continue;
+
+                for (size_t global = 0; global < MAX_SLOT; ++global) {
+                    std::thread::id expected = empty_id;
+                    if (mgr.slots[global].tid.compare_exchange_strong(
+                            expected, tid,
+                            std::memory_order_acq_rel,
+                            std::memory_order_relaxed)) {
+                        auto* record = &mgr.slots[global];
+                        record->ptr.store(nullptr, std::memory_order_release);
+                        record->used = true;
+                        my_slots[local] = record;
+                        return record;
+                    }
+                }
+                return nullptr;
+            }
+            return nullptr;
         }
 
         static hp_owner& get_tls_owner() {
@@ -195,15 +234,12 @@ public:
         }
     };
 
-    static hazard_record* acquire_slot() noexcept {
-        auto& owner = hp_owner::get_tls_owner();
-        for (size_t i = 0; i < HP_PER_THREAD; ++i) {
-            if (!owner.my_slots[i]->used) {
-                owner.my_slots[i]->used = true;
-                return owner.my_slots[i];
-            }
-        }
-        return nullptr;
+    static hazard_record* acquire_slot()
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+        noexcept
+#endif
+    {
+        return hp_owner::get_tls_owner().acquire_slot();
     }
 
     static void free_local_slot(hazard_record* record) noexcept {
@@ -216,9 +252,22 @@ public:
     // Static implementations called by hazard_ptr
     template <typename T, typename Deleter>
     static void retire(T* p, Deleter deleter) {
+        using deleter_type = std::decay_t<Deleter>;
+        using erased_deleter_type = erased_deleter<T, deleter_type>;
+        static_assert(std::is_nothrow_move_constructible<deleter_type>::value,
+                      "Deleter must be nothrow move constructible");
+        static_assert(noexcept(std::declval<deleter_type&>()(std::declval<T*>())),
+                      "Deleter invocation must be noexcept");
+        static_assert(sizeof(erased_deleter_type) <= callable_wrapper_sbo_size,
+                      "Deleter must fit the callable_wrapper SBO; allocate state externally and capture a handle");
+        static_assert(alignof(erased_deleter_type) <= alignof(std::max_align_t),
+                      "Deleter alignment exceeds the callable_wrapper SBO alignment");
+
+        if (!p) return;
+
         auto& owner = hp_owner::get_tls_owner();
 
-        if (!(++owner.retire_count % (RETIRE_BATCH >> 1))) {
+        if (!(++owner.retire_count % (RETIRE_BATCH >> 1)) && !owner.sweeping) {
             owner.sweep_and_reclaim();
             if (owner.list->retired.empty()) {
                 hp_mgr::instance().sweep_and_reclaim_impl();
@@ -233,9 +282,7 @@ public:
                 size_t new_cap = vec.capacity() == 0 ? RETIRE_BATCH : vec.capacity() * 2;
                 vec.reserve(new_cap);
             }
-            vec.emplace_back(p, [deleter = std::move(deleter)](void* _p) noexcept {
-                deleter(static_cast<T*>(_p));
-            });
+            vec.emplace_back(p, erased_deleter_type(std::move(deleter)));
         }
     }
 
@@ -267,7 +314,7 @@ public:
 
     template <typename T>
     explicit hazard_ptr(std::atomic<T*>& target)
-#if !defined(__cpp_exceptions)
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
         : slot(detail::hp_mgr::acquire_slot()) {
@@ -285,7 +332,11 @@ public:
 
     bool available() const noexcept { return slot != nullptr; }
 
-    hazard_record* acquire_slot() noexcept {
+    hazard_record* acquire_slot()
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+        noexcept
+#endif
+    {
         return slot ? slot : (slot = detail::hp_mgr::acquire_slot());
     }
 
@@ -296,14 +347,14 @@ public:
 
     template <typename T>
     T* protect(std::atomic<T*>& target)
-#if !defined(__cpp_exceptions)
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
         noexcept
 #endif
     {
         if (!slot) {
             slot = detail::hp_mgr::acquire_slot();
             if (!slot) {
-#if defined(__cpp_exceptions)
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 throw std::runtime_error("Hazard Pointer Slots Exhausted!");
 #else
                 std::abort();
@@ -336,7 +387,6 @@ public:
 
     template <typename T, typename Deleter>
     static void retire(T* p, Deleter d) {
-        static_assert(noexcept(std::declval<Deleter>()(std::declval<T*>())), "Deleter must be noexcept");
         detail::hp_mgr::retire(p, std::move(d));
     }
     

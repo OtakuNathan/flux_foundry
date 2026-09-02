@@ -121,7 +121,7 @@ struct async_all_failed_error<std::exception_ptr> {
 
 template <typename E>
 struct async_any_failed_error {
-        static E make(size_t i) {
+        static E make(size_t) {
             static_assert(sizeof(E) == 0,
                 "flux_foundry::async_any_failed_error<E> is not specialized for this error type E. "
                 "Please provide `template<> struct flux_foundry::async_any_failed_error<E>` "

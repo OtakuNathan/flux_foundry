@@ -43,7 +43,7 @@ namespace flux_foundry {
     template<typename T>
     struct stub_receiver {
         using value_type = T;
-        void emplace(T &&val) noexcept {}
+        void emplace(T&&) noexcept {}
     };
 
     template<typename T>

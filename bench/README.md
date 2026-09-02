@@ -26,6 +26,11 @@ bash bench/horizontal_compare/run.sh
 bash bench/horizontal_compare/run_noexcept.sh
 ```
 
+> The snapshot tables below predate enforced runner consumption. Current
+> `flow_perf` labels synchronous aggregator cases as `*.oneshot.*` and creates
+> a runner per operation, so those rows intentionally include runner creation
+> and are not directly comparable with the historical aggregator rows below.
+
 ### Flow perf matrix (`ns/op`, median of 3 rounds)
 
 | Case | Exceptions ON | Exceptions OFF |

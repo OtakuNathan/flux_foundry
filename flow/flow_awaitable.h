@@ -15,6 +15,24 @@
 #include "flow_def.h"
 
 namespace flux_foundry {
+    // Opt-in contract for awaitables which always call resume() from submit()
+    // before returning success. The default is deliberately conservative: an
+    // awaitable is assumed to hand work off asynchronously unless it declares
+    // `static constexpr bool completes_inline = true`. An awaitable_base-derived
+    // type must additionally opt out of controller cancellation with
+    // `static constexpr bool support_cancel = false`; otherwise cancel() may
+    // resume the continuation from another thread during submit().
+    template <typename T, typename = void>
+    struct awaitable_completes_inline : std::false_type {};
+
+    template <typename T>
+    struct awaitable_completes_inline<T, void_t<decltype(
+        std::integral_constant<bool, static_cast<bool>(T::completes_inline)>{})>>
+        : std::integral_constant<bool, static_cast<bool>(T::completes_inline)> {};
+
+    template <typename T>
+    constexpr bool awaitable_completes_inline_v = awaitable_completes_inline<T>::value;
+
     // Contract: Awaitables in flux_foundry MUST NOT start any side effects before submit_async() is called.
     template <typename derived, typename T, typename E>
     struct awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {

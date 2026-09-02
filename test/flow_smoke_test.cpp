@@ -211,7 +211,7 @@ int test_when_any() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_any(
-        [](size_t i, int x) noexcept {
+        [](size_t, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -283,7 +283,7 @@ int test_when_any_fast() {
     auto p2 = make_lite_ptr<decltype(leaf2)>(std::move(leaf2));
 
     auto bp = await_when_any_fast(
-        [](size_t i, int x) noexcept {
+        [](size_t, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -350,7 +350,7 @@ int test_when_any_fast_accepts_null_bp() {
     auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
 
     auto bp = await_when_any_fast(
-        [](size_t i, int x) noexcept {
+        [](size_t, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -417,7 +417,7 @@ int test_when_any_accepts_null_bp() {
     auto p_valid = make_lite_ptr<leaf_t>(std::move(leaf));
 
     auto bp = await_when_any(
-        [](size_t i, int x) noexcept {
+        [](size_t, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {

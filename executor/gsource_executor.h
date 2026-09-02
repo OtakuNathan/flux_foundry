@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/eventfd.h>
-#include <glib-2.0/glib.h>
+#include <glib.h>
 
 #include "../utility/concurrent_queues.h"
 #include "../task/task_wrapper.h"

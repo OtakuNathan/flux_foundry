@@ -56,7 +56,7 @@ public:
         }
     }
 
-   template <typename T_, typename... Args,
+   template <typename T_ = T, typename... Args,
         std::enable_if_t<std::is_nothrow_constructible<T_, Args&&...>::value>* = nullptr>
     bool try_emplace(Args&&... args) noexcept {
        auto& slot = this->_data[_t & (capacity - 1)];        // full
@@ -70,7 +70,7 @@ public:
     }
 
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
-    template <typename T_, typename... Args,
+    template <typename T_ = T, typename... Args,
         std::enable_if_t <conjunction_v<
         negation<std::is_nothrow_constructible<T_, Args&&...>>, std::is_constructible<T_, Args&&...>>>* = nullptr>
     bool try_emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T_, Args&&...>::value) {
@@ -92,7 +92,7 @@ public:
     }
 
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
-    template <typename T_, typename ... Args,
+    template <typename T_ = T, typename ... Args,
         typename = std::enable_if_t<std::is_constructible<T_, Args&&...>::value>>
     void wait_and_emplace(Args&&... args)
         noexcept(std::is_nothrow_constructible<T_, Args&&...>::value) {

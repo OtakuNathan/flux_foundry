@@ -9,12 +9,21 @@ on:
 jobs:
   linux-smoke:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: [g++, clang++]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFLUX_FOUNDRY_BUILD_TESTS=ON
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          -DCMAKE_BUILD_TYPE=Release
+          -DFLUX_FOUNDRY_BUILD_TESTS=ON
+          -DFLUX_FOUNDRY_WARNINGS_AS_ERRORS=ON
 
       - name: Build
         run: cmake --build build --parallel
@@ -22,8 +31,49 @@ jobs:
       - name: Smoke tests
         run: ctest --test-dir build -L smoke --output-on-failure
 
-      - name: Flow fullchain smoke
-        run: ctest --test-dir build -R flow_fullchain_smoke --output-on-failure
+      - name: Stress tests
+        run: ctest --test-dir build -L stress --output-on-failure
+
+      - name: Install package
+        run: cmake --install build --prefix build/install
+
+      - name: Test installed package
+        run: >-
+          cmake -S test/package_consumer -B build/package-consumer
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
+          && cmake --build build/package-consumer --parallel
+          && ctest --test-dir build/package-consumer --output-on-failure
+
+  linux-gsource-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install GLib development files
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes libglib2.0-dev
+
+      - name: Configure optional GSource component
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DFLUX_FOUNDRY_BUILD_TESTS=OFF
+          -DFLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR=ON
+
+      - name: Install package
+        run: cmake --install build --prefix build/install
+
+      - name: Test installed GSource component
+        run: >-
+          cmake -S test/package_consumer -B build/package-consumer
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
+          -DFLUX_FOUNDRY_TEST_GSOURCE=ON
+          && cmake --build build/package-consumer --parallel
+          && ctest --test-dir build/package-consumer --output-on-failure
 
   windows-smoke:
     runs-on: windows-latest
@@ -40,5 +90,15 @@ jobs:
       - name: Smoke tests
         run: ctest --test-dir build -C Release -L smoke --output-on-failure
 
-      - name: Flow fullchain smoke
-        run: ctest --test-dir build -C Release -R flow_fullchain_smoke --output-on-failure
+      - name: Stress tests
+        run: ctest --test-dir build -C Release -L stress --output-on-failure
+
+      - name: Install package
+        run: cmake --install build --config Release --prefix build/install
+
+      - name: Test installed package
+        run: >-
+          cmake -S test/package_consumer -B build/package-consumer
+          -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
+          && cmake --build build/package-consumer --config Release --parallel
+          && ctest --test-dir build/package-consumer -C Release --output-on-failure

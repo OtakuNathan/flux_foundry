@@ -62,8 +62,8 @@ struct cuda_payload {
     explicit cuda_payload(int v) noexcept : value(v) {}
 };
 
-bool has_logic_error_message(const err_t& ep, const char* expected) {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+bool has_logic_error_message(const err_t& ep, const char* expected) {
     if (!ep) {
         return false;
     }
@@ -74,12 +74,8 @@ bool has_logic_error_message(const err_t& ep, const char* expected) {
     } catch (...) {
         return false;
     }
-#else
-    (void)ep;
-    (void)expected;
-    return true;
-#endif
 }
+#endif
 
 void check(bool cond, const char* name, int& failed) {
     if (cond) {

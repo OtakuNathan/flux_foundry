@@ -484,7 +484,7 @@ auto make_when_all_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2)
 template <typename BP1, typename BP2>
 auto make_when_any_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_any(
-        [](size_t i, int x) noexcept {
+        [](size_t, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -498,7 +498,7 @@ auto make_when_any_stress_bp(std::false_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2
 template <typename BP1, typename BP2>
 auto make_when_any_stress_bp(std::true_type, lite_ptr<BP1> p1, lite_ptr<BP2> p2) {
     return await_when_any_fast(
-        [](size_t i, int x) noexcept {
+        [](size_t, int x) noexcept {
             return out_t(value_tag, x);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -711,7 +711,7 @@ int main(int argc, char** argv) {
 
     auto whole_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - whole_begin).count();
-    std::printf("[TOTAL] elapsed_ms=%lld\n", whole_ms);
+    std::printf("[TOTAL] elapsed_ms=%lld\n", static_cast<long long>(whole_ms));
 
     if (failed == 0) {
         std::printf("[PASS] state-machine stress passed\n");

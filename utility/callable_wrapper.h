@@ -54,7 +54,7 @@ namespace flux_foundry {
             alignof(std::max_align_t), R(void*, Args...)>;
 
 
-        static R stub(void*, Args... args) {
+        static R stub(void*, Args...) {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             throw std::bad_function_call();
 #else
@@ -145,7 +145,7 @@ namespace flux_foundry {
         using base = raw_type_erase_base<callable_wrapper<R(Args...) const>, callable_wrapper_sbo_size,
             alignof(std::max_align_t), R(const void*, Args...)>;
 
-        static R stub(const void*, Args... args) {
+        static R stub(const void*, Args...) {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             throw std::bad_function_call();
 #else

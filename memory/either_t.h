@@ -1,6 +1,7 @@
 #ifndef FLUX_FOUNDRY_EITHERT_H
 #define FLUX_FOUNDRY_EITHERT_H
 
+#include <exception>
 #include <memory>
 
 #include "../base/inplace_base.h"
@@ -768,8 +769,9 @@ namespace flux_foundry {
 				this->_state = either_state::first;
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 			} catch (...) {
+				auto exception = std::current_exception();
 				opu::construct_at(std::addressof(this->_data.second), std::move(backup));
-				throw;
+				std::rethrow_exception(exception);
 			}
 #endif
 		}
@@ -796,8 +798,9 @@ namespace flux_foundry {
 				this->_state = either_state::first;
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 			} catch (...) {
+				auto exception = std::current_exception();
 				opu::construct_at(std::addressof(this->_data.second), backup);
-				throw;
+				std::rethrow_exception(exception);
 			}
 #endif
 		}
@@ -823,7 +826,7 @@ namespace flux_foundry {
 		template <typename T_ = T, typename U_ = U, typename... Args,
 			std::enable_if_t<conjunction_v<std::is_constructible<U_, Args&&...>,
 				negation<std::is_nothrow_move_constructible<U_>>>>* = nullptr>
-		void emplace_at(Args &&... args)
+		void emplace_second(Args &&... args)
 			noexcept(conjunction_v<std::is_nothrow_destructible<T_>, std::is_nothrow_constructible<U_, Args&&...>,
 				 std::integral_constant<bool, noexcept(opu::emplace_at(static_cast<U_*>(nullptr), std::forward<Args>(args)...))>>) {
 
@@ -1793,7 +1796,7 @@ namespace flux_foundry {
 		>* =nullptr>
 		void swap(either_t& rhs)
 			noexcept(is_nothrow_swappable<U>::value) {
-			if (this == std::addressof(rhs) || this->has_first() && rhs.has_first()) {
+			if (this == std::addressof(rhs) || (this->has_first() && rhs.has_first())) {
 				return;
 			}
 

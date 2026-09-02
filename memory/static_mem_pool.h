@@ -81,12 +81,15 @@ namespace flux_foundry {
 
         void* allocate(size_t n) noexcept {
             inplace_t<slot_t> p{};
-            /* fallthrough */
             switch (match(n)) {
                 case 0: p = free_0.pop(); if (p.has_value()) return p.steal();
+                    // fall through
                 case 1: p = free_1.pop(); if (p.has_value()) return p.steal();
+                    // fall through
                 case 2: p = free_2.pop(); if (p.has_value()) return p.steal();
+                    // fall through
                 case 3: p = free_3.pop(); if (p.has_value()) return p.steal();
+                    // fall through
                 default: return nullptr;
             }
         }

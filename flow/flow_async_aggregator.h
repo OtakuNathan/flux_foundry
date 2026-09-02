@@ -219,6 +219,7 @@ namespace detail {
 
         template<size_t I>
         int launch() {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             auto on_error = [this]() noexcept {
                 for (size_t i = 0; i < I; ++i) {
                     state_.controllers[i].cancel(true);
@@ -227,7 +228,6 @@ namespace detail {
                 state_.fired.get().fetch_or(detail::launch_failed_msk, std::memory_order_acq_rel);
             };
 
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
 #endif
                 state_.fired.get().fetch_add(detail::epoch, std::memory_order_release);

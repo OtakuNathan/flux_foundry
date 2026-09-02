@@ -59,6 +59,8 @@ constexpr long long kBenchMinRoundNs = 50LL * 1000 * 1000;
 
 struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_awaitable, int, err_t> {
     using async_result_type = out_t;
+    static constexpr bool completes_inline = true;
+    static constexpr bool support_cancel = false;
 
     int v;
 
@@ -81,6 +83,7 @@ struct immediate_plus_one_awaitable final : awaitable_base<immediate_plus_one_aw
 
 struct immediate_plus_one_fast_awaitable final : fast_awaitable_base<immediate_plus_one_fast_awaitable, int, err_t> {
     using async_result_type = out_t;
+    static constexpr bool completes_inline = true;
 
     int v;
 
@@ -377,9 +380,8 @@ int main() {
         | end();
 
     auto bp_all_ptr = make_lite_ptr<decltype(bp_all)>(std::move(bp_all));
-    auto when_all_runner = make_runner(bp_all_ptr, sink_receiver{&sink});
-
-    auto r4 = run_bench("runner.when_all.2", 5000, 300000, [&](int i) {
+    auto r4 = run_bench("runner.oneshot.when_all.2", 5000, 300000, [&](int i) {
+        auto when_all_runner = make_runner(bp_all_ptr, sink_receiver{&sink});
         when_all_runner(i, i + 1);
     });
     print_result(r4);
@@ -395,16 +397,15 @@ int main() {
         p2_all)
         | end();
 
-    auto when_all_ffast_runner = make_fast_runner_view(bp_all_fast, sink_receiver{&sink});
-    auto r4ff = run_bench("fast_runner.when_all_fast.2", 5000, 300000, [&](int i) {
+    auto r4ff = run_bench("fast_runner.oneshot.when_all_fast.2", 5000, 300000, [&](int i) {
+        auto when_all_ffast_runner = make_fast_runner_view(bp_all_fast, sink_receiver{&sink});
         when_all_ffast_runner(i, i + 1);
     });
     print_result(r4ff);
 
     auto bp_all_fast_ptr = make_lite_ptr<decltype(bp_all_fast)>(std::move(bp_all_fast));
-    auto when_all_fast_runner = make_runner(bp_all_fast_ptr, sink_receiver{&sink});
-
-    auto r4f = run_bench("runner.when_all_fast.2", 5000, 300000, [&](int i) {
+    auto r4f = run_bench("runner.oneshot.when_all_fast.2", 5000, 300000, [&](int i) {
+        auto when_all_fast_runner = make_runner(bp_all_fast_ptr, sink_receiver{&sink});
         when_all_fast_runner(i, i + 1);
     });
     print_result(r4f);
@@ -420,7 +421,7 @@ int main() {
     auto p2_any = make_lite_ptr<decltype(leaf2_any)>(std::move(leaf2_any));
 
     auto bp_any = await_when_any(
-        [](size_t i, int v) noexcept {
+        [](size_t, int v) noexcept {
             return out_t(value_tag, v);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -431,15 +432,14 @@ int main() {
         | end();
 
     auto bp_any_ptr = make_lite_ptr<decltype(bp_any)>(std::move(bp_any));
-    auto when_any_runner = make_runner(bp_any_ptr, sink_receiver{&sink});
-
-    auto r5 = run_bench("runner.when_any.2", 5000, 300000, [&](int i) {
+    auto r5 = run_bench("runner.oneshot.when_any.2", 5000, 300000, [&](int i) {
+        auto when_any_runner = make_runner(bp_any_ptr, sink_receiver{&sink});
         when_any_runner(i, i + 1);
     });
     print_result(r5);
 
     auto bp_any_fast = await_when_any_fast(
-        [](size_t i, int v) noexcept {
+        [](size_t, int v) noexcept {
             return out_t(value_tag, v);
         },
         [](flow_async_agg_err_t e) noexcept {
@@ -449,16 +449,15 @@ int main() {
         p2_any)
         | end();
 
-    auto when_any_ffast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
-    auto r5ff = run_bench("fast_runner.when_any_fast.2", 5000, 300000, [&](int i) {
+    auto r5ff = run_bench("fast_runner.oneshot.when_any_fast.2", 5000, 300000, [&](int i) {
+        auto when_any_ffast_runner = make_fast_runner_view(bp_any_fast, sink_receiver{&sink});
         when_any_ffast_runner(i, i + 1);
     });
     print_result(r5ff);
 
     auto bp_any_fast_ptr = make_lite_ptr<decltype(bp_any_fast)>(std::move(bp_any_fast));
-    auto when_any_fast_runner = make_runner(bp_any_fast_ptr, sink_receiver{&sink});
-
-    auto r5f = run_bench("runner.when_any_fast.2", 5000, 300000, [&](int i) {
+    auto r5f = run_bench("runner.oneshot.when_any_fast.2", 5000, 300000, [&](int i) {
+        auto when_any_fast_runner = make_runner(bp_any_fast_ptr, sink_receiver{&sink});
         when_any_fast_runner(i, i + 1);
     });
     print_result(r5f);

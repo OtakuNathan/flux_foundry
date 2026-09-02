@@ -43,6 +43,28 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
 
+Linux GLib integration is optional. Enable it to expose the
+`flux_foundry::gsource_executor` component target with transitive GLib flags:
+
+```bash
+cmake -S . -B build -DFLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR=ON
+```
+
+Install the header-only package into a prefix:
+
+```bash
+cmake -S . -B build -DFLUX_FOUNDRY_BUILD_TESTS=OFF \
+  -DCMAKE_INSTALL_PREFIX=/your/prefix
+cmake --install build
+```
+
+Consume it from another CMake project:
+
+```cmake
+find_package(flux_foundry 0.1 CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE flux_foundry::flux_foundry)
+```
+
 Run specific suites:
 
 ```bash
@@ -56,9 +78,10 @@ ctest --test-dir build -C Release -L demo   --output-on-failure
 
 GitHub Actions workflow: `.github/workflows/ci.yml`
 
-- OS matrix: `ubuntu-latest`, `windows-latest`
-- Build: CMake + C++14
-- Test gate: `ctest -L smoke`
+- OS/compiler matrix: `ubuntu-latest` with GCC and Clang, plus `windows-latest` with MSVC
+- Build: CMake + C++14, with warnings-as-errors on Linux
+- Test gates: `ctest -L smoke` and `ctest -L stress`
+- ThreadSanitizer stress runs nightly on GitHub Actions and can also be triggered manually.
 
 This keeps PR checks fast while still validating the core flow path on both platforms.
 
@@ -389,6 +412,9 @@ sequenceDiagram
 - Strongly typed node IO (`result_t<T, E>`)
 - Explicit cancel path via `flow_controller`
 - Async node submit/cancel lifecycle managed through `awaitable_base`
+- A runner whose execution stays synchronous/inline may be invoked again after the call returns.
+- Once execution is handed off to an asynchronous executor or event loop, that runner instance reports `is_consumed() == true`; invoking it again is rejected (and asserts in debug builds). Create a new runner from the shared blueprint for another operation.
+- Awaitables are conservatively treated as asynchronous. An awaitable that guarantees every successful `submit()` calls `resume()` before returning may declare `static constexpr bool completes_inline = true`; an `awaitable_base` type must also declare `static constexpr bool support_cancel = false`, because concurrent cancellation can resume on another thread. With those guarantees and an inline executor, the runner remains reusable.
 
 ### Fork pattern (template reference)
 
@@ -407,6 +433,7 @@ sequenceDiagram
   - use fast aggregator awaitables (`flow_when_all_fast_awaitable`, `flow_when_any_fast_awaitable`)
   - run subgraphs with `fast_runner`
   - fast path does not register `flow_controller` cancel handlers
+  - intended as async fan-in convenience; for a purely synchronous fan-in hot path, direct composition is usually cheaper
 - Recommended combinations:
   - max throughput: `fast_runner + fast awaitable/fast aggregator`
   - full cancellation semantics: `flow_runner + awaitable_base/normal aggregator`
@@ -475,21 +502,22 @@ task/
 utility/
 test/
 test/CMakeLists.txt
-test/bin/      # generated probe executables
+build/test/    # generated probe executables in a normal out-of-tree build
 README.md
 ```
 
 ## 📦 Requirements
 
 - C++14 compiler (Clang/GCC/MSVC)
-- CMake 3.16+
+- CMake 3.16+ for the header-only library; CMake 3.18+ when building probes/tests
+- Optional `gsource_executor`: Linux, `pkg-config`, and GLib 2 development files
 
 ## 📌 Notes
 
 - Core library remains header-only.
 - Probe/stress/perf sources live in `test/` (`*.cpp`).
 - CUDA runtime/image backends are shipped as demo targets (`ctest -L demo`).
-- Generated binaries are written to `test/bin/`.
+- Generated binaries stay in the selected CMake build tree.
 
 ## 📜 License
 
