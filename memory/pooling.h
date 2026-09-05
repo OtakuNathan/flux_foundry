@@ -136,7 +136,10 @@ namespace flux_foundry {
                 return p;
             }
 
-            return aligned_alloc(align, detail::alloc_size(size, align));
+            // The platform allocator requires at least pointer alignment, even
+            // when a large payload itself only needs byte alignment.
+            constexpr size_t allocation_align = align < alignof(void*) ? alignof(void*) : align;
+            return aligned_alloc(allocation_align, detail::alloc_size(size, allocation_align));
         }
 
         void dealloc(void* p) noexcept {

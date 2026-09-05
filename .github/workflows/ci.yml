@@ -60,11 +60,16 @@ jobs:
         run: >-
           cmake -S . -B build
           -DCMAKE_BUILD_TYPE=Release
-          -DFLUX_FOUNDRY_BUILD_TESTS=OFF
+          -DFLUX_FOUNDRY_BUILD_TESTS=ON
           -DFLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR=ON
 
       - name: Install package
         run: cmake --install build --prefix build/install
+
+      - name: Build and run GSource contracts
+        run: >-
+          cmake --build build --target flux_foundry_gsource_executor_contract flux_foundry_header_gsource_standalone --parallel 2
+          && ctest --test-dir build -L gsource --output-on-failure
 
       - name: Test installed GSource component
         run: >-
@@ -74,6 +79,38 @@ jobs:
           -DFLUX_FOUNDRY_TEST_GSOURCE=ON
           && cmake --build build/package-consumer --parallel
           && ctest --test-dir build/package-consumer --output-on-failure
+
+  linux-sanitizers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install GLib development files
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends --yes libglib2.0-dev
+      - name: Configure ASan and UBSan
+        run: >-
+          cmake -S . -B build-sanitizers
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=14
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          -DFLUX_FOUNDRY_BUILD_TESTS=ON
+          -DFLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR=ON
+      - name: Build
+        run: cmake --build build-sanitizers --parallel 2
+      - name: Smoke and stress with sanitizers
+        run: ctest --test-dir build-sanitizers -L 'smoke|stress' --output-on-failure --timeout 300
+      - name: Upload sanitizer test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanitizer-test-logs
+          path: build-sanitizers/Testing/Temporary/
 
   windows-smoke:
     runs-on: windows-latest

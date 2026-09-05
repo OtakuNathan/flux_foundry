@@ -32,6 +32,11 @@ jobs:
           c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/hazard_ptr_stack_stress.cpp \
             -o /tmp/flux_foundry_tsan/hazard_ptr_stack_stress_tsan -pthread -fsanitize=thread
 
+      - name: Deterministic lifecycle under TSAN
+        run: |
+          c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/awaitable_lifecycle_contract.cpp -o /tmp/flux_foundry_tsan/lifecycle -pthread -fsanitize=thread
+          TSAN_OPTIONS='halt_on_error=1 exitcode=66' timeout 30 /tmp/flux_foundry_tsan/lifecycle
+
       - name: Run nightly TSAN regressions
         run: |
           set -euo pipefail

@@ -42,7 +42,7 @@ namespace flux_foundry {
                 }
 
                 bool queue_became_empty = false;
-                for (int c = 0; c < gsource_executor::max_task_per_round; ++c) {
+                for (size_t c = 0; c < gsource_executor::max_task_per_round; ++c) {
                     auto tsk = self->executor_ref_.q_.try_pop();
                     if (!tsk) {
                         queue_became_empty = true;
@@ -87,7 +87,7 @@ namespace flux_foundry {
             explicit gsource_executor_ctx(gsource_executor &queue) :
                 executor_ref_{queue}, src_{nullptr},
                 src_fns{ executor_src::prepare, executor_src::check,
-                         executor_src::dispatch, nullptr }, m_efd{0} {
+                         executor_src::dispatch, nullptr, nullptr, nullptr }, m_efd{0} {
                 m_efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
                 if (m_efd < 0) {
                     std::stringstream ss;
@@ -155,7 +155,18 @@ namespace flux_foundry {
             if (!task) {
                 return;
             }
-            q_.wait_and_emplace(std::move(task));
+            // Register before concurrent dispatch; registration/destruction must
+            // not race with producers. The context owner cannot wait for space:
+            // it is also the thread responsible for draining this queue.
+            auto* context = g_source_get_context(ctx_.src_);
+            for (backoff_strategy<> backoff; !q_.try_emplace(std::move(task)); backoff.yield()) {
+                if (context && g_main_context_is_owner(context)) {
+                    // Like simple_executor, nested full-queue dispatch runs
+                    // inline and may recurse; FIFO ordering is not guaranteed.
+                    task();
+                    return;
+                }
+            }
             ctx_.schedule_wake_up(1);
         }
     private:

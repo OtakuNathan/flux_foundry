@@ -97,6 +97,9 @@ namespace flux_foundry {
 
             ~task_impl() = default;
 
+            // Reject temporary borrowed objects, but allow owning shared_ptrs.
+            template <typename OP = obj_param_t,
+                std::enable_if_t<!is_shared_ptr<OP>::value>* = nullptr>
             task_impl(Callable, std::remove_pointer_t<obj_param_t> &&, Args &&...) = delete;
 
             template <typename ... P, typename OP = obj_param_t,
@@ -115,7 +118,7 @@ namespace flux_foundry {
                     std::is_nothrow_move_constructible<callable_t>,
                     std::is_nothrow_constructible<param_type, P &&...> >)
                 : _data{std::move(pmf), param_type{std::forward<P>(args)...}, std::move(obj)} {
-                assert(obj && pmf);
+                assert(get<data_index::data_object>(_data) && get<data_index::data_callable>(_data));
             }
 
             template <typename... P, typename OP = obj_param_t,

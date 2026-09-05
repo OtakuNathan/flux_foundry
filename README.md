@@ -83,7 +83,9 @@ GitHub Actions workflow: `.github/workflows/ci.yml`
 - Test gates: `ctest -L smoke` and `ctest -L stress`
 - ThreadSanitizer stress runs nightly on GitHub Actions and can also be triggered manually.
 
-This keeps PR checks fast while still validating the core flow path on both platforms.
+Deterministic lifecycle, allocation-failure, and executor contract tests supplement
+these suites. Linux CI also runs ASan/UBSan and optional GLib runtime checks.
+See [`test/README.md`](test/README.md) for coverage, commands, and limitations.
 
 ## 🛠 Flow DSL at a glance
 
