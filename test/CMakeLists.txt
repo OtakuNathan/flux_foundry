@@ -78,6 +78,21 @@ if(TARGET flux_foundry_gsource_executor)
 endif()
 
 # Stress
+if(TARGET flux_foundry_uv_executor)
+    flux_foundry_add_probe(flux_foundry_uv_executor_contract uv_executor_contract.cpp)
+    target_link_libraries(flux_foundry_uv_executor_contract PRIVATE flux_foundry::uv_executor)
+    add_test(NAME uv_executor_contract COMMAND flux_foundry_uv_executor_contract)
+    set_tests_properties(uv_executor_contract PROPERTIES LABELS "smoke;contract;uv" TIMEOUT 30)
+    flux_foundry_add_noexc_probe(flux_foundry_uv_executor_contract_noexc uv_executor_contract.cpp)
+    target_link_libraries(flux_foundry_uv_executor_contract_noexc PRIVATE flux_foundry::uv_executor)
+    add_test(NAME uv_executor_contract_noexc COMMAND flux_foundry_uv_executor_contract_noexc)
+    set_tests_properties(uv_executor_contract_noexc PROPERTIES LABELS "smoke;contract;uv;noexc" TIMEOUT 30)
+    add_executable(flux_foundry_header_uv_standalone header_uv_standalone.cpp)
+    target_link_libraries(flux_foundry_header_uv_standalone PRIVATE
+        flux_foundry::uv_executor flux_foundry_test_warnings)
+endif()
+
+# Stress
 flux_foundry_add_probe(flux_foundry_flow_state_stress flow_state_stress.cpp)
 add_test(NAME flow_state_stress COMMAND flux_foundry_flow_state_stress)
 set_tests_properties(flow_state_stress PROPERTIES LABELS "stress" TIMEOUT 300)

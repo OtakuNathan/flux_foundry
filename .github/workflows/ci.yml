@@ -139,3 +139,23 @@ jobs:
           -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
           && cmake --build build/package-consumer --config Release --parallel
           && ctest --test-dir build/package-consumer -C Release --output-on-failure
+
+  linux-uv-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libuv development files
+        run: sudo apt-get update && sudo apt-get install -y libuv1-dev pkg-config
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFLUX_FOUNDRY_ENABLE_UV_EXECUTOR=ON -DFLUX_FOUNDRY_BUILD_TESTS=ON
+      - name: Build exception and no-exception contracts
+        run: cmake --build build --target flux_foundry_uv_executor_contract flux_foundry_uv_executor_contract_noexc flux_foundry_header_uv_standalone --parallel 2
+      - name: Run libuv contracts
+        run: ctest --test-dir build -L uv --output-on-failure
+      - name: Install
+        run: cmake --install build --prefix build/install
+      - name: Test installed libuv component
+        run: |
+          cmake -S test/package_consumer -B build/consumer -DCMAKE_PREFIX_PATH="$PWD/build/install" -DFLUX_FOUNDRY_TEST_UV=ON
+          cmake --build build/consumer --parallel 2
+          ctest --test-dir build/consumer --output-on-failure

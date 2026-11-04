@@ -9,7 +9,7 @@
 - ⚡ Low-overhead flow pipeline execution (`flow_runner`, `flow_fast_runner`)
 - 🔁 Flow DSL operators (`transform`, `then`, `on_error`, `catch_exception`, `via`, `await`, `await_when_all`, `await_when_any`, `await_when_all_fast`, `await_when_any_fast`)
 - 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace_t`, `pooling allocator`)
-- 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`)
+- 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`, `uv_executor`)
 
 The project is tuned for predictable behavior and explicit contracts under concurrency.
 
@@ -29,7 +29,7 @@ The project is tuned for predictable behavior and explicit contracts under concu
 |---|--------------------------------------------------------------------------------------------------------------------------|---|
 | `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h`                        | Pipeline DSL (`transform/then/on_error/catch_exception/via/await`), node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
 | `extension/` | `external_async_awaitable.h`, `cuda_awaitable.h`                                                                      | Generic external-async awaitable contract (`await_external_async`); CUDA naming kept as compatibility alias |
-| `executor/` | `simple_executor.h`, `gsource_executor.h`                                                                                | MPSC single-consumer executor, GLib source-backed executor |
+| `executor/` | `simple_executor.h`, `gsource_executor.h`, `uv_executor.h` | MPSC single-consumer executor, GLib source-backed executor, bounded libuv loop executor |
 | `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h`                                                                | Lock-free queues, callable type-erasure with SBO, backoff policies |
 | `task/` | `task_wrapper.h`, `future_task.h`                                                                                        | Task wrappers and future-related task abstraction |
 | `memory/` | `result_t.h`, `either_t.h`, `flat_storage.h`, `lite_ptr.h`, `inplace_t.h`, `padded_t.h`, `hazard_ptr.h`, `pooling.h` | Result/error transport, tagged unions, storage composition, smart pointer, inplace construction helpers, padding/alignment primitives |
@@ -49,6 +49,11 @@ Linux GLib integration is optional. Enable it to expose the
 ```bash
 cmake -S . -B build -DFLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR=ON
 ```
+
+For the optional libuv component, configure with
+`-DFLUX_FOUNDRY_ENABLE_UV_EXECUTOR=ON` and link `flux_foundry::uv_executor`.
+It schedules onto a caller-owned loop with bounded admission and asynchronous
+draining close. See [libuv executor contracts and examples](docs/uv_executor.md).
 
 Install the header-only package into a prefix:
 
@@ -524,3 +529,5 @@ README.md
 ## 📜 License
 
 MIT
+
+Planned runtime contract instrumentation is recorded in [the vaccine/poison design TODO](docs/contract_vaccine_todo.md); these APIs are not implemented yet.

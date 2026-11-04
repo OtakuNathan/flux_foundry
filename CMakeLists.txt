@@ -13,6 +13,7 @@ endif()
 option(FLUX_FOUNDRY_BUILD_TESTS "Build test/probe targets under test/" ${FLUX_FOUNDRY_BUILD_TESTS_DEFAULT})
 option(FLUX_FOUNDRY_WARNINGS_AS_ERRORS "Treat warnings in flux_foundry test/probe targets as errors" OFF)
 option(FLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR "Expose the Linux GLib GSource executor component target" OFF)
+option(FLUX_FOUNDRY_ENABLE_UV_EXECUTOR "Expose the libuv event-loop executor component target" OFF)
 
 add_library(flux_foundry INTERFACE)
 add_library(flux_foundry::flux_foundry ALIAS flux_foundry)
@@ -35,6 +36,16 @@ if(FLUX_FOUNDRY_ENABLE_GSOURCE_EXECUTOR)
     target_link_libraries(flux_foundry_gsource_executor INTERFACE
         flux_foundry::flux_foundry
         PkgConfig::FLUX_FOUNDRY_GLIB2)
+endif()
+
+if(FLUX_FOUNDRY_ENABLE_UV_EXECUTOR)
+    find_package(PkgConfig REQUIRED)
+    find_package(Threads REQUIRED)
+    pkg_check_modules(FLUX_FOUNDRY_LIBUV REQUIRED IMPORTED_TARGET libuv)
+    add_library(flux_foundry_uv_executor INTERFACE)
+    add_library(flux_foundry::uv_executor ALIAS flux_foundry_uv_executor)
+    target_link_libraries(flux_foundry_uv_executor INTERFACE
+        flux_foundry::flux_foundry PkgConfig::FLUX_FOUNDRY_LIBUV Threads::Threads)
 endif()
 
 if(FLUX_FOUNDRY_BUILD_TESTS)
@@ -67,6 +78,10 @@ set(FLUX_FOUNDRY_INSTALL_CMAKEDIR
     CACHE PATH "Directory for installed flux_foundry CMake package files")
 
 set(flux_foundry_install_targets flux_foundry)
+if(TARGET flux_foundry_uv_executor)
+    set_target_properties(flux_foundry_uv_executor PROPERTIES EXPORT_NAME uv_executor)
+    list(APPEND flux_foundry_install_targets flux_foundry_uv_executor)
+endif()
 if(TARGET flux_foundry_gsource_executor)
     set_target_properties(flux_foundry_gsource_executor PROPERTIES EXPORT_NAME gsource_executor)
     list(APPEND flux_foundry_install_targets flux_foundry_gsource_executor)

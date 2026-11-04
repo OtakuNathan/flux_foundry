@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.16)
 
 project(flux_foundry_package_consumer LANGUAGES CXX)
 
+option(FLUX_FOUNDRY_TEST_UV "Test the installed optional libuv component" OFF)
+
 option(FLUX_FOUNDRY_TEST_GSOURCE "Test the installed optional GSource component" OFF)
 
-if(FLUX_FOUNDRY_TEST_GSOURCE)
+if(FLUX_FOUNDRY_TEST_UV)
+    find_package(flux_foundry 0.1 CONFIG REQUIRED COMPONENTS uv_executor)
+elseif(FLUX_FOUNDRY_TEST_GSOURCE)
     find_package(flux_foundry 0.1 CONFIG REQUIRED COMPONENTS gsource_executor)
 else()
     find_package(flux_foundry 0.1 CONFIG REQUIRED)
@@ -22,4 +26,10 @@ if(FLUX_FOUNDRY_TEST_GSOURCE)
         flux_foundry::gsource_executor)
     add_test(NAME flux_foundry_package_gsource_consumer
         COMMAND flux_foundry_package_gsource_consumer)
+endif()
+
+if(FLUX_FOUNDRY_TEST_UV)
+    add_executable(flux_foundry_package_uv_consumer uv.cpp)
+    target_link_libraries(flux_foundry_package_uv_consumer PRIVATE flux_foundry::uv_executor)
+    add_test(NAME flux_foundry_package_uv_consumer COMMAND flux_foundry_package_uv_consumer)
 endif()
