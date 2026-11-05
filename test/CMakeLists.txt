@@ -58,13 +58,13 @@ add_test(NAME hazard_ptr_contract_noexc COMMAND flux_foundry_hazard_ptr_contract
 set_tests_properties(hazard_ptr_contract_noexc PROPERTIES LABELS "smoke;noexc" TIMEOUT 30)
 
 # Deterministic contract regressions; timeout also catches deadlocks.
-foreach(contract awaitable_lifecycle allocation_failure simple_executor)
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable)
     flux_foundry_add_probe(flux_foundry_${contract}_contract ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract COMMAND flux_foundry_${contract}_contract)
     set_tests_properties(${contract}_contract PROPERTIES LABELS "smoke;contract" TIMEOUT 20)
 endforeach()
 
-foreach(contract allocation_failure simple_executor)
+foreach(contract allocation_failure simple_executor mutable_callable)
     flux_foundry_add_noexc_probe(flux_foundry_${contract}_contract_noexc ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract_noexc COMMAND flux_foundry_${contract}_contract_noexc)
     set_tests_properties(${contract}_contract_noexc PROPERTIES LABELS "smoke;contract;noexc" TIMEOUT 20)
@@ -178,8 +178,7 @@ if(CMAKE_CUDA_COMPILER AND EXISTS "${CMAKE_CUDA_COMPILER}" AND NOT IS_DIRECTORY 
     set_target_properties(flux_foundry_cuda_runtime_demo PROPERTIES
         CUDA_STANDARD 14
         CUDA_STANDARD_REQUIRED ON
-        CUDA_EXTENSIONS OFF
-        CUDA_ARCHITECTURES 52)
+        CUDA_EXTENSIONS OFF)
 
     add_test(NAME cuda_runtime_demo COMMAND flux_foundry_cuda_runtime_demo)
     set_tests_properties(cuda_runtime_demo PROPERTIES LABELS "demo;extension;cuda")
@@ -202,8 +201,7 @@ if(TARGET flux_foundry_cuda_runtime_demo)
     set_target_properties(flux_foundry_cuda_image_demo PROPERTIES
         CUDA_STANDARD 14
         CUDA_STANDARD_REQUIRED ON
-        CUDA_EXTENSIONS OFF
-        CUDA_ARCHITECTURES 52)
+        CUDA_EXTENSIONS OFF)
 
     add_test(NAME cuda_image_demo COMMAND flux_foundry_cuda_image_demo)
     set_tests_properties(cuda_image_demo PROPERTIES
@@ -212,15 +210,58 @@ if(TARGET flux_foundry_cuda_runtime_demo)
 endif()
 
 find_path(DYNABRIDGE_INCLUDE_DIR dynabridge/async.h HINTS "${PROJECT_SOURCE_DIR}/../bridge")
+if(DYNABRIDGE_INCLUDE_DIR)
+    find_package(Threads REQUIRED)
+    flux_foundry_add_probe(flux_foundry_typed_async_demo typed_async_demo.cpp)
+    target_include_directories(flux_foundry_typed_async_demo PRIVATE "${DYNABRIDGE_INCLUDE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(flux_foundry_typed_async_demo PRIVATE Threads::Threads)
+    add_test(NAME typed_async_demo COMMAND flux_foundry_typed_async_demo)
+    set_tests_properties(typed_async_demo PROPERTIES LABELS "smoke;demo;typed" TIMEOUT 20)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        foreach(strict 0 1)
+            flux_foundry_add_probe(flux_foundry_typed_async_demo_noexc_${strict} typed_async_demo.cpp)
+            target_include_directories(flux_foundry_typed_async_demo_noexc_${strict} PRIVATE "${DYNABRIDGE_INCLUDE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+            target_link_libraries(flux_foundry_typed_async_demo_noexc_${strict} PRIVATE Threads::Threads)
+            target_compile_options(flux_foundry_typed_async_demo_noexc_${strict} PRIVATE -fno-exceptions)
+            target_compile_definitions(flux_foundry_typed_async_demo_noexc_${strict} PRIVATE
+                DYNABRIDGE_NO_EXCEPTION_STRICT=${strict} FLUX_FOUNDRY_NO_EXCEPTION_STRICT=${strict})
+            add_test(NAME typed_async_demo_noexc_${strict} COMMAND flux_foundry_typed_async_demo_noexc_${strict})
+            set_tests_properties(typed_async_demo_noexc_${strict} PROPERTIES LABELS "smoke;demo;typed;noexc" TIMEOUT 20)
+        endforeach()
+    endif()
+endif()
 if(TARGET flux_foundry_cuda_runtime_demo AND DYNABRIDGE_INCLUDE_DIR)
     find_package(Threads REQUIRED)
-    add_executable(flux_foundry_cuda_typed_demo cuda_typed_demo.cu)
-    target_include_directories(flux_foundry_cuda_typed_demo PRIVATE "${DYNABRIDGE_INCLUDE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(flux_foundry_cuda_typed_demo PRIVATE flux_foundry::flux_foundry Threads::Threads)
-    set_target_properties(flux_foundry_cuda_typed_demo PROPERTIES CUDA_STANDARD 14 CUDA_STANDARD_REQUIRED ON)
-    add_test(NAME cuda_typed_demo COMMAND flux_foundry_cuda_typed_demo)
-    add_test(NAME cuda_typed_record_failure COMMAND flux_foundry_cuda_typed_demo --fail-record)
-    set_tests_properties(cuda_typed_demo cuda_typed_record_failure PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60 LABELS "demo;extension;cuda")
+    find_package(CUDAToolkit REQUIRED)
+    foreach(variant default erased noexc_0 noexc_1)
+        if(variant MATCHES "^noexc_" AND NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            continue()
+        endif()
+        set(demo_target flux_foundry_cuda_typed_demo_${variant})
+        if(variant STREQUAL "default")
+            set(demo_target flux_foundry_cuda_typed_demo)
+        endif()
+        add_executable(${demo_target} cuda_typed_demo.cpp cuda_typed_device.cu)
+        target_include_directories(${demo_target} PRIVATE "${DYNABRIDGE_INCLUDE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+        target_link_libraries(${demo_target} PRIVATE flux_foundry::flux_foundry Threads::Threads CUDA::cudart)
+        set_target_properties(${demo_target} PROPERTIES CUDA_STANDARD 14 CUDA_STANDARD_REQUIRED ON CUDA_RUNTIME_LIBRARY Shared)
+        if(variant STREQUAL "erased")
+            target_compile_definitions(${demo_target} PRIVATE FF_TYPED_ERASED_DEMO=1)
+        elseif(variant MATCHES "noexc_([01])")
+            target_compile_definitions(${demo_target} PRIVATE
+                DYNABRIDGE_NO_EXCEPTION_STRICT=${CMAKE_MATCH_1} FLUX_FOUNDRY_NO_EXCEPTION_STRICT=${CMAKE_MATCH_1})
+            target_compile_options(${demo_target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>)
+            if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+                target_compile_options(${demo_target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--no-exceptions>)
+            else()
+                target_compile_options(${demo_target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-fno-exceptions>)
+            endif()
+        endif()
+        add_test(NAME cuda_typed_${variant} COMMAND ${demo_target})
+        add_test(NAME cuda_typed_record_failure_${variant} COMMAND ${demo_target} --fail-record)
+        set_tests_properties(cuda_typed_${variant} cuda_typed_record_failure_${variant}
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60 LABELS "demo;extension;cuda")
+    endforeach()
 endif()
 
 add_executable(flux_foundry_cuda_completion_condition cuda_completion_condition.cpp)

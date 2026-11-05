@@ -237,7 +237,7 @@ namespace flux_foundry {
             template <typename F_I, typename F_O>
             static auto make(then_node&& self) 
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
@@ -281,7 +281,7 @@ namespace flux_foundry {
             template <typename F_I, typename F_O>
             static auto make(error_node&& self) 
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif
@@ -542,7 +542,7 @@ namespace flux_foundry {
             template <typename F_I>
             static auto make(end_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I&& in) noexcept {
+                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                     try {
 #endif

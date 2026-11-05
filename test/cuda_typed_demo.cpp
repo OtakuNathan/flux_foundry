@@ -2,7 +2,7 @@
 // No FF scheduling policy and no CUDA host callback are involved.
 #include <dynabridge/extensions/flux_foundry/async.h>
 #include <dynabridge/backend_base.h>
-#include "cuda_image_kernel.cuh"
+#include "cuda_typed_device.h"
 #include "cuda_completion_condition.h"
 #include <limits>
 #include <list>
@@ -12,24 +12,16 @@
 #include <functional>
 #include <thread>
 #include <vector>
-struct image_result {int width,height;std::vector<unsigned char> pixels;};
 #define DYNABRIDGE_IMPORT_DEF "cuda_typed.def"
 #include <dynabridge/import.h>
 #undef DYNABRIDGE_IMPORT_DEF
 namespace {
-__global__ void typed_add_one(int value,int* output){*output=value+1;}
 struct cuda_category final:std::error_category {
     const char* name()const noexcept override{return "cuda";}
     std::string message(int e)const override{return cudaGetErrorString(static_cast<cudaError_t>(e));}
 };
-dynabridge::async_error cuda_error(cudaError_t e){static cuda_category category;return std::error_code(int(e),category);}
-struct resources {
-    cudaStream_t stream=nullptr;cudaEvent_t event=nullptr;void* device=nullptr;
-    std::vector<unsigned char> host;
-    cudaError_t error=cudaSuccess;
-    bool recorded=false;
-    ~resources(){if(device)cudaFree(device);if(event)cudaEventDestroy(event);if(stream)cudaStreamDestroy(stream);}
-};
+dynabridge::async_error cuda_error(cudaError_t e) noexcept {static cuda_category category;return std::error_code(int(e),category);}
+using resources=typed_cuda::resources;
 struct gpu_backend:dynabridge::backend_base<gpu_backend> {
     struct context : std::enable_shared_from_this<context> {
         using backend_t=gpu_backend;
@@ -57,14 +49,14 @@ template<> struct kernel<dynabridge::import_symbols::gpu::add_one> {
     using result_type=int;
     static bool valid(const std::tuple<int>& args){return std::get<0>(args)<std::numeric_limits<int>::max();}
     static std::size_t bytes(const std::tuple<int>&){return sizeof(int);}
-    static void launch(resources& r,const std::tuple<int>& args){typed_add_one<<<1,1,0,r.stream>>>(std::get<0>(args),static_cast<int*>(r.device));}
+    static void launch(resources& r,const std::tuple<int>& args){typed_cuda::launch_add_one(r,std::get<0>(args));}
     static int collect(resources& r,const std::tuple<int>&){int value;std::memcpy(&value,r.host.data(),sizeof(value));return value;}
 };
 template<> struct kernel<dynabridge::import_symbols::gpu::render> {
     using result_type=image_result;
     static bool valid(const std::tuple<int,int>& args){return std::get<0>(args)>0&&std::get<0>(args)<=4096&&std::get<1>(args)>0&&std::get<1>(args)<=4096;}
     static std::size_t bytes(const std::tuple<int,int>& args){return std::size_t(std::get<0>(args))*std::get<1>(args)*4;}
-    static void launch(resources& r,const std::tuple<int,int>& args){int w=std::get<0>(args),h=std::get<1>(args);mandelbrot_rgba_kernel<<<dim3((w+15)/16,(h+15)/16),dim3(16,16),0,r.stream>>>(static_cast<unsigned char*>(r.device),w,h,1.f);}
+    static void launch(resources& r,const std::tuple<int,int>& args){typed_cuda::launch_render(r,std::get<0>(args),std::get<1>(args));}
     static image_result collect(resources& r,const std::tuple<int,int>& args){return {std::get<0>(args),std::get<1>(args),std::move(r.host)};}
 };
 template<class Symbol,class Contract,class Receiver,class Tuple>
@@ -101,15 +93,47 @@ auto gpu_backend::prepare_async(std::shared_ptr<Receiver> receiver,Tuple args){
         state->recorded=true;return dynabridge::async_submission::accept();
     });
 }
+auto bind_gpu(std::shared_ptr<gpu_backend::context> context) {
+    using D=dynabridge::gpu<gpu_backend::context>;
+#ifdef FF_TYPED_ERASED_DEMO
+    return dynabridge::bind_async<dynabridge::gpu>(std::move(context),D::object_t{});
+#else
+    return dynabridge::bind_static_async<dynabridge::gpu>(std::move(context),D::object_t{});
+#endif
+}
+bool image_valid(const image_result& image) noexcept {
+    if(image.width!=128 || image.height!=96 || image.pixels.size()!=128*96*4) return false;
+    bool colored=false;
+    for(std::size_t i=0;i<image.pixels.size();i+=4) {
+        if(image.pixels[i+3]!=255) return false;
+        colored=colored || image.pixels[i] || image.pixels[i+1] || image.pixels[i+2];
+    }
+    return colored;
+}
+bool release_owner_from_continuation() {
+    auto owner=std::make_shared<gpu_backend::context>();
+    std::weak_ptr<gpu_backend::context> lifetime=owner;
+    bool completed=false,valid=false;
+    {
+        auto gpu=bind_gpu(owner);
+        dynabridge::ff::start_invocation(gpu.add_one(41),[&](flux_foundry::result_t<int,dynabridge::async_error> result) noexcept {
+            valid=result.has_value() && result.value()==42;
+            completed=true;owner->close();owner.reset();
+        });
+    }
+    while(!completed) {owner->poll();std::this_thread::sleep_for(std::chrono::microseconds(100));}
+    return valid && lifetime.expired();
+}
 }
 int main(int argc,char**){
     int devices=0;if(cudaGetDeviceCount(&devices)!=cudaSuccess || !devices){std::puts("SKIP: no CUDA device");return 77;}
     auto ctx=std::make_shared<gpu_backend::context>();ctx->fail_record=argc>1;
-    using D=dynabridge::gpu<gpu_backend::context>;
-    auto gpu=dynabridge::bind_static_async<dynabridge::gpu>(ctx,D::object_t{});
+    auto gpu=bind_gpu(ctx);
     int completed=0;bool valid=true;
     dynabridge::ff::start_invocation(gpu.add_one(41),[&](flux_foundry::result_t<int,dynabridge::async_error> r) noexcept {valid&=ctx->fail_record?!r.has_value():(r.has_value()&&r.value()==42);++completed;});
-    dynabridge::ff::start_invocation(gpu.render(128,96),[&](flux_foundry::result_t<image_result,dynabridge::async_error> r) noexcept {valid&=ctx->fail_record?!r.has_value():(r.has_value()&&r.value().pixels.size()==128*96*4);++completed;ctx->close();});
+    dynabridge::ff::start_invocation(gpu.render(128,96),[&](flux_foundry::result_t<image_result,dynabridge::async_error> r) noexcept {valid&=ctx->fail_record?!r.has_value():(r.has_value()&&image_valid(r.value()));++completed;ctx->close();});
     while(!ctx->pending.empty()){ctx->poll();std::this_thread::sleep_for(std::chrono::microseconds(100));}
-    return valid&&completed==2?0:1;
+    valid=valid && completed==2 && release_owner_from_continuation();
+    std::printf("[%s] typed CUDA scalar, image, record-failure=%d, continuation close/release\n",valid?"OK":"FAIL",int(ctx->fail_record));
+    return valid?0:1;
 }

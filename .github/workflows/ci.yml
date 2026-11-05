@@ -17,9 +17,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout Dynabridge tool for typed-call demos
+        uses: actions/checkout@v4
+        with:
+          repository: OtakuNathan/dynabridge
+          ref: 84725ad350baf56c3cddb69aa934bf9eaabf3123
+          path: build-deps/dynabridge
+
       - name: Configure
         run: >-
           cmake -S . -B build
+          -DDYNABRIDGE_INCLUDE_DIR="${{ github.workspace }}/build-deps/dynabridge"
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
           -DCMAKE_BUILD_TYPE=Release
           -DFLUX_FOUNDRY_BUILD_TESTS=ON
@@ -159,3 +167,31 @@ jobs:
           cmake -S test/package_consumer -B build/consumer -DCMAKE_PREFIX_PATH="$PWD/build/install" -DFLUX_FOUNDRY_TEST_UV=ON
           cmake --build build/consumer --parallel 2
           ctest --test-dir build/consumer --output-on-failure
+
+  cuda-compile:
+    name: CUDA typed demos / compile coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: nvidia/cuda:13.4.3-devel-ubuntu24.04@sha256:5626a7d0ecafe3e7c115a452f6b05f20f214f8509346196a7835b205dc5b7fd9
+    steps:
+      - name: Install host build tools
+        run: apt-get update && apt-get install -y --no-install-recommends cmake g++ git ca-certificates
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: OtakuNathan/dynabridge
+          ref: 84725ad350baf56c3cddb69aa934bf9eaabf3123
+          path: build-deps/dynabridge
+      - name: Configure
+        run: >-
+          cmake -S . -B build-cuda -DCMAKE_BUILD_TYPE=Release
+          -DDYNABRIDGE_INCLUDE_DIR="${{ github.workspace }}/build-deps/dynabridge"
+          -DCMAKE_CUDA_ARCHITECTURES=75
+      - name: Compile concrete, erased and no-exception variants
+        run: >-
+          cmake --build build-cuda --parallel 2 --target
+          flux_foundry_cuda_typed_demo flux_foundry_cuda_typed_demo_erased
+          flux_foundry_cuda_typed_demo_noexc_0 flux_foundry_cuda_typed_demo_noexc_1
+      - name: Run when a device is available; otherwise report explicit skips
+        run: ctest --test-dir build-cuda -R '^cuda_typed_' --output-on-failure
