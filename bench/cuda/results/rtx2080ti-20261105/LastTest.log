@@ -1,0 +1,138 @@
+Start testing: Nov 05 21:01 CST
+----------------------------------------------------------
+33/41 Testing: cuda_typed_default
+33/41 Test: cuda_typed_default
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_default" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=0, continuation close/release
+<end of output>
+Test time =   0.35 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_default" end time: Nov 05 21:01 CST
+"cuda_typed_default" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/41 Testing: cuda_typed_record_failure_default
+34/41 Test: cuda_typed_record_failure_default
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo" "--fail-record"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_record_failure_default" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=1, continuation close/release
+<end of output>
+Test time =   0.28 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_record_failure_default" end time: Nov 05 21:01 CST
+"cuda_typed_record_failure_default" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/41 Testing: cuda_typed_erased
+35/41 Test: cuda_typed_erased
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo_erased"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_erased" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=0, continuation close/release
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_erased" end time: Nov 05 21:01 CST
+"cuda_typed_erased" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/41 Testing: cuda_typed_record_failure_erased
+36/41 Test: cuda_typed_record_failure_erased
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo_erased" "--fail-record"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_record_failure_erased" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=1, continuation close/release
+<end of output>
+Test time =   0.26 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_record_failure_erased" end time: Nov 05 21:01 CST
+"cuda_typed_record_failure_erased" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/41 Testing: cuda_typed_noexc_0
+37/41 Test: cuda_typed_noexc_0
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo_noexc_0"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_noexc_0" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=0, continuation close/release
+<end of output>
+Test time =   0.26 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_noexc_0" end time: Nov 05 21:01 CST
+"cuda_typed_noexc_0" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/41 Testing: cuda_typed_record_failure_noexc_0
+38/41 Test: cuda_typed_record_failure_noexc_0
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo_noexc_0" "--fail-record"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_record_failure_noexc_0" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=1, continuation close/release
+<end of output>
+Test time =   0.25 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_record_failure_noexc_0" end time: Nov 05 21:01 CST
+"cuda_typed_record_failure_noexc_0" time elapsed: 00:00:00
+----------------------------------------------------------
+
+39/41 Testing: cuda_typed_noexc_1
+39/41 Test: cuda_typed_noexc_1
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo_noexc_1"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_noexc_1" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=0, continuation close/release
+<end of output>
+Test time =   0.24 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_noexc_1" end time: Nov 05 21:01 CST
+"cuda_typed_noexc_1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+40/41 Testing: cuda_typed_record_failure_noexc_1
+40/41 Test: cuda_typed_record_failure_noexc_1
+Command: "/tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test/flux_foundry_cuda_typed_demo_noexc_1" "--fail-record"
+Directory: /tmp/ff-dynabridge-gpu-bench-20261105-s1jIY7/build/test
+"cuda_typed_record_failure_noexc_1" start time: Nov 05 21:01 CST
+Output:
+----------------------------------------------------------
+[OK] typed CUDA scalar, image, record-failure=1, continuation close/release
+<end of output>
+Test time =   0.25 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_typed_record_failure_noexc_1" end time: Nov 05 21:01 CST
+"cuda_typed_record_failure_noexc_1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 05 21:01 CST
+
+cuda =   2.16 sec*proc
+
+demo =   2.16 sec*proc
+
+extension =   2.16 sec*proc
+

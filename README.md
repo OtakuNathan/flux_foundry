@@ -453,6 +453,7 @@ That document includes:
 - `flow_perf` snapshots
 - `flux_foundry` vs standalone Asio horizontal compare
 - real-backend async overhead snapshots
+- [matched native / typed CUDA measurements on RTX 2080 Ti](bench/cuda/README.md)
 - macOS / Windows / Linux host notes and command blocks
 
 For the standalone horizontal-compare harness itself, see [`bench/horizontal_compare/README.md`](bench/horizontal_compare/README.md).

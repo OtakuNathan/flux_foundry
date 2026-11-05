@@ -1,0 +1,5 @@
+*.o
+/benchmark-rebuilt
+/kernel_only-rebuilt
+/new-results.csv
+/new-kernel-results.csv

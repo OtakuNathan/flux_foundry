@@ -4,6 +4,35 @@ This document keeps the microbenchmark material out of the root `README`.
 
 For the standalone `flux_foundry` vs Asio harness and collection scripts, see [`bench/horizontal_compare/README.md`](horizontal_compare/README.md).
 
+## CUDA backend comparison (RTX 2080 Ti, 2026-11-05)
+
+Matched Mandelbrot rendering on real hardware, Ryzen 7 3700X + RTX 2080 Ti:
+completed images/s, medians of five trials, with exceptions enabled. Each image
+includes CUDA resource creation, kernel execution, D2H, completion handling,
+resource cleanup and sampled image validation. Native uses the same backend and
+polling queue; FF paths add generated Dynabridge invocations and a fresh fast
+runner per operation.
+
+| Image | In-flight window | Native callbacks | FF + DB concrete | FF + DB erased |
+|---|---:|---:|---:|---:|
+| 128×128 | 1 | 5,918 | 6,091 | 5,871 |
+| 128×128 | 8 | 17,282 | 17,708 | 18,114 |
+| 512×512 | 1 | 2,716 | 2,687 | 2,706 |
+| 512×512 | 8 | 1,485 | 1,465 | 1,459 |
+
+The matched paths are close in this workload; positive FF differences in some
+trials do not establish a speedup. At 512×512/window 8, median paired throughput
+differences versus Native are −3.23% concrete and −5.58% erased. Native itself
+also slows at window 8, so that slowdown is not specific to FF. Native still
+uses shared ownership and `std::function`; this measures incremental integration
+cost on that baseline, not absolute overhead versus bare CUDA.
+
+See [methodology and reproduction](cuda/README.md) and the
+[full snapshot with raw CSV and validation log](cuda/results/rtx2080ti-20261105/README.md).
+Separate device-only references exclude allocation, D2H and validation and are
+not equivalent end-to-end workloads. Eight upstream typed-CUDA tests passed,
+including event-record failure injection and concrete/erased/no-exception paths.
+
 ## 📊 Benchmark snapshots
 Measured on `2026-03-07` (local machine):
 

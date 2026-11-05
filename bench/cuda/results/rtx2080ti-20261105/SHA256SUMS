@@ -1,0 +1,15 @@
+c5ccf8851cbeeb337357b7722831f764f0cd92183c9d9125b393a9a2ad1f022a  ../../benchmark.cpp
+a2d051951c79a3cc4fe872ffe6dae7f3f68f721fe76ae3cff6f222324ffd8662  ../../build.sh
+2f58b1777d1b7311f616cdfee867cac2d06c1b62fda0d7f2551ca97701e9a8e1  ../../cuda_completion_condition.h
+175c244ed48125bb0df353f8956e1f0ba6af3f30f9d025c879ff9d7b95e90f41  ../../cuda_image_kernel.cuh
+f52628be676971086bfc30c8cda6e7b61ee3b5fa50ed096ee3dae0571746686f  ../../cuda_typed.def
+7230785047ea78b7b0167979bcfe69ef3e6ad9991bade16bba546b9eab768c0d  ../../cuda_typed_device.cu
+b9360cc30c294dd0903072111d662d6becc545c85cbae84e2bf1c7cb118027a3  ../../cuda_typed_device.h
+e61cd23c1d08c06bb818fe43b2b7033aa79c104789fa64dc5343bf2deb9b5bd1  ../../kernel_only.cpp
+56768bab68f438c156ac21ca564f082b610d511d8b369b5d15ad6c46dda20cd5  LastTest.log
+600cc4b5fe7090d9604b98cd11318dfcf0a9cfabe35e279d1bf39bbe3551c4c6  README.md
+eebe0f52e7675731acb44cf7a13ec1489f2b3e3cba1509289cb3fa55118e6d30  kernel-results.csv
+865eeab93411f39f564e809f140a5f43132544cc1be0dc40c24f45d546a1048e  kernel-telemetry.csv
+ee70c11d0b99bbcfc6da5c6ca59a5d86b1ce42a4913eb7e66e94d95b16a2e5f8  results.csv
+e399b2256474f2bee8ed82e55fe42a9f2d61170fb525529a4c38b9081fde5339  telemetry.csv
+a21d3a6afba78e19d3bcfaa9d7146befea3e7531cbf406c5d648c85fc0f47ce8  ../../summarize.py
