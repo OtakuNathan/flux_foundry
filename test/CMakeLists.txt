@@ -210,3 +210,18 @@ if(TARGET flux_foundry_cuda_runtime_demo)
         LABELS "demo;extension;cuda"
         ENVIRONMENT "FLUX_FOUNDRY_CUDA_DEMO_NO_OPEN=1")
 endif()
+
+find_path(DYNABRIDGE_INCLUDE_DIR dynabridge/async.h HINTS "${PROJECT_SOURCE_DIR}/../bridge")
+if(CMAKE_CUDA_COMPILER AND DYNABRIDGE_INCLUDE_DIR)
+    add_executable(flux_foundry_cuda_typed_demo cuda_typed_demo.cu)
+    target_include_directories(flux_foundry_cuda_typed_demo PRIVATE "${DYNABRIDGE_INCLUDE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(flux_foundry_cuda_typed_demo PRIVATE flux_foundry::flux_foundry Threads::Threads)
+    set_target_properties(flux_foundry_cuda_typed_demo PROPERTIES CUDA_STANDARD 14 CUDA_STANDARD_REQUIRED ON)
+    add_test(NAME cuda_typed_demo COMMAND flux_foundry_cuda_typed_demo)
+    add_test(NAME cuda_typed_record_failure COMMAND flux_foundry_cuda_typed_demo --fail-record)
+    set_tests_properties(cuda_typed_demo cuda_typed_record_failure PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60 LABELS "demo;extension;cuda")
+endif()
+
+add_executable(flux_foundry_cuda_completion_condition cuda_completion_condition.cpp)
+add_test(NAME cuda_completion_condition COMMAND flux_foundry_cuda_completion_condition)
+set_tests_properties(cuda_completion_condition PROPERTIES LABELS "smoke;extension")

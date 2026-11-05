@@ -531,3 +531,21 @@ README.md
 MIT
 
 Planned runtime contract instrumentation is recorded in [the vaccine/poison design TODO](docs/contract_vaccine_todo.md); these APIs are not implemented yet.
+
+### Typed external operations with Dynabridge
+
+Dynabridge's optional `<dynabridge/extensions/flux_foundry/async.h>` integration
+provides generated asynchronous delegates and an owning invocation protocol.
+`make_invocation<R>(context_owner, callable)` preserves the original callable;
+`erase_invocation` is an explicit alternative. FF itself keeps its existing
+external-async/CUDA compatibility interfaces and has no mandatory bridge dependency.
+
+When CUDA and `DYNABRIDGE_INCLUDE_DIR` are available, `cuda_typed_demo` exercises
+scalar and image operations on one backend context. It services all recorded
+CUDA events from the application's host loop; it does not introduce an executor
+or run continuations inside CUDA host callbacks. `close()` stops new submissions
+without blocking or joining. The caller drains the host loop before releasing
+its owner. A failed event record retires through stream synchronization, never
+through a fresh event query; `cuda_typed_record_failure` injects that path after
+launch. A missing GPU is reported as a skipped test. The CPU-only
+`cuda_completion_condition` regression always runs.
