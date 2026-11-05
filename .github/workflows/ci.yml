@@ -184,10 +184,12 @@ jobs:
           ref: 84725ad350baf56c3cddb69aa934bf9eaabf3123
           path: build-deps/dynabridge
       - name: Configure
-        run: >-
-          cmake -S . -B build-cuda -DCMAKE_BUILD_TYPE=Release
-          -DDYNABRIDGE_INCLUDE_DIR="${{ github.workspace }}/build-deps/dynabridge"
-          -DCMAKE_CUDA_ARCHITECTURES=75
+        run: |
+          # Resolve the checkout inside the container's mounted workspace.
+          test -f "$PWD/build-deps/dynabridge/dynabridge/extensions/flux_foundry/async.h"
+          cmake -S . -B build-cuda -DCMAKE_BUILD_TYPE=Release \
+            -DDYNABRIDGE_INCLUDE_DIR="$PWD/build-deps/dynabridge" \
+            -DCMAKE_CUDA_ARCHITECTURES=75
       - name: Compile concrete, erased and no-exception variants
         run: >-
           cmake --build build-cuda --parallel 2 --target
