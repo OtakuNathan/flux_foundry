@@ -5,6 +5,7 @@
 #include "cuda_image_kernel.cuh"
 #include "cuda_completion_condition.h"
 #include <limits>
+#include <list>
 #include <chrono>
 #include <cstring>
 #include <cstdio>
@@ -30,15 +31,21 @@ struct resources {
     ~resources(){if(device)cudaFree(device);if(event)cudaEventDestroy(event);if(stream)cudaStreamDestroy(stream);}
 };
 struct gpu_backend:dynabridge::backend_base<gpu_backend> {
-    struct context {
+    struct context : std::enable_shared_from_this<context> {
         using backend_t=gpu_backend;
         bool closing=false,fail_record=false;
-        std::vector<std::function<bool()>> pending;
+        std::list<std::function<bool()>> pending;
         // Owner thread only. Close never joins or waits inside a continuation.
         void close() noexcept {closing=true;}
         void poll(){
-            auto round=std::move(pending);pending.clear();
-            for(auto& operation:round) if(!operation())pending.emplace_back(std::move(operation));
+            auto keep_alive=shared_from_this();
+            std::list<std::function<bool()>> round;
+            round.splice(round.end(),pending);
+            while(!round.empty()) {
+                auto current=round.begin();
+                if((*current)()) round.erase(current);
+                else pending.splice(pending.end(),round,current);
+            }
         }
     };
     template<class R,class Direction> struct object_t{};
