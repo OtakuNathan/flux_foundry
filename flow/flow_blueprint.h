@@ -105,13 +105,13 @@ namespace flux_foundry {
             }
 
             template <typename X>
-            auto operator()(X &&x)
+            FORCE_INLINE auto operator()(X &&x)
             noexcept(noexcept(std::declval<G_T &>()(std::declval<F_T &>()(std::forward<X>(x))))) {
                 return fg.second()(fg.first()(std::forward<X>(x)));
             }
 
             template <typename X>
-            auto operator()(X &&x) const
+            FORCE_INLINE auto operator()(X &&x) const
             noexcept(noexcept(std::declval<const G_T &>()(std::declval<const F_T &>()(std::forward<X>(x))))) {
                 return fg.second()(fg.first()(std::forward<X>(x)));
             }

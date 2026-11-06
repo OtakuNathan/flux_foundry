@@ -19,6 +19,7 @@ verdicts also remain active in Release builds.
 | `allocation_failure_contract` | Fail allocation attempts 1 through 3 through the allocator interface; verify recovery on subsequent attempts and no live allocations. Throw from object construction and verify control-block cleanup. |
 | `allocation_failure_contract_noexc` | Same allocation failure schedule with exceptions disabled; verifies empty handles and cleanup. |
 | `simple_executor_contract` / `_noexc` | Capacities 1 and 2; nested full-queue dispatch, dispatch before run, concurrent shutdown with an explicitly blocked consumer, repeated shutdown, and draining all admitted work. |
+| `void_recovery_contract` / `_noexc` / `_noexc_relaxed` | Void success bypass, error recovery and forwarding, exception matching and replacement; typed conversion and move-only controls; mutable move-only handlers; normal and fast runners. No-exception targets cover both strict and relaxed policy. |
 | `gsource_executor_contract` | Capacities 1 and 2; dispatch while owning the context outside the executor callback, nested dispatch from its callback, producer-thread wakeups and delivery. Requires the optional GLib target. |
 
 Enable and run GLib coverage on Linux:

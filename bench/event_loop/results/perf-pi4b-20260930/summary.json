@@ -1,0 +1,1181 @@
+{
+  "gsource_fast": {
+    "sample_count": 1203,
+    "threads": {
+      "producer": {
+        "samples": 748,
+        "cycles_weight": 3250118578,
+        "top_self": [
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 1188104977,
+            "percent": 36.55574245943712
+          },
+          {
+            "symbol": "flux_foundry::gsource_executor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 413347044,
+            "percent": 12.71790656494626
+          },
+          {
+            "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, __gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter)",
+            "cycles_weight": 359975521,
+            "percent": 11.075765771645024
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 354708337,
+            "percent": 10.913704484538348
+          },
+          {
+            "symbol": "[unknown]",
+            "cycles_weight": 209213732,
+            "percent": 6.437110738548568
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 140258059,
+            "percent": 4.3154751321814695
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 118604620,
+            "percent": 3.6492397785986257
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 57261306,
+            "percent": 1.7618220574350996
+          },
+          {
+            "symbol": "__aarch64_ldadd8_relax",
+            "cycles_weight": 41717008,
+            "percent": 1.2835534150163552
+          },
+          {
+            "symbol": "strcmp",
+            "cycles_weight": 36263573,
+            "percent": 1.1157615369933742
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 31341092,
+            "percent": 0.9643061090800608
+          },
+          {
+            "symbol": "clock_gettime@@GLIBC_2.17",
+            "cycles_weight": 28681639,
+            "percent": 0.8824797714811253
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 140258059,
+            "percent": 4.3154751321814695
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 98978314,
+            "percent": 3.045375472451455
+          },
+          {
+            "symbol": "malloc",
+            "cycles_weight": 14204475,
+            "percent": 0.43704482341505513
+          },
+          {
+            "symbol": "flux_foundry::gsource_executor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 14160438,
+            "percent": 0.4356898882352101
+          },
+          {
+            "symbol": "_int_malloc",
+            "cycles_weight": 3596065,
+            "percent": 0.11064411693596983
+          }
+        ],
+        "categories": {
+          "timestamp functions": 10.913704484538348,
+          "outlined atomic helpers": 8.344229433219159,
+          "explicit static pool functions": 3.6492397785986257,
+          "libc allocation/free functions": 0.44924210146772064
+        }
+      },
+      "consumer": {
+        "samples": 455,
+        "cycles_weight": 2295371484,
+        "top_self": [
+          {
+            "symbol": "load_probe::work(load_probe::Event)",
+            "cycles_weight": 1051296438,
+            "percent": 45.80071005186366
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::Fast::submit()::{lambda()#1}, true>::call(void*)",
+            "cycles_weight": 263773582,
+            "percent": 11.491542168169586
+          },
+          {
+            "symbol": "[unknown]",
+            "cycles_weight": 207018901,
+            "percent": 9.018971545261211
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 185163539,
+            "percent": 8.066822311364046
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 117105773,
+            "percent": 5.101822246041286
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 106868910,
+            "percent": 4.65584375971101
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 72271559,
+            "percent": 3.148577888318839
+          },
+          {
+            "symbol": "flux_foundry::mpsc_queue<flux_foundry::task_wrapper<48ul, 16ul>, 4096ul>::try_pop()",
+            "cycles_weight": 64415424,
+            "percent": 2.8063180382352435
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 58489345,
+            "percent": 2.5481428782967317
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 48665847,
+            "percent": 2.120173023810206
+          },
+          {
+            "symbol": "flux_foundry::detail::get_pool()",
+            "cycles_weight": 24089172,
+            "percent": 1.0494672504174056
+          },
+          {
+            "symbol": "clock_gettime@@GLIBC_2.17",
+            "cycles_weight": 19268328,
+            "percent": 0.8394426843023375
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 156184196,
+            "percent": 6.804310199403
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 72271559,
+            "percent": 3.148577888318839
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 28979343,
+            "percent": 1.2625121119610458
+          }
+        ],
+        "categories": {
+          "outlined atomic helpers": 11.215400199682884,
+          "explicit static pool functions": 5.101822246041286,
+          "timestamp functions": 4.65584375971101,
+          "libc allocation/free functions": 0.209483215833137
+        }
+      }
+    }
+  },
+  "simple_fast": {
+    "sample_count": 1191,
+    "threads": {
+      "producer": {
+        "samples": 632,
+        "cycles_weight": 3658554199,
+        "top_self": [
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 1210038418,
+            "percent": 33.074224193008874
+          },
+          {
+            "symbol": "flux_foundry::simple_executor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 922067562,
+            "percent": 25.203058690562262
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 392261302,
+            "percent": 10.721757302576455
+          },
+          {
+            "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, __gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter)",
+            "cycles_weight": 379174012,
+            "percent": 10.364039764769384
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 248176337,
+            "percent": 6.783453886451499
+          },
+          {
+            "symbol": "__aarch64_cas8_relax",
+            "cycles_weight": 84252479,
+            "percent": 2.302890005648376
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 58061231,
+            "percent": 1.586999340227623
+          },
+          {
+            "symbol": "__aarch64_ldadd8_relax",
+            "cycles_weight": 54406166,
+            "percent": 1.487094711207803
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 53050386,
+            "percent": 1.4500369029520013
+          },
+          {
+            "symbol": "clock_gettime@@GLIBC_2.17",
+            "cycles_weight": 30125306,
+            "percent": 0.8234210663937741
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 23721859,
+            "percent": 0.6483943577078602
+          },
+          {
+            "symbol": "malloc",
+            "cycles_weight": 23324267,
+            "percent": 0.6375268953614318
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::simple_executor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 189251432,
+            "percent": 5.172847570543809
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 143177384,
+            "percent": 3.913496321556066
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 107456552,
+            "percent": 2.9371316141598043
+          },
+          {
+            "symbol": "malloc",
+            "cycles_weight": 17177613,
+            "percent": 0.4695191615500788
+          },
+          {
+            "symbol": "_int_malloc",
+            "cycles_weight": 11846263,
+            "percent": 0.3237962964506023
+          }
+        ],
+        "categories": {
+          "outlined atomic helpers": 12.81679096426036,
+          "timestamp functions": 10.721757302576455,
+          "explicit static pool functions": 1.586999340227623,
+          "libc allocation/free functions": 0.3030891001431902
+        }
+      },
+      "consumer": {
+        "samples": 559,
+        "cycles_weight": 2202067563,
+        "top_self": [
+          {
+            "symbol": "load_probe::work(load_probe::Event)",
+            "cycles_weight": 1050988095,
+            "percent": 47.727331924738046
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::Fast::submit()::{lambda()#1}, true>::call(void*)",
+            "cycles_weight": 200892473,
+            "percent": 9.122902329405049
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 143223227,
+            "percent": 6.504034181625153
+          },
+          {
+            "symbol": "__aarch64_ldadd8_acq_rel",
+            "cycles_weight": 129968212,
+            "percent": 5.902099199124346
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 106891410,
+            "percent": 4.854138528537056
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 104753481,
+            "percent": 4.757051180450088
+          },
+          {
+            "symbol": "[unknown]",
+            "cycles_weight": 98468062,
+            "percent": 4.471618566773285
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 77888363,
+            "percent": 3.537056006305652
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 67268209,
+            "percent": 3.0547749819427317
+          },
+          {
+            "symbol": "flux_foundry::mpsc_queue<flux_foundry::task_wrapper<48ul, 16ul>, 4096ul>::try_pop()",
+            "cycles_weight": 60928090,
+            "percent": 2.7668583391235395
+          },
+          {
+            "symbol": "flux_foundry::simple_executor<4096ul>::run()",
+            "cycles_weight": 28438564,
+            "percent": 1.2914482951311699
+          },
+          {
+            "symbol": "__aarch64_cas8_rel",
+            "cycles_weight": 23928993,
+            "percent": 1.086660255210344
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::simple_executor<4096ul>::run()",
+            "cycles_weight": 129968212,
+            "percent": 5.902099199124346
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 104753481,
+            "percent": 4.757051180450088
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 47677058,
+            "percent": 2.165104232090267
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 30211305,
+            "percent": 1.3719517742153855
+          },
+          {
+            "symbol": "_int_free_chunk",
+            "cycles_weight": 23928993,
+            "percent": 1.086660255210344
+          }
+        ],
+        "categories": {
+          "outlined atomic helpers": 15.28286664109043,
+          "explicit static pool functions": 3.0547749819427317,
+          "timestamp functions": 6.504034181625153,
+          "libc allocation/free functions": 0.8132109250818659
+        }
+      }
+    }
+  },
+  "uv10_fast": {
+    "sample_count": 1041,
+    "threads": {
+      "producer": {
+        "samples": 669,
+        "cycles_weight": 3761490799,
+        "top_self": [
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 1227341491,
+            "percent": 32.62912383904518
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 1140403957,
+            "percent": 30.31787176784212
+          },
+          {
+            "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, __gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter)",
+            "cycles_weight": 347884095,
+            "percent": 9.248569612146484
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 333977329,
+            "percent": 8.878855401927037
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 123758124,
+            "percent": 3.290134965447778
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 94936599,
+            "percent": 2.5239088455364316
+          },
+          {
+            "symbol": "__aarch64_cas8_relax",
+            "cycles_weight": 53698792,
+            "percent": 1.4275933365110434
+          },
+          {
+            "symbol": "uv_async_send",
+            "cycles_weight": 50709874,
+            "percent": 1.3481323419289322
+          },
+          {
+            "symbol": "[unknown]",
+            "cycles_weight": 45285832,
+            "percent": 1.2039330791940082
+          },
+          {
+            "symbol": "__aarch64_ldadd8_relax",
+            "cycles_weight": 43603002,
+            "percent": 1.159194700452064
+          },
+          {
+            "symbol": "clock_gettime@@GLIBC_2.17",
+            "cycles_weight": 33696427,
+            "percent": 0.8958263837560965
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 33567042,
+            "percent": 0.8923866571446584
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 123758124,
+            "percent": 3.290134965447778
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 77170044,
+            "percent": 2.0515813575967226
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 53698792,
+            "percent": 1.4275933365110434
+          },
+          {
+            "symbol": "_int_malloc",
+            "cycles_weight": 28130118,
+            "percent": 0.747844923812613
+          },
+          {
+            "symbol": "malloc",
+            "cycles_weight": 11277838,
+            "percent": 0.29982362320275346
+          }
+        ],
+        "categories": {
+          "timestamp functions": 8.878855401927037,
+          "outlined atomic helpers": 7.81697820657091,
+          "explicit static pool functions": 2.5239088455364316,
+          "libc allocation/free functions": 0.29778645219543975
+        }
+      },
+      "consumer": {
+        "samples": 372,
+        "cycles_weight": 2054156148,
+        "top_self": [
+          {
+            "symbol": "load_probe::work(load_probe::Event)",
+            "cycles_weight": 1154714235,
+            "percent": 56.21355689655196
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 232200782,
+            "percent": 11.303949907901549
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::Fast::submit()::{lambda()#1}, true>::call(void*)",
+            "cycles_weight": 153531864,
+            "percent": 7.474206094287629
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 95243554,
+            "percent": 4.636626777021432
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 87818873,
+            "percent": 4.275180009343671
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 84330656,
+            "percent": 4.105367358859615
+          },
+          {
+            "symbol": "[unknown]",
+            "cycles_weight": 45262235,
+            "percent": 2.2034466583306695
+          },
+          {
+            "symbol": "flux_foundry::mpsc_queue<flux_foundry::task_wrapper<48ul, 16ul>, 4096ul>::try_pop()",
+            "cycles_weight": 42342984,
+            "percent": 2.061332291667634
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 42241858,
+            "percent": 2.056409296884669
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 42226447,
+            "percent": 2.055659061805656
+          },
+          {
+            "symbol": "flux_foundry::detail::get_pool()",
+            "cycles_weight": 15955944,
+            "percent": 0.7767639288539617
+          },
+          {
+            "symbol": "_int_free_chunk",
+            "cycles_weight": 15918997,
+            "percent": 0.7749652827268904
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 87818873,
+            "percent": 4.275180009343671
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 63166666,
+            "percent": 3.0750664238208634
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 21163990,
+            "percent": 1.0303009350387515
+          },
+          {
+            "symbol": "_int_free_chunk",
+            "cycles_weight": 5297915,
+            "percent": 0.2579119900479932
+          }
+        ],
+        "categories": {
+          "timestamp functions": 11.303949907901549,
+          "outlined atomic helpers": 8.638459358251279,
+          "explicit static pool functions": 4.636626777021432,
+          "libc allocation/free functions": 0.7749652827268904
+        }
+      }
+    }
+  },
+  "uv64_fast": {
+    "sample_count": 927,
+    "threads": {
+      "producer": {
+        "samples": 610,
+        "cycles_weight": 3510951000,
+        "top_self": [
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 1221786037,
+            "percent": 34.79929047713853
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 941284530,
+            "percent": 26.809959181999407
+          },
+          {
+            "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, __gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter)",
+            "cycles_weight": 348866546,
+            "percent": 9.936525630804873
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 332554153,
+            "percent": 9.471910972269336
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 120920356,
+            "percent": 3.4440912447937895
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 117037311,
+            "percent": 3.333493147583091
+          },
+          {
+            "symbol": "__aarch64_ldadd8_relax",
+            "cycles_weight": 60184856,
+            "percent": 1.7142038154334822
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 52778321,
+            "percent": 1.5032485785190395
+          },
+          {
+            "symbol": "uv_async_send",
+            "cycles_weight": 46467915,
+            "percent": 1.3235136292132816
+          },
+          {
+            "symbol": "strcmp",
+            "cycles_weight": 35179457,
+            "percent": 1.0019922522416291
+          },
+          {
+            "symbol": "__aarch64_cas8_relax",
+            "cycles_weight": 35154509,
+            "percent": 1.0012816755346343
+          },
+          {
+            "symbol": "flux_foundry::raw_type_erase_base<flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>, 48ul, 16ul, void (void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::swap(flux_foundry::raw_type_erase_base<flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>, 48ul, 16ul, void (void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>&)",
+            "cycles_weight": 34744583,
+            "percent": 0.9896060355157335
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 117037311,
+            "percent": 3.333493147583091
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 112963177,
+            "percent": 3.217452393952522
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 35154509,
+            "percent": 1.0012816755346343
+          },
+          {
+            "symbol": "malloc",
+            "cycles_weight": 11739715,
+            "percent": 0.3343742194066508
+          },
+          {
+            "symbol": "_int_malloc",
+            "cycles_weight": 11681944,
+            "percent": 0.33272876778969573
+          }
+        ],
+        "categories": {
+          "timestamp functions": 9.471910972269336,
+          "outlined atomic helpers": 8.219330204266594,
+          "explicit static pool functions": 3.4440912447937895,
+          "libc allocation/free functions": 0.3345913115848099
+        }
+      },
+      "consumer": {
+        "samples": 317,
+        "cycles_weight": 1932831064,
+        "top_self": [
+          {
+            "symbol": "load_probe::work(load_probe::Event)",
+            "cycles_weight": 1050099007,
+            "percent": 54.329580404550036
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::Fast::submit()::{lambda()#1}, true>::call(void*)",
+            "cycles_weight": 203602685,
+            "percent": 10.53391001377242
+          },
+          {
+            "symbol": "flux_foundry::mpsc_queue<flux_foundry::task_wrapper<48ul, 16ul>, 4096ul>::try_pop()",
+            "cycles_weight": 125016420,
+            "percent": 6.468046914626782
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 106822097,
+            "percent": 5.526716689814129
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 104770790,
+            "percent": 5.420587031707599
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 96459059,
+            "percent": 4.990558191897934
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 89117614,
+            "percent": 4.610729600732451
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 40968533,
+            "percent": 2.1196127154131874
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 29095753,
+            "percent": 1.5053438213987644
+          },
+          {
+            "symbol": "__aarch64_cas8_rel",
+            "cycles_weight": 17566469,
+            "percent": 0.9088465788440991
+          },
+          {
+            "symbol": "flux_foundry::pooling_base<load_probe::Fast, 256ul>::operator delete(void*)",
+            "cycles_weight": 17505021,
+            "percent": 0.9056674080854901
+          },
+          {
+            "symbol": "std::chrono::_V2::steady_clock::now()",
+            "cycles_weight": 11651031,
+            "percent": 0.6027961375935337
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 104770790,
+            "percent": 5.420587031707599
+          },
+          {
+            "symbol": "flux_foundry::callable_wrapper<void (flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)>::callable_vfns<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Fast> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >&>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}, true>::call(void*, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 82958906,
+            "percent": 4.292092958621861
+          },
+          {
+            "symbol": "_int_free_chunk",
+            "cycles_weight": 17566469,
+            "percent": 0.9088465788440991
+          },
+          {
+            "symbol": "flux_foundry::fast_awaitable_base<load_probe::Fast, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 6158708,
+            "percent": 0.31863664211059056
+          }
+        ],
+        "categories": {
+          "timestamp functions": 5.526716689814129,
+          "explicit static pool functions": 4.990558191897934,
+          "outlined atomic helpers": 10.94016321128415,
+          "libc allocation/free functions": 0.29987602682693637
+        }
+      }
+    }
+  },
+  "uv64_normal": {
+    "sample_count": 1289,
+    "threads": {
+      "producer": {
+        "samples": 795,
+        "cycles_weight": 4467944564,
+        "top_self": [
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 1252523402,
+            "percent": 28.033548403712917
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 951638401,
+            "percent": 21.299243698494553
+          },
+          {
+            "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, __gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter)",
+            "cycles_weight": 390061825,
+            "percent": 8.73022973791758
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 327014354,
+            "percent": 7.319122905751433
+          },
+          {
+            "symbol": "__aarch64_ldadd8_relax",
+            "cycles_weight": 203607582,
+            "percent": 4.557074938676433
+          },
+          {
+            "symbol": "_int_malloc",
+            "cycles_weight": 202785206,
+            "percent": 4.538668801621237
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 199533098,
+            "percent": 4.465881237822806
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 131948666,
+            "percent": 2.95322970350086
+          },
+          {
+            "symbol": "__aarch64_cas4_acq",
+            "cycles_weight": 101573896,
+            "percent": 2.2733920384424895
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 89033958,
+            "percent": 1.9927274549774383
+          },
+          {
+            "symbol": "uv_async_send",
+            "cycles_weight": 81872294,
+            "percent": 1.8324375521504344
+          },
+          {
+            "symbol": "_int_free_create_chunk",
+            "cycles_weight": 73450540,
+            "percent": 1.643944747923242
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "void flux_foundry::flow_runner<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, load_probe::Receiver, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator> >::ipc<1ul>::dispatch_async_node<flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, 1ul>(flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >&, flux_foundry::flow_runner<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, load_probe::Receiver, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator> >&, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&, std::integral_constant<bool, false>)",
+            "cycles_weight": 170980206,
+            "percent": 3.826820220144522
+          },
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 170512764,
+            "percent": 3.8163580939183737
+          },
+          {
+            "symbol": "flux_foundry::awaitable_base<load_probe::Normal, load_probe::Event, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()",
+            "cycles_weight": 150076827,
+            "percent": 3.3589679739813354
+          },
+          {
+            "symbol": "_mid_memalign.isra.0",
+            "cycles_weight": 134969294,
+            "percent": 3.020836361478186
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::allocate(unsigned long)",
+            "cycles_weight": 89033958,
+            "percent": 1.9927274549774383
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 39563642,
+            "percent": 0.8854998407719725
+          },
+          {
+            "symbol": "_int_malloc",
+            "cycles_weight": 5736273,
+            "percent": 0.12838729124392959
+          },
+          {
+            "symbol": "malloc",
+            "cycles_weight": 5683036,
+            "percent": 0.12719575900270727
+          }
+        ],
+        "categories": {
+          "timestamp functions": 7.319122905751433,
+          "outlined atomic helpers": 17.156792995518465,
+          "explicit static pool functions": 2.95322970350086,
+          "libc allocation/free functions": 6.308487783645652
+        }
+      },
+      "consumer": {
+        "samples": 494,
+        "cycles_weight": 2836893640,
+        "top_self": [
+          {
+            "symbol": "load_probe::work(load_probe::Event)",
+            "cycles_weight": 1160417960,
+            "percent": 40.90452823603214
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 362806510,
+            "percent": 12.788865429583042
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::Normal::submit()::{lambda()#1}, true>::call(void*)",
+            "cycles_weight": 239646100,
+            "percent": 8.447482719161794
+          },
+          {
+            "symbol": "__aarch64_cas4_acq",
+            "cycles_weight": 123459865,
+            "percent": 4.351938446307067
+          },
+          {
+            "symbol": "flux_foundry::flow_runner<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, load_probe::Receiver, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator> >::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator> >(flux_foundry::compressed_pair<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator>&&, unsigned long, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}::operator()(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 116165044,
+            "percent": 4.094797293845673
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 112044817,
+            "percent": 3.9495600194584664
+          },
+          {
+            "symbol": "__aarch64_cas8_acq_rel",
+            "cycles_weight": 89108502,
+            "percent": 3.1410589647625984
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 83843895,
+            "percent": 2.955482497398105
+          },
+          {
+            "symbol": "__aarch64_swp4_rel",
+            "cycles_weight": 75149860,
+            "percent": 2.6490192984464516
+          },
+          {
+            "symbol": "flux_foundry::mpsc_queue<flux_foundry::task_wrapper<48ul, 16ul>, 4096ul>::try_pop()",
+            "cycles_weight": 68663093,
+            "percent": 2.4203619068355344
+          },
+          {
+            "symbol": "__aarch64_cas8_relax",
+            "cycles_weight": 61299377,
+            "percent": 2.160792217786494
+          },
+          {
+            "symbol": "unlink_chunk.isra.0",
+            "cycles_weight": 49869439,
+            "percent": 1.7578889210664943
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::flow_runner<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, load_probe::Receiver, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator> >::ipc<1ul>::make_async_next_step<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>, load_probe::Receiver>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator> >(flux_foundry::compressed_pair<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<load_probe::Normal> >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>, load_probe::Receiver> const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator>&&, unsigned long, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)#1}::operator()(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 303276267,
+            "percent": 10.690434872983113
+          },
+          {
+            "symbol": "_int_free_chunk",
+            "cycles_weight": 215273180,
+            "percent": 7.588341591826474
+          },
+          {
+            "symbol": "flux_foundry::awaitable_base<load_probe::Normal, load_probe::Event, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<load_probe::Event, std::__exception_ptr::exception_ptr>&&)",
+            "cycles_weight": 119264991,
+            "percent": 4.204069878347642
+          },
+          {
+            "symbol": "flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)",
+            "cycles_weight": 89108502,
+            "percent": 3.1410589647625984
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::Normal::submit()::{lambda()#1}, true>::call(void*)",
+            "cycles_weight": 30302193,
+            "percent": 1.0681469538632404
+          },
+          {
+            "symbol": "flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator>::cb_t::~cb_t()",
+            "cycles_weight": 16474556,
+            "percent": 0.5807251906701726
+          },
+          {
+            "symbol": "__lll_lock_wait_private",
+            "cycles_weight": 5572195,
+            "percent": 0.19641889006455668
+          },
+          {
+            "symbol": "flux_foundry::awaitable_base<load_probe::Normal, load_probe::Event, std::__exception_ptr::exception_ptr>::notify_cancel_handler_dropped(void*)",
+            "cycles_weight": 5569475,
+            "percent": 0.1963230105447309
+          }
+        ],
+        "categories": {
+          "outlined atomic helpers": 27.66551935306253,
+          "explicit static pool functions": 2.955482497398105,
+          "libc allocation/free functions": 4.105789704544581,
+          "timestamp functions": 3.9495600194584664
+        }
+      }
+    }
+  },
+  "uv64_raw": {
+    "sample_count": 767,
+    "threads": {
+      "producer": {
+        "samples": 527,
+        "cycles_weight": 3035261664,
+        "top_self": [
+          {
+            "symbol": "event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)",
+            "cycles_weight": 1201602432,
+            "percent": 39.58810030290687
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 974232676,
+            "percent": 32.09715615477164
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 347309730,
+            "percent": 11.442497169825554
+          },
+          {
+            "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, __gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, long, __gnu_cxx::__ops::_Iter_less_iter)",
+            "cycles_weight": 330994031,
+            "percent": 10.90495870342202
+          },
+          {
+            "symbol": "uv_async_send",
+            "cycles_weight": 61435670,
+            "percent": 2.0240650329644856
+          },
+          {
+            "symbol": "__aarch64_cas8_relax",
+            "cycles_weight": 22832378,
+            "percent": 0.7522375507458061
+          },
+          {
+            "symbol": "__memset_zva64",
+            "cycles_weight": 17837579,
+            "percent": 0.5876784598693499
+          },
+          {
+            "symbol": "clock_gettime@@GLIBC_2.17",
+            "cycles_weight": 17622743,
+            "percent": 0.5806004539580941
+          },
+          {
+            "symbol": "flux_foundry::life_span_manager<load_probe::measured_run(load_probe::Port, unsigned long, load_probe::Options const&, load_probe::Profile const&, char const*, unsigned int, char const*, bool, load_probe::CpuMonitor const*)::$_0, true>::manage(void*, void const*, flux_foundry::type_erase_lifespan_op)",
+            "cycles_weight": 17593685,
+            "percent": 0.5796431065127438
+          },
+          {
+            "symbol": "std::chrono::_V2::steady_clock::now()@plt",
+            "cycles_weight": 11747043,
+            "percent": 0.3870191206025788
+          },
+          {
+            "symbol": "__GI___pthread_self",
+            "cycles_weight": 5894211,
+            "percent": 0.1941911984033809
+          },
+          {
+            "symbol": "__syscall_cancel_arch",
+            "cycles_weight": 5869391,
+            "percent": 0.19337347648192746
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::dispatch(flux_foundry::task_wrapper<48ul, 16ul>&&)",
+            "cycles_weight": 22832378,
+            "percent": 0.7522375507458061
+          }
+        ],
+        "categories": {
+          "timestamp functions": 11.442497169825554,
+          "outlined atomic helpers": 0.7522375507458061
+        }
+      },
+      "consumer": {
+        "samples": 240,
+        "cycles_weight": 1470136615,
+        "top_self": [
+          {
+            "symbol": "load_probe::work(load_probe::Event)",
+            "cycles_weight": 1082778368,
+            "percent": 73.65154754682442
+          },
+          {
+            "symbol": "__kernel_clock_gettime",
+            "cycles_weight": 152072172,
+            "percent": 10.344084382933351
+          },
+          {
+            "symbol": "__aarch64_ldadd8_rel",
+            "cycles_weight": 91687158,
+            "percent": 6.236642027992752
+          },
+          {
+            "symbol": "flux_foundry::mpsc_queue<flux_foundry::task_wrapper<48ul, 16ul>, 4096ul>::try_pop()",
+            "cycles_weight": 74019317,
+            "percent": 5.034859770498268
+          },
+          {
+            "symbol": "[unknown]",
+            "cycles_weight": 28956906,
+            "percent": 1.9696744985839292
+          },
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::measured_run(load_probe::Port, unsigned long, load_probe::Options const&, load_probe::Profile const&, char const*, unsigned int, char const*, bool, load_probe::CpuMonitor const*)::$_0, true>::call(void*)",
+            "cycles_weight": 17423210,
+            "percent": 1.1851422393149496
+          },
+          {
+            "symbol": "event_probe::UvExecutor<4096ul>::callback(uv_async_s*)",
+            "cycles_weight": 11628203,
+            "percent": 0.7909607094576037
+          },
+          {
+            "symbol": "clock_gettime@@GLIBC_2.17",
+            "cycles_weight": 11567395,
+            "percent": 0.7868244952187657
+          },
+          {
+            "symbol": "_dl_fixup",
+            "cycles_weight": 3854,
+            "percent": 0.0002621525075069299
+          },
+          {
+            "symbol": "load_probe::pin(int)",
+            "cycles_weight": 31,
+            "percent": 2.108647569464148e-06
+          },
+          {
+            "symbol": "pthread_setaffinity_np@@GLIBC_2.34",
+            "cycles_weight": 1,
+            "percent": 6.802088933755317e-08
+          }
+        ],
+        "atomic_callers": [
+          {
+            "symbol": "flux_foundry::task_wrapper<48ul, 16ul>::task_vfns<load_probe::measured_run(load_probe::Port, unsigned long, load_probe::Options const&, load_probe::Profile const&, char const*, unsigned int, char const*, bool, load_probe::CpuMonitor const*)::$_0, true>::call(void*)",
+            "cycles_weight": 91687158,
+            "percent": 6.236642027992752
+          }
+        ],
+        "categories": {
+          "outlined atomic helpers": 6.236642027992752,
+          "timestamp functions": 10.344084382933351
+        }
+      }
+    }
+  }
+}

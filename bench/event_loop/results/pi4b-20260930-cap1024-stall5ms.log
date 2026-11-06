@@ -1,0 +1,1 @@
+real-loop probe: GLib=2.84.4 libuv=1.50.0; exceptions enabled, one producer/one loop owner, synthetic work, no network IO

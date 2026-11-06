@@ -1,0 +1,23 @@
+Start testing: Nov 05 02:51 GMT
+----------------------------------------------------------
+26/26 Testing: cuda_completion_condition
+26/26 Test: cuda_completion_condition
+Command: "/home/nathan/Documents/coding/flux_foundry/build-typed-cuda-cpu/test/flux_foundry_cuda_completion_condition"
+Directory: /home/nathan/Documents/coding/flux_foundry/build-typed-cuda-cpu/test
+"cuda_completion_condition" start time: Nov 05 02:51 GMT
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"cuda_completion_condition" end time: Nov 05 02:51 GMT
+"cuda_completion_condition" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 05 02:51 GMT
+
+extension =   0.01 sec*proc
+
+smoke =   0.01 sec*proc
+

@@ -8,6 +8,22 @@
 
 namespace flux_foundry {
     namespace flow_impl {
+        // Public builders store decayed arguments and later move them into
+        // wrappers, flat_storage and the returned blueprint. Both steps must
+        // be nonthrowing, even when C++14 return-value elision is disabled.
+        // This does not cover evaluation of argument expressions at the caller.
+        template <typename... Args>
+        constexpr bool require_nothrow_builder_storage() noexcept {
+            static_assert(conjunction_v<
+                std::is_nothrow_constructible<std::decay_t<Args>, Args&&>...>,
+                "flow builder storage must be nothrow-constructible from each supplied argument; "
+                "a throwing lvalue copy is not supported");
+            static_assert(conjunction_v<
+                std::is_nothrow_move_constructible<std::decay_t<Args>>...>,
+                "flow builder storage must be nothrow move-constructible "
+                "for return values and blueprint composition");
+            return true;
+        }
         template <typename Executor>
         struct dispatch_wrapper_t {
             using executor_t = Executor;
@@ -278,8 +294,9 @@ namespace flux_foundry {
         struct error_node {
             F f;
 
-            template <typename F_I, typename F_O>
-            static auto make(error_node&& self) 
+            template <typename F_I, typename F_O,
+                std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
+            static auto make(error_node&& self)
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -287,6 +304,29 @@ namespace flux_foundry {
 #endif
                         LIKELY_IF(in.has_value()) {
                             return F_O(value_tag, std::move(in).value());
+                        }
+                        return f(std::move(in));
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                    } catch (...) {
+                        return F_O(error_tag, std::current_exception());
+                    }
+#endif
+                };
+                return flow_calc_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
+            }
+
+            template <typename F_I, typename F_O,
+                std::enable_if_t<std::is_void<typename F_I::value_type>::value>* = nullptr>
+            static auto make(error_node&& self)
+                    noexcept(std::is_nothrow_move_constructible<F>::value) {
+                static_assert(std::is_void<typename F_O::value_type>::value,
+                    "on_error must preserve a void success type.");
+                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                    try {
+#endif
+                        LIKELY_IF(in.has_value()) {
+                            return F_O(value_tag);
                         }
                         return f(std::move(in));
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -323,13 +363,39 @@ namespace flux_foundry {
         struct exception_catch_node {
             F f;
 
-            template <typename F_I, typename F_O>
-            static auto make(exception_catch_node&& self) 
+            template <typename F_I, typename F_O,
+                std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
+            static auto make(exception_catch_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using R = result_t<F_O, std::exception_ptr>;
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
                     LIKELY_IF (in.has_value()) {
                         return R(value_tag, std::move(in).value());
+                    }
+
+                    try {
+                        std::rethrow_exception(in.error());
+                    } catch (const Exception& e) {
+                        try {
+                            return call<F_O, std::exception_ptr, F>(std::is_void<F_O>{}, std::false_type{}, f, e);
+                        } catch (...) {
+                            return R(error_tag, std::current_exception());
+                        }
+                    } catch (...) {
+                        return R(error_tag, std::current_exception());
+                    }
+                };
+                return flow_calc_node<F_I, R, decltype(wrapper)>(std::move(wrapper));
+            }
+
+            template <typename F_I, typename F_O,
+                std::enable_if_t<std::is_void<typename F_I::value_type>::value>* = nullptr>
+            static auto make(exception_catch_node&& self)
+                noexcept(std::is_nothrow_move_constructible<F>::value) {
+                using R = result_t<F_O, std::exception_ptr>;
+                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
+                    LIKELY_IF (in.has_value()) {
+                        return R(value_tag);
                     }
 
                     try {
@@ -613,22 +679,26 @@ namespace flux_foundry {
 
     template <typename F>
     auto transform(F&& f) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::transform_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
     auto then(F&& f) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::then_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
     auto on_error(F&& f) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <typename Exception, typename F>
     inline auto catch_exception(F&& f) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::exception_catch_node<std::decay_t<F>, Exception> { std::forward<F>(f) };
     }
 #endif
@@ -637,6 +707,7 @@ namespace flux_foundry {
     // Ensure that the captured data (result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Executor>
     auto via(Executor&& exec) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<Executor>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
         return flow_impl::via_node<E> { std::forward<Executor>(exec) };
     }
@@ -654,6 +725,7 @@ namespace flux_foundry {
     // Ensure that the async result(result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Awaitable, typename Executor>
     auto await(Executor&& executor_to_resume) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<Executor>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
         return flow_impl::async_node<E, Awaitable> { std::forward<Executor>(executor_to_resume) };
     }
@@ -661,6 +733,7 @@ namespace flux_foundry {
     template <typename Executor, typename F, typename G, typename ... BPs,
         std::enable_if_t<flow_impl::check_executor<std::decay_t<Executor>>::value, int> = 0>
     auto await_when_all(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<Executor, F, G>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
 
         using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
@@ -678,6 +751,7 @@ namespace flux_foundry {
     template <typename Executor, typename F, typename G, typename ... BPs,
         std::enable_if_t<flow_impl::check_executor<std::decay_t<Executor>>::value, int> = 0>
     auto await_when_all_fast(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<Executor, F, G>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
 
         using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
@@ -694,6 +768,7 @@ namespace flux_foundry {
     template <typename Executor, typename F, typename G, typename ... BPs,
         std::enable_if_t<flow_impl::check_executor<std::decay_t<Executor>>::value, int> = 0>
     auto await_when_any(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<Executor, F, G>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
 
         using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
@@ -709,6 +784,7 @@ namespace flux_foundry {
     template <typename Executor, typename F, typename G, typename ... BPs,
         std::enable_if_t<flow_impl::check_executor<std::decay_t<Executor>>::value, int> = 0>
     auto await_when_any_fast(Executor&& executor_to_resume, F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<Executor, F, G>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
 
         using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
@@ -723,6 +799,7 @@ namespace flux_foundry {
 
     template <typename F, typename G, typename ... BPs>
     auto await_when_all(F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F, G>(), "invalid flow builder storage");
         using E = flow_impl::inline_executor*;
 
         using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
@@ -737,6 +814,7 @@ namespace flux_foundry {
 
     template <typename F, typename G, typename ... BPs>
     auto await_when_all_fast(F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F, G>(), "invalid flow builder storage");
         using E = flow_impl::inline_executor*;
 
         using when_all_t = flow_impl::when_all_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
@@ -750,6 +828,7 @@ namespace flux_foundry {
 
     template <typename F, typename G, typename ... BPs>
     auto await_when_any(F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F, G>(), "invalid flow builder storage");
         using E = flow_impl::inline_executor*;
 
         using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, false, BPs...>;
@@ -764,6 +843,7 @@ namespace flux_foundry {
 
     template <typename F, typename G, typename ... BPs>
     auto await_when_any_fast(F&& on_success, G&& on_error, lite_ptr<BPs> ... bps) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F, G>(), "invalid flow builder storage");
         using E = flow_impl::inline_executor*;
 
         using when_any_t = flow_impl::when_any_node<E, std::decay_t<F>, std::decay_t<G>, true, BPs...>;
@@ -778,6 +858,7 @@ namespace flux_foundry {
 
     template <typename F>
     auto end(F&& f) noexcept {
+        static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::end_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 

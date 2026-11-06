@@ -1,0 +1,61 @@
+2026-09-30T03:57:28+01:00
+781375ab57884cbccb84b9d91133c2b2a22a95e9
+Debian clang version 19.1.7 (3+b1)
+Target: aarch64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /usr/lib/llvm-19/bin
+2.84.4
+1.50.0
+Architecture:                            aarch64
+CPU op-mode(s):                          32-bit, 64-bit
+Byte Order:                              Little Endian
+CPU(s):                                  4
+On-line CPU(s) list:                     0-3
+Vendor ID:                               ARM
+Model name:                              Cortex-A72
+Model:                                   3
+Thread(s) per core:                      1
+Core(s) per cluster:                     4
+Socket(s):                               -
+Cluster(s):                              1
+Stepping:                                r0p3
+Frequency boost:                         disabled
+CPU(s) scaling MHz:                      100%
+CPU max MHz:                             1800.0000
+CPU min MHz:                             600.0000
+BogoMIPS:                                108.00
+Flags:                                   fp asimd evtstrm crc32 cpuid
+L1d cache:                               128 KiB (4 instances)
+L1i cache:                               192 KiB (4 instances)
+L2 cache:                                1 MiB (1 instance)
+NUMA node(s):                            2
+NUMA node0 CPU(s):                       0-3
+NUMA node1 CPU(s):                       0-3
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Not affected
+Vulnerability Spec store bypass:         Vulnerable
+Vulnerability Spectre v1:                Mitigation; __user pointer sanitization
+Vulnerability Spectre v2:                Vulnerable
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+ 03:57:29 up 5 days, 19:06,  3 users,  load average: 1.76, 1.65, 1.53
+41381
+a0a70ae040e351eda7bc1a5f7ae6a6c231005b8412e10605bdd2bb5d77e8d408  bench/event_loop/event_loop.cpp
+066bc80be37606b796b7793a32e9c11b8401c647e41fa4e7847fd400ac345965  bench/load_probe.h
+ed86fa26099065edc0a5ff833be2db9d9c7da9af6f2d57a10401a2e9babad38b  executor/gsource_executor.h
+da0c5250b2e6774bdd672b18bb79bdd84d76245f722989f3e3f5230dd594fac5  executor/simple_executor.h
+Build: clang++ -std=c++14 -O3 -DNDEBUG -pthread -march=native -Wall -Wextra -Werror; exceptions ON, GLib/libuv pkg-config
+Main: /tmp/ff_event_loop --samples 32768 --repeats 3 --producer-cpu 3 --consumer-cpu 2
+Capacity supplements: 256,1024,16384; --mode fast; profiles overload2m,burst8192,stall5ms; same samples/repeats/affinity

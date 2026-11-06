@@ -1,0 +1,5 @@
+scheduled-arrival load probe: no drops, one producer, one consumer, unsigned work checksum; timestamps include instrumentation
+capacity=256 executor_bytes=32960
+capacity=1024 executor_bytes=131264
+capacity=4096 executor_bytes=524480
+capacity=16384 executor_bytes=2097344

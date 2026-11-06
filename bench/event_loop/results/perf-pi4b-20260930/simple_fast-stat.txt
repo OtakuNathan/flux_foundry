@@ -1,0 +1,19 @@
+# started on Wed Sep 30 04:09:31 2026
+
+
+ Performance counter stats for '/tmp/ff_perf_20260930/ff_event_profile --backend simple --batch 10 --mode fast --profile overload2m --samples 262144 --repeats 3 --producer-cpu 3 --consumer-cpu 2':
+
+     4,115,543,472      task-clock:u                     #    1.984 CPUs utilized             
+                 0      context-switches:u               #    0.000 /sec                      
+                 0      cpu-migrations:u                 #    0.000 /sec                      
+     5,693,314,863      cycles:u                         #    1.383 GHz                       
+     4,096,162,524      instructions:u                   #    0.72  insn per cycle            
+        23,232,205      cache-misses:u                                                        
+        17,202,013      branch-misses:u                                                       
+
+       2.074511661 seconds time elapsed
+
+       3.289771000 seconds user
+       0.832448000 seconds sys
+
+

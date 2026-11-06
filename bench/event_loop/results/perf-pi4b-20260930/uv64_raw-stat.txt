@@ -1,0 +1,19 @@
+# started on Wed Sep 30 04:09:05 2026
+
+
+ Performance counter stats for '/tmp/ff_perf_20260930/ff_event_profile --backend libuv --batch 64 --mode raw --profile overload2m --samples 262144 --repeats 3 --producer-cpu 3 --consumer-cpu 2':
+
+     2,617,163,857      task-clock:u                     #    1.470 CPUs utilized             
+                 0      context-switches:u               #    0.000 /sec                      
+                 0      cpu-migrations:u                 #    0.000 /sec                      
+     4,518,549,384      cycles:u                         #    1.727 GHz                       
+     3,815,721,262      instructions:u                   #    0.84  insn per cycle            
+         7,482,774      cache-misses:u                                                        
+        12,681,561      branch-misses:u                                                       
+
+       1.780089173 seconds time elapsed
+
+       2.554759000 seconds user
+       0.067966000 seconds sys
+
+

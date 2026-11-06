@@ -1,0 +1,180 @@
+
+=== gsource_fast samples= 1203 ===
+producer samples 748 categories {'timestamp functions': 10.91, 'outlined atomic helpers': 8.34, 'explicit static pool functions': 3.65, 'libc allocation/free functions': 0.45}
+   36.56% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+   12.72% flux_foundry::gsource_executor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+   11.08% void std::__introsort_loop<…>(__gnu_cxx::__normal_iterator<…>, __gnu_cxx::__normal_iterator<…>, long, __gnu_cxx::__ops::_Iter_less_iter)
+   10.91% __kernel_clock_gettime
+    6.44% [unknown]
+    4.32% __aarch64_cas8_acq_rel
+    3.65% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+    1.76% __aarch64_ldadd8_rel
+  Atomic caller stacks:
+      4.32% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+      3.05% flux_foundry::fast_awaitable_base<…>::access_delegate::submit_async()
+      0.44% malloc
+      0.44% flux_foundry::gsource_executor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+      0.11% _int_malloc
+consumer samples 455 categories {'outlined atomic helpers': 11.22, 'explicit static pool functions': 5.1, 'timestamp functions': 4.66, 'libc allocation/free functions': 0.21}
+   45.80% load_probe::work(load_probe::Event)
+   11.49% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+    9.02% [unknown]
+    8.07% __aarch64_ldadd8_rel
+    5.10% flux_foundry::static_mem_pool<…>::deallocate(void*)
+    4.66% __kernel_clock_gettime
+    3.15% __aarch64_cas8_acq_rel
+    2.81% flux_foundry::mpsc_queue<…>::try_pop()
+  Atomic caller stacks:
+      6.80% flux_foundry::callable_wrapper<…>::callable_vfns<…>::call(void*, flux_foundry::result_t<…>&&)
+      3.15% flux_foundry::static_mem_pool<…>::deallocate(void*)
+      1.26% flux_foundry::fast_awaitable_base<…>::do_resume(flux_foundry::result_t<…>&&)
+
+=== simple_fast samples= 1191 ===
+producer samples 632 categories {'outlined atomic helpers': 12.82, 'timestamp functions': 10.72, 'explicit static pool functions': 1.59, 'libc allocation/free functions': 0.3}
+   33.07% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+   25.20% flux_foundry::simple_executor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+   10.72% __kernel_clock_gettime
+   10.36% void std::__introsort_loop<…>(__gnu_cxx::__normal_iterator<…>, __gnu_cxx::__normal_iterator<…>, long, __gnu_cxx::__ops::_Iter_less_iter)
+    6.78% __aarch64_cas8_acq_rel
+    2.30% __aarch64_cas8_relax
+    1.59% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+    1.49% __aarch64_ldadd8_relax
+  Atomic caller stacks:
+      5.17% flux_foundry::simple_executor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+      3.91% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+      2.94% flux_foundry::fast_awaitable_base<…>::access_delegate::submit_async()
+      0.47% malloc
+      0.32% _int_malloc
+consumer samples 559 categories {'outlined atomic helpers': 15.28, 'explicit static pool functions': 3.05, 'timestamp functions': 6.5, 'libc allocation/free functions': 0.81}
+   47.73% load_probe::work(load_probe::Event)
+    9.12% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+    6.50% __kernel_clock_gettime
+    5.90% __aarch64_ldadd8_acq_rel
+    4.85% flux_foundry::callable_wrapper<…>::callable_vfns<…>::call(void*, flux_foundry::result_t<…>&&)
+    4.76% __aarch64_cas8_acq_rel
+    4.47% [unknown]
+    3.54% __aarch64_ldadd8_rel
+  Atomic caller stacks:
+      5.90% flux_foundry::simple_executor<…>::run()
+      4.76% flux_foundry::static_mem_pool<…>::deallocate(void*)
+      2.17% flux_foundry::callable_wrapper<…>::callable_vfns<…>::call(void*, flux_foundry::result_t<…>&&)
+      1.37% flux_foundry::fast_awaitable_base<…>::do_resume(flux_foundry::result_t<…>&&)
+      1.09% _int_free_chunk
+
+=== uv10_fast samples= 1041 ===
+producer samples 669 categories {'timestamp functions': 8.88, 'outlined atomic helpers': 7.82, 'explicit static pool functions': 2.52, 'libc allocation/free functions': 0.3}
+   32.63% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+   30.32% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+    9.25% void std::__introsort_loop<…>(__gnu_cxx::__normal_iterator<…>, __gnu_cxx::__normal_iterator<…>, long, __gnu_cxx::__ops::_Iter_less_iter)
+    8.88% __kernel_clock_gettime
+    3.29% __aarch64_cas8_acq_rel
+    2.52% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+    1.43% __aarch64_cas8_relax
+    1.35% uv_async_send
+  Atomic caller stacks:
+      3.29% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+      2.05% flux_foundry::fast_awaitable_base<…>::access_delegate::submit_async()
+      1.43% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+      0.75% _int_malloc
+      0.30% malloc
+consumer samples 372 categories {'timestamp functions': 11.3, 'outlined atomic helpers': 8.64, 'explicit static pool functions': 4.64, 'libc allocation/free functions': 0.77}
+   56.21% load_probe::work(load_probe::Event)
+   11.30% __kernel_clock_gettime
+    7.47% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+    4.64% flux_foundry::static_mem_pool<…>::deallocate(void*)
+    4.28% __aarch64_cas8_acq_rel
+    4.11% __aarch64_ldadd8_rel
+    2.20% [unknown]
+    2.06% flux_foundry::mpsc_queue<…>::try_pop()
+  Atomic caller stacks:
+      4.28% flux_foundry::static_mem_pool<…>::deallocate(void*)
+      3.08% flux_foundry::callable_wrapper<…>::callable_vfns<…>::call(void*, flux_foundry::result_t<…>&&)
+      1.03% flux_foundry::fast_awaitable_base<…>::do_resume(flux_foundry::result_t<…>&&)
+      0.26% _int_free_chunk
+
+=== uv64_fast samples= 927 ===
+producer samples 610 categories {'timestamp functions': 9.47, 'outlined atomic helpers': 8.22, 'explicit static pool functions': 3.44, 'libc allocation/free functions': 0.33}
+   34.80% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+   26.81% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+    9.94% void std::__introsort_loop<…>(__gnu_cxx::__normal_iterator<…>, __gnu_cxx::__normal_iterator<…>, long, __gnu_cxx::__ops::_Iter_less_iter)
+    9.47% __kernel_clock_gettime
+    3.44% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+    3.33% __aarch64_cas8_acq_rel
+    1.71% __aarch64_ldadd8_relax
+    1.50% __aarch64_ldadd8_rel
+  Atomic caller stacks:
+      3.33% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+      3.22% flux_foundry::fast_awaitable_base<…>::access_delegate::submit_async()
+      1.00% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+      0.33% malloc
+      0.33% _int_malloc
+consumer samples 317 categories {'timestamp functions': 5.53, 'explicit static pool functions': 4.99, 'outlined atomic helpers': 10.94, 'libc allocation/free functions': 0.3}
+   54.33% load_probe::work(load_probe::Event)
+   10.53% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+    6.47% flux_foundry::mpsc_queue<…>::try_pop()
+    5.53% __kernel_clock_gettime
+    5.42% __aarch64_cas8_acq_rel
+    4.99% flux_foundry::static_mem_pool<…>::deallocate(void*)
+    4.61% __aarch64_ldadd8_rel
+    2.12% flux_foundry::callable_wrapper<…>::callable_vfns<…>::call(void*, flux_foundry::result_t<…>&&)
+  Atomic caller stacks:
+      5.42% flux_foundry::static_mem_pool<…>::deallocate(void*)
+      4.29% flux_foundry::callable_wrapper<…>::callable_vfns<…>::call(void*, flux_foundry::result_t<…>&&)
+      0.91% _int_free_chunk
+      0.32% flux_foundry::fast_awaitable_base<…>::do_resume(flux_foundry::result_t<…>&&)
+
+=== uv64_normal samples= 1289 ===
+producer samples 795 categories {'timestamp functions': 7.32, 'outlined atomic helpers': 17.16, 'explicit static pool functions': 2.95, 'libc allocation/free functions': 6.31}
+   28.03% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+   21.30% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+    8.73% void std::__introsort_loop<…>(__gnu_cxx::__normal_iterator<…>, __gnu_cxx::__normal_iterator<…>, long, __gnu_cxx::__ops::_Iter_less_iter)
+    7.32% __kernel_clock_gettime
+    4.56% __aarch64_ldadd8_relax
+    4.54% _int_malloc
+    4.47% __aarch64_ldadd8_rel
+    2.95% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+  Atomic caller stacks:
+      3.83% void flux_foundry::flow_runner<…>::ipc<…>::dispatch_async_node<…>(flux_foundry::flow_impl::flow_async_node<…>&, flux_foundry::flow_runner<…>&, flux_foundry::result_t<…>&&, std::integral_constant<…>)
+      3.82% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+      3.36% flux_foundry::awaitable_base<…>::access_delegate::submit_async()
+      3.02% _mid_memalign.isra.0
+      1.99% flux_foundry::static_mem_pool<…>::allocate(unsigned long)
+consumer samples 494 categories {'outlined atomic helpers': 27.67, 'explicit static pool functions': 2.96, 'libc allocation/free functions': 4.11, 'timestamp functions': 3.95}
+   40.90% load_probe::work(load_probe::Event)
+   12.79% __aarch64_ldadd8_rel
+    8.45% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+    4.35% __aarch64_cas4_acq
+    4.09% flux_foundry::flow_runner<…>::ipc<…>::make_async_next_step<…>(flux_foundry::compressed_pair<…> const&, flux_foundry::flow_impl::dispatch_wrapper_t<…> const&, flux_foundry::flow_impl::identity const&, flux_foundry::lite_ptr<…>&&, unsigned long, std::integral_constant<…>)::{lambda(flux_foundry::result_t<…>&&)#1}::operator()(flux_foundry::result_t<…>&&)
+    3.95% __kernel_clock_gettime
+    3.14% __aarch64_cas8_acq_rel
+    2.96% flux_foundry::static_mem_pool<…>::deallocate(void*)
+  Atomic caller stacks:
+     10.69% flux_foundry::flow_runner<…>::ipc<…>::make_async_next_step<…>(flux_foundry::compressed_pair<…> const&, flux_foundry::flow_impl::dispatch_wrapper_t<…> const&, flux_foundry::flow_impl::identity const&, flux_foundry::lite_ptr<…>&&, unsigned long, std::integral_constant<…>)::{lambda(flux_foundry::result_t<…>&&)#1}::operator()(flux_foundry::result_t<…>&&)
+      7.59% _int_free_chunk
+      4.20% flux_foundry::awaitable_base<…>::do_resume(flux_foundry::result_t<…>&&)
+      3.14% flux_foundry::static_mem_pool<…>::deallocate(void*)
+      1.07% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+
+=== uv64_raw samples= 767 ===
+producer samples 527 categories {'timestamp functions': 11.44, 'outlined atomic helpers': 0.75}
+   39.59% event_probe::matrix(load_probe::Port, unsigned long, event_probe::Config const&, char const*, unsigned long, std::thread&)
+   32.10% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+   11.44% __kernel_clock_gettime
+   10.90% void std::__introsort_loop<…>(__gnu_cxx::__normal_iterator<…>, __gnu_cxx::__normal_iterator<…>, long, __gnu_cxx::__ops::_Iter_less_iter)
+    2.02% uv_async_send
+    0.75% __aarch64_cas8_relax
+    0.59% __memset_zva64
+    0.58% clock_gettime@@GLIBC_2.17
+  Atomic caller stacks:
+      0.75% event_probe::UvExecutor<…>::dispatch(flux_foundry::task_wrapper<…>&&)
+consumer samples 240 categories {'outlined atomic helpers': 6.24, 'timestamp functions': 10.34}
+   73.65% load_probe::work(load_probe::Event)
+   10.34% __kernel_clock_gettime
+    6.24% __aarch64_ldadd8_rel
+    5.03% flux_foundry::mpsc_queue<…>::try_pop()
+    1.97% [unknown]
+    1.19% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)
+    0.79% event_probe::UvExecutor<…>::callback(uv_async_s*)
+    0.79% clock_gettime@@GLIBC_2.17
+  Atomic caller stacks:
+      6.24% flux_foundry::task_wrapper<…>::task_vfns<…>::call(void*)

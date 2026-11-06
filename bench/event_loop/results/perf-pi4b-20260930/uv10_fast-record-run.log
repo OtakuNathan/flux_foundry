@@ -1,0 +1,3 @@
+real-loop probe: GLib=2.84.4 libuv=1.50.0; exceptions enabled, one producer/one loop owner, synthetic work, no network IO
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.144 MB /tmp/ff_perf_20260930/uv10_fast.data (1041 samples) ]

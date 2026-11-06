@@ -58,17 +58,29 @@ add_test(NAME hazard_ptr_contract_noexc COMMAND flux_foundry_hazard_ptr_contract
 set_tests_properties(hazard_ptr_contract_noexc PROPERTIES LABELS "smoke;noexc" TIMEOUT 30)
 
 # Deterministic contract regressions; timeout also catches deadlocks.
-foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable)
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery)
     flux_foundry_add_probe(flux_foundry_${contract}_contract ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract COMMAND flux_foundry_${contract}_contract)
     set_tests_properties(${contract}_contract PROPERTIES LABELS "smoke;contract" TIMEOUT 20)
 endforeach()
 
-foreach(contract allocation_failure simple_executor mutable_callable)
+foreach(contract allocation_failure simple_executor mutable_callable void_recovery)
     flux_foundry_add_noexc_probe(flux_foundry_${contract}_contract_noexc ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract_noexc COMMAND flux_foundry_${contract}_contract_noexc)
     set_tests_properties(${contract}_contract_noexc PROPERTIES LABELS "smoke;contract;noexc" TIMEOUT 20)
 endforeach()
+
+# The void recovery path must also work with the relaxed no-exception policy.
+flux_foundry_add_probe(flux_foundry_void_recovery_contract_noexc_relaxed void_recovery_contract.cpp)
+target_compile_definitions(flux_foundry_void_recovery_contract_noexc_relaxed PRIVATE FLUX_FOUNDRY_NO_EXCEPTION_STRICT=0)
+if(MSVC)
+    target_compile_definitions(flux_foundry_void_recovery_contract_noexc_relaxed PRIVATE _HAS_EXCEPTIONS=0)
+    target_compile_options(flux_foundry_void_recovery_contract_noexc_relaxed PRIVATE /EHs-c-)
+else()
+    target_compile_options(flux_foundry_void_recovery_contract_noexc_relaxed PRIVATE -fno-exceptions)
+endif()
+add_test(NAME void_recovery_contract_noexc_relaxed COMMAND flux_foundry_void_recovery_contract_noexc_relaxed)
+set_tests_properties(void_recovery_contract_noexc_relaxed PROPERTIES LABELS "smoke;contract;noexc" TIMEOUT 20)
 
 if(TARGET flux_foundry_gsource_executor)
     flux_foundry_add_probe(flux_foundry_gsource_executor_contract gsource_executor_contract.cpp)
@@ -267,3 +279,44 @@ endif()
 add_executable(flux_foundry_cuda_completion_condition cuda_completion_condition.cpp)
 add_test(NAME cuda_completion_condition COMMAND flux_foundry_cuda_completion_condition)
 set_tests_properties(cuda_completion_condition PROPERTIES LABELS "smoke;extension")
+
+# Builders retain noexcept: reject throwing storage, not just throwing calls.
+flux_foundry_add_probe(flux_foundry_builder_storage_contract builder_storage_contract.cpp)
+set_target_properties(flux_foundry_builder_storage_contract
+    PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+add_test(NAME builder_storage_contract COMMAND flux_foundry_builder_storage_contract)
+set_tests_properties(builder_storage_contract PROPERTIES LABELS "smoke;contract")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+    # C++14 cannot rely on guaranteed elision for node/blueprint returns.
+    target_compile_options(flux_foundry_builder_storage_contract PRIVATE -fno-elide-constructors)
+    foreach(strict 0 1)
+        flux_foundry_add_probe(flux_foundry_builder_storage_contract_noexc_${strict} builder_storage_contract.cpp)
+        set_target_properties(flux_foundry_builder_storage_contract_noexc_${strict}
+            PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+        target_compile_options(flux_foundry_builder_storage_contract_noexc_${strict}
+            PRIVATE -fno-exceptions -fno-elide-constructors)
+        target_compile_definitions(flux_foundry_builder_storage_contract_noexc_${strict}
+            PRIVATE FLUX_FOUNDRY_NO_EXCEPTION_STRICT=${strict})
+        add_test(NAME builder_storage_contract_noexc_${strict}
+            COMMAND flux_foundry_builder_storage_contract_noexc_${strict})
+        set_tests_properties(builder_storage_contract_noexc_${strict}
+            PROPERTIES LABELS "smoke;contract;noexc")
+    endforeach()
+    foreach(mode exceptions noexc_0 noexc_1)
+        set(no_exceptions OFF)
+        set(strict 0)
+        if(mode MATCHES "noexc_([01])")
+            set(no_exceptions ON)
+            set(strict ${CMAKE_MATCH_1})
+        endif()
+        add_test(NAME builder_storage_rejection_${mode}
+            COMMAND ${CMAKE_COMMAND}
+                -DFF_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                -DFF_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+                -DFF_STRICT=${strict}
+                -DFF_NO_EXCEPTIONS=${no_exceptions}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/builder_storage_rejection.cmake)
+        set_tests_properties(builder_storage_rejection_${mode}
+            PROPERTIES LABELS "smoke;contract;compile-fail" TIMEOUT 180)
+    endforeach()
+endif()
