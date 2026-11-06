@@ -382,7 +382,9 @@ namespace flux_foundry {
                             return R(error_tag, std::current_exception());
                         }
                     } catch (...) {
-                        return R(error_tag, std::current_exception());
+                        // Preserve the original exception_ptr: recapturing may
+                        // create a distinct exception object (for example on MSVC).
+                        return R(error_tag, in.error());
                     }
                 };
                 return flow_calc_node<F_I, R, decltype(wrapper)>(std::move(wrapper));
@@ -407,7 +409,8 @@ namespace flux_foundry {
                             return R(error_tag, std::current_exception());
                         }
                     } catch (...) {
-                        return R(error_tag, std::current_exception());
+                        // This exception did not match the handler; forward it unchanged.
+                        return R(error_tag, in.error());
                     }
                 };
                 return flow_calc_node<F_I, R, decltype(wrapper)>(std::move(wrapper));

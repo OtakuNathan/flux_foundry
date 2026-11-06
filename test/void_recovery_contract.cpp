@@ -230,6 +230,27 @@ void test_void_catch(Runner runner) {
 
 template <typename Runner>
 void test_typed_catch(Runner runner) {
+    const auto unmatched = std::make_exception_ptr(std::logic_error("unmatched"));
+    int unmatched_handlers = 0, unmatched_terminals = 0;
+    std::exception_ptr output_error;
+    auto unmatched_bp = ff::make_blueprint<int>()
+        | ff::then([&](int_result&&) noexcept -> int_result {
+            return int_result(ff::error_tag, unmatched);
+        })
+        | ff::catch_exception<std::runtime_error>([&](const std::runtime_error&) noexcept -> long {
+            ++unmatched_handlers;
+            return 42;
+        })
+        | ff::end([&](ff::result_t<long, error_type>&& in) noexcept -> ff::result_t<long, error_type> {
+            ++unmatched_terminals;
+            if (in.has_error()) output_error = in.error();
+            return std::move(in);
+        });
+    run(std::move(unmatched_bp), 7, runner);
+    check(unmatched_handlers == 0 && unmatched_terminals == 1,
+          "typed catch_exception forwards unmatched exception without calling handler");
+    check(output_error == unmatched, "typed catch_exception preserves unmatched exception");
+
     for (bool fail : {false, true}) {
         int handlers = 0, terminals = 0, value = 0;
         auto typed = ff::make_blueprint<int>()
