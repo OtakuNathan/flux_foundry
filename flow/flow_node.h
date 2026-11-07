@@ -631,7 +631,7 @@ namespace flux_foundry {
             template <typename F_I>
             static auto make(end_node&&) noexcept {
                 auto wrapper = [](F_I&& in) noexcept {
-                    return in;
+                    return std::move(in);
                 };
                 return flow_end_node<F_I, F_I, decltype(wrapper)>(std::move(wrapper));
             }
