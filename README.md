@@ -13,6 +13,25 @@
 
 The project is tuned for predictable behavior and explicit contracts under concurrency.
 
+## Choose an entry point
+
+| Your task | Start with |
+| --- | --- |
+| A flow needs cancellation | `make_runner` and the normal awaitable contracts; cancellation is cooperative, not synchronous callback preemption. |
+| A synchronous calculation needs no cancellation | `make_fast_runner_view` for a borrowed blueprint, or `make_fast_runner` to own it. Fast runners omit the cancellation controller. |
+| Map a successful value | `transform`: nonthrowing callback; upstream errors pass through. |
+| Return a result or adapt a throwing operation | `then`: receives a `result` **on success only**; upstream errors pass through. Use `on_error` / `catch_exception` for recovery. |
+| Use status codes without exceptions | Choose an explicit error type, nonthrowing callbacks, and a consistent no-exception build. Compiler-enabled `then` exception adaptation needs an exception-compatible error type. |
+
+See [runner/node selection and a complete synchronous status-code
+example](docs/synchronous_hot_path.md) for ownership, error semantics, and GCC/Clang
+build commands. The relevant `static_assert` diagnostics describe required
+signatures and error hooks. Measured overhead depends on application adapters,
+inlining, and build configuration; an exception-enabled build does not imply a
+fixed penalty. See the guide's [performance notes](docs/synchronous_hot_path.md#reading-performance-results).
+For an application combining runtime access, flow computation, and state
+permissions, see the [Dyna Bridge + FF + lease replay example](https://github.com/OtakuNathan/dynabridge/blob/main/docs/replay_composition.md).
+
 ## 🧪 Project Status
 `flux_foundry` is currently an experimental / dogfooding-stage personal systems project. It has not yet been integrated into an external production codebase. The repository focuses on validating the design through focused tests, stress probes, benchmarks, sanitizers, and abstract protocol models. APIs and internal contracts may still evolve.
 
