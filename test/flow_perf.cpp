@@ -224,16 +224,23 @@ auto make_async_1_fast_bp() {
 
 } // namespace
 
+#if defined(FLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT)
 #if defined(_MSC_VER)
 __declspec(noinline)
 #elif defined(__GNUC__) || defined(__clang__)
 __attribute__((noinline))
 #endif
 static int run_benchmarks() {
+#else
+int main() {
+#endif
     std::printf("[flow perf] compiler baseline: clang++ -std=c++14 -O3\n");
 
-    // Keep the benchmark frame consistently aligned across process stack layouts.
-    alignas(CACHE_LINE_SIZE) volatile long long sink = 0;
+    // Alignment is a diagnostic control; default runs retain natural placement.
+#if defined(FLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT)
+    alignas(CACHE_LINE_SIZE)
+#endif
+    volatile long long sink = 0;
     auto r0 = run_bench("direct.loop20", 20000, 5000000, [&](int i) {
         int x = i;
         x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3); x = (x ^ 0x5a5a5a5a) + (x >> 3);
@@ -429,9 +436,11 @@ static int run_benchmarks() {
     return 0;
 }
 
+#if defined(FLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT)
 int main() {
     // Give realigning compilers an aligned caller; spills may precede callee realignment.
     alignas(CACHE_LINE_SIZE) volatile unsigned char frame_anchor = 0;
     const int status = run_benchmarks();
     return status + frame_anchor; // Keep the aligned frame alive across the call.
 }
+#endif

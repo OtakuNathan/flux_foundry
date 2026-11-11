@@ -5,12 +5,40 @@ This document keeps the microbenchmark material out of the root `README`.
 For the standalone `flux_foundry` vs Asio harness and collection scripts, see [`bench/horizontal_compare/README.md`](horizontal_compare/README.md).
 
 For new before/after flow-probe comparisons, use the same benchmark sources and
-compiler flags on both revisions. The probes use aligned sink/caller anchors to
-limit startup-stack variation; Clang/AArch64 also realigns the calling frame.
-The GNU/Clang CMake performance target uses
-`-falign-functions=64` to limit callback-placement variation. Use the same flag
-for manual GNU/Clang builds of either probe. Historical snapshots below retain
-their original settings. Pin the timed process and compare multiple process runs.
+compiler flags on both revisions. Default builds retain natural stack and function
+placement, so layout-related slowdowns remain observable. Pin the timed process,
+interleave old/new runs, and compare multiple process runs and stack placements.
+A repeatable layout-related slowdown counts as a regression for that workload,
+even when the hot-path instruction sequence is unchanged.
+
+For diagnosis, configure CMake with `-DFLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT=ON`.
+This adds aligned sink/caller anchors (Clang/AArch64 also realigns the calling
+frame) and, with GNU/Clang, `-falign-functions=64`. For manual GNU/Clang builds of
+either probe, use `-DFLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT=1 -falign-functions=64`.
+Apply these settings equally to both revisions. This mode helps isolate layout
+effects; passing it alone does not establish that default builds have no
+regression. Historical snapshots below retain their original settings.
+
+## Const blueprint layout investigation (2026-11-11)
+
+Comparing `22a9b4c` with `0137f6b`, the original natural-layout C++14 probe on
+Cortex-A72 with Clang 19 showed a 4.7–7.5% slowdown in
+`runner.fast_awaitable.async4` across four initial-stack placements. The untimed
+`make_sync_20_bp` helper shrank by 16 bytes, moving downstream functions.
+In a temporary assembly control, restoring those addresses reduced the candidate
+from 871.8 to 823.6 ns/op; branch misses per thousand instructions fell from
+11.06 to 7.92. All measured hot functions then matched the baseline's addresses
+and instruction bytes. This supports a code-placement effect associated with
+branch prediction; the exact predictor mechanism remains unidentified. The
+assembly padding was only a diagnostic experiment and is not part of the library.
+
+On Ryzen 7 3700X, C++14 comparisons with Clang 23 and GCC 16, with and without
+exceptions, did not reproduce a similarly stable slowdown. These compiler
+versions differ from the A72 setup, so this does not isolate CPU differences.
+The separate single-step `async1` stack-position sensitivity affects both
+revisions; its precise hardware mechanism remains unresolved. The feature is
+retained with this workload-specific regression documented, rather than a claim
+that every build has unchanged performance.
 
 ## CUDA backend comparison (RTX 2080 Ti, 2026-11-05)
 

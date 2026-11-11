@@ -169,10 +169,14 @@ if(TARGET flux_foundry_gsource_executor)
 endif()
 
 # Perf (runtime benchmark probe)
+option(FLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT
+    "Align flow performance probes for layout diagnosis (also test the default layout)" OFF)
 flux_foundry_add_probe(flux_foundry_flow_perf flow_perf.cpp)
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
-    # Keep downstream callbacks aligned when an unrelated helper changes size.
-    target_compile_options(flux_foundry_flow_perf PRIVATE -falign-functions=64)
+if(FLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT)
+    target_compile_definitions(flux_foundry_flow_perf PRIVATE FLUX_FOUNDRY_PERF_CONTROLLED_LAYOUT=1)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+        target_compile_options(flux_foundry_flow_perf PRIVATE -falign-functions=64)
+    endif()
 endif()
 add_test(NAME flow_perf COMMAND flux_foundry_flow_perf)
 set_tests_properties(flow_perf PROPERTIES LABELS "perf" TIMEOUT 300)
