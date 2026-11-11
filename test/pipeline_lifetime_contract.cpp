@@ -74,7 +74,16 @@ struct operation final : operation_base<Fast> {
     using async_result_type = output;
     request input;
     counts* state;
-    explicit operation(output&& in) noexcept : input(std::move(in.value())), state(input.session->state) { ++state->created; }
+    static request take_request(output&& in) noexcept {
+        // This test backend only accepts successful requests. Check the active
+        // result alternative even in Release before moving its owned payload.
+        if (!in.has_value()) {
+            std::fputs("operation received an error instead of a request\n", stderr);
+            std::abort();
+        }
+        return std::move(in.value());
+    }
+    explicit operation(output&& in) noexcept : input(take_request(std::move(in))), state(input.session->state) { ++state->created; }
     ~operation() { ++state->destroyed; }
     bool available() const noexcept { return true; }
     void cancel() noexcept { ++state->canceled; }
