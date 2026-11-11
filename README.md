@@ -594,5 +594,16 @@ construction in C++14. C++17 supports constexpr construction when stored values
 are constant-expression-compatible. `constexpr` is not `consteval`: runtime
 construction and captures are still permitted.
 
-`constinit auto` deliberately keeps the BP mutable. Direct execution of a const
-BP is not part of this minimal patch; const wrapper support is a separate experiment.
+For const-callable transform chains ending in the default `end()`, a
+`constexpr` (therefore const) BP may also
+be borrowed by a fast runner view. The wrapper's const overload is enabled only
+when the underlying const callable is nonthrowing and returns the same type as
+the existing transform contract. Mutable-only callables retain their non-const
+path and are deliberately rejected through a const BP. This does not promise
+that all node kinds already support const execution, nor that a const callable
+cannot mutate external shared data. Awaitable factories describe runtime work;
+constant construction does not execute asynchronous I/O.
+
+`test/const_transform_contract.cpp` checks const execution, mutable-callable
+compatibility, stored state across fused nodes, and void conversions. CMake runs
+it in the smoke/contract suite for C++14/17/20 with exceptions enabled and disabled.

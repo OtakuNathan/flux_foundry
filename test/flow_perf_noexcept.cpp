@@ -267,10 +267,16 @@ auto make_async_1_fast_bp() {
 
 } // namespace
 
-int main() {
+#if defined(_MSC_VER)
+__declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+__attribute__((noinline))
+#endif
+static int run_benchmarks() {
     std::printf("[flow perf noexc strict] compiler baseline: -std=c++14 -O3 -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 -I./ -fno-rtti -march=native -fstrict-aliasing\n");
 
-    volatile long long sink = 0;
+    // Keep the benchmark frame consistently aligned across process stack layouts.
+    alignas(CACHE_LINE_SIZE) volatile long long sink = 0;
     auto r0 = run_bench("direct.loop20", 20000, 5000000, [&](int i) {
         int x = i;
         x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);x = (x ^ 0x5a5a5a5a) + (x >> 3);
@@ -464,4 +470,11 @@ int main() {
 
     std::printf("sink=%lld\n", sink);
     return 0;
+}
+
+int main() {
+    // Give realigning compilers an aligned caller; spills may precede callee realignment.
+    alignas(CACHE_LINE_SIZE) volatile unsigned char frame_anchor = 0;
+    const int status = run_benchmarks();
+    return status + frame_anchor; // Keep the aligned frame alive across the call.
 }

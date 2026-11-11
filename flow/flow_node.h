@@ -197,38 +197,92 @@ namespace flux_foundry {
             return result_t<F_O, E>(value_tag);
         }
 
-        // transform
+        // Const dispatch preserves the transform's output and nothrow contract.
+        template <typename F, typename I, typename = void>
+        struct transform_signature {};
+        template <typename F, typename I>
+        struct transform_signature<F, I, void_t<invoke_result_t<F, I>>> {
+            using type = invoke_result_t<F, I>;
+        };
+        template <typename F>
+        struct transform_signature<F, void, void_t<invoke_result_t<F>>> {
+            using type = invoke_result_t<F>;
+        };
+        template <typename F, typename I, typename O, typename = void>
+        struct const_transform_compatible : std::false_type {};
+        template <typename F, typename I, typename O>
+        struct const_transform_compatible<F, I, O,
+                void_t<typename transform_signature<const F&, I>::type>>
+            : conjunction<std::is_same<typename transform_signature<const F&, I>::type, O>,
+                          is_nothrow_invocable_with<const F, I>> {};
+
+        template <typename F, typename I, typename E, bool = std::is_void<I>::value>
+        struct transform_wrapper;
+        template <typename F, typename I, typename E>
+        struct transform_wrapper<F, I, E, false> {
+            using O = typename transform_signature<F, I>::type;
+            flat_storage<F> storage;
+            transform_wrapper(const transform_wrapper&) = default;
+            transform_wrapper(transform_wrapper&&) = default;
+            transform_wrapper& operator=(const transform_wrapper&) = delete;
+            transform_wrapper& operator=(transform_wrapper&&) = delete;
+            explicit constexpr transform_wrapper(F&& f) noexcept(std::is_nothrow_move_constructible<F>::value)
+                : storage(std::move(f)) {}
+
+            template <typename Q>
+            static result_t<O, E> run(Q& f, result_t<I, E>&& in)
+                noexcept(noexcept(call<O, E, Q>(std::is_void<O>{}, std::false_type{},
+                    std::declval<Q&>(), std::declval<I>()))) {
+                LIKELY_IF (in.has_value())
+                    return call<O, E, Q>(std::is_void<O>{}, std::false_type{}, f, std::move(in).value());
+                return result_t<O, E>(error_tag, std::move(in).error());
+            }
+            result_t<O, E> operator()(result_t<I, E>&& in)
+                noexcept(noexcept(run(std::declval<F&>(), std::move(in)))) {
+                return run(get<0>(storage), std::move(in));
+            }
+            template <typename Q = F, std::enable_if_t<const_transform_compatible<Q, I, O>::value, int> = 0>
+            result_t<O, E> operator()(result_t<I, E>&& in) const
+                noexcept(noexcept(run(std::declval<const Q&>(), std::move(in)))) {
+                return run(get<0>(storage), std::move(in));
+            }
+        };
+        template <typename F, typename I, typename E>
+        struct transform_wrapper<F, I, E, true> {
+            using O = typename transform_signature<F, I>::type;
+            flat_storage<F> storage;
+            transform_wrapper(const transform_wrapper&) = default;
+            transform_wrapper(transform_wrapper&&) = default;
+            transform_wrapper& operator=(const transform_wrapper&) = delete;
+            transform_wrapper& operator=(transform_wrapper&&) = delete;
+            explicit constexpr transform_wrapper(F&& f) noexcept(std::is_nothrow_move_constructible<F>::value)
+                : storage(std::move(f)) {}
+
+            template <typename Q>
+            static result_t<O, E> run(Q& f, result_t<I, E>&& in)
+                noexcept(noexcept(call<O, E, Q>(std::is_void<O>{}, std::true_type{},
+                    std::declval<Q&>(), std::declval<result_t<I, E>>()))) {
+                LIKELY_IF (in.has_value())
+                    return call<O, E, Q>(std::is_void<O>{}, std::true_type{}, f, std::move(in));
+                return result_t<O, E>(error_tag, std::move(in).error());
+            }
+            result_t<O, E> operator()(result_t<I, E>&& in)
+                noexcept(noexcept(run(std::declval<F&>(), std::move(in)))) {
+                return run(get<0>(storage), std::move(in));
+            }
+            template <typename Q = F, std::enable_if_t<const_transform_compatible<Q, I, O>::value, int> = 0>
+            result_t<O, E> operator()(result_t<I, E>&& in) const
+                noexcept(noexcept(run(std::declval<const Q&>(), std::move(in)))) {
+                return run(get<0>(storage), std::move(in));
+            }
+        };
         template <typename F>
         struct transform_node {
             F f;
-
-            template <typename F_I, typename E, 
-                std::enable_if_t<negation_v<std::is_void<F_I>>>* = nullptr>
+            template <typename I, typename E>
             static constexpr auto make(transform_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
-                using F_O = invoke_result_t<F, F_I>;
-                auto wrapper = [f = std::move(self.f)](result_t<F_I, E>&& in) mutable
-                    noexcept(noexcept(call<F_O, E, F>(std::is_void<F_O> {}, std::false_type{}, std::declval<F&>(), std::declval<F_I>()))) {
-                    LIKELY_IF (in.has_value()) {
-                        return call<F_O, E, F>(std::is_void<F_O> {}, std::false_type{}, f, std::move(in).value());
-                    }
-                    return result_t<F_O, E>(error_tag, std::move(in).error());
-                };
-                return flow_calc_node<result_t<F_I, E>, result_t<F_O, E>, decltype(wrapper)>(std::move(wrapper));
-            }
-
-            template <typename F_I, typename E, 
-                std::enable_if_t<std::is_void<F_I>::value>* = nullptr>
-            static constexpr auto make(transform_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
-                using F_O = invoke_result_t<F>;
-                auto wrapper = [f = std::move(self.f)](result_t<F_I, E>&& in) mutable
-                        noexcept(noexcept(call<F_O, E, F>(std::is_void<F_O> {}, std::true_type{}, std::declval<F&>(),
-                            std::declval<result_t<F_I, E>>()))) {
-                    LIKELY_IF (in.has_value()) {
-                        return call<F_O, E, F>(std::is_void<F_O> {}, std::true_type{}, f, std::move(in));
-                    }
-                    return result_t<F_O, E>(error_tag, std::move(in).error());
-                };
-                return flow_calc_node<result_t<F_I, E>, result_t<F_O, E>, decltype(wrapper)>(std::move(wrapper));
+                using wrapper = transform_wrapper<F, I, E>;
+                return flow_calc_node<result_t<I, E>, result_t<typename wrapper::O, E>, wrapper>(wrapper(std::move(self.f)));
             }
         };
 

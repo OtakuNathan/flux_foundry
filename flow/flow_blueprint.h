@@ -106,13 +106,15 @@ namespace flux_foundry {
 
             template <typename X>
             FORCE_INLINE auto operator()(X &&x)
-            noexcept(noexcept(std::declval<G_T &>()(std::declval<F_T &>()(std::forward<X>(x))))) {
+            noexcept(noexcept(std::declval<G_T &>()(std::declval<F_T &>()(std::forward<X>(x)))))
+                -> std::decay_t<decltype(std::declval<G_T &>()(std::declval<F_T &>()(std::declval<X&&>())))> {
                 return fg.second()(fg.first()(std::forward<X>(x)));
             }
 
             template <typename X>
             FORCE_INLINE auto operator()(X &&x) const
-            noexcept(noexcept(std::declval<const G_T &>()(std::declval<const F_T &>()(std::forward<X>(x))))) {
+            noexcept(noexcept(std::declval<const G_T &>()(std::declval<const F_T &>()(std::forward<X>(x)))))
+                -> std::decay_t<decltype(std::declval<const G_T &>()(std::declval<const F_T &>()(std::declval<X&&>())))> {
                 return fg.second()(fg.first()(std::forward<X>(x)));
             }
 
@@ -304,7 +306,7 @@ namespace flux_foundry {
         struct is_blueprint_impl<flow_blueprint<I, O, Nodes...>> : std::true_type {};
 
         template <typename T>
-        struct is_blueprint : is_blueprint_impl<T> {};
+        struct is_blueprint : is_blueprint_impl<std::remove_cv_t<T>> {};
 
         template <typename T>
         constexpr bool is_blueprint_v = is_blueprint<T>::value;

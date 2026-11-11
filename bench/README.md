@@ -4,6 +4,14 @@ This document keeps the microbenchmark material out of the root `README`.
 
 For the standalone `flux_foundry` vs Asio harness and collection scripts, see [`bench/horizontal_compare/README.md`](horizontal_compare/README.md).
 
+For new before/after flow-probe comparisons, use the same benchmark sources and
+compiler flags on both revisions. The probes use aligned sink/caller anchors to
+limit startup-stack variation; Clang/AArch64 also realigns the calling frame.
+The GNU/Clang CMake performance target uses
+`-falign-functions=64` to limit callback-placement variation. Use the same flag
+for manual GNU/Clang builds of either probe. Historical snapshots below retain
+their original settings. Pin the timed process and compare multiple process runs.
+
 ## CUDA backend comparison (RTX 2080 Ti, 2026-11-05)
 
 Matched Mandelbrot rendering on real hardware, Ryzen 7 3700X + RTX 2080 Ti:
