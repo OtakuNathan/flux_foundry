@@ -1,6 +1,6 @@
 # Typed external operations in an FF Blueprint
 
-FF owns the business pipeline and its scheduling. Dynabridge is an optional tool
+FF owns the business pipeline and its scheduling. Portal is an optional tool
 for declaring calls, generating typed delegates, retaining arguments and handing
 off completion responsibility. It does not become an executor or a runtime above FF.
 
@@ -28,24 +28,24 @@ move-only invocation for repeated submission.
 
 ## Build and run without a GPU
 
-From the FF checkout, with Dynabridge in `../bridge`:
+From the FF checkout, with Portal in `../portal`:
 
 ```sh
 cmake -S . -B build-typed -DCMAKE_BUILD_TYPE=Release \
-  -DFLUX_FOUNDRY_BUILD_TESTS=ON -DDYNABRIDGE_INCLUDE_DIR="$PWD/../bridge"
+  -DFLUX_FOUNDRY_BUILD_TESTS=ON -DPORTAL_INCLUDE_DIR="$PWD/../portal"
 cmake --build build-typed --target flux_foundry_typed_async_demo \
   flux_foundry_typed_async_demo_noexc_0 flux_foundry_typed_async_demo_noexc_1 --parallel 2
 ctest --test-dir build-typed -L typed --output-on-failure
 ```
 
 The two no-exception targets cover relaxed (`0`) and strict (`1`) contracts on
-GCC/Clang. FF has no mandatory Dynabridge dependency; these targets are created
+GCC/Clang. FF has no mandatory Portal dependency; these targets are created
 only when the optional include directory is available.
 
 Use `bind_static_async` / `make_invocation` to retain concrete callable types.
 Use `bind_async` / `erase_invocation` when a common `invocation<R>` type is useful.
 Both are consumed through the same FF awaitable integration. Overload selection,
-capture, error types and completion ownership belong to the Dynabridge tool;
+capture, error types and completion ownership belong to the Portal tool;
 composition, continuations and executor selection belong to FF.
 
 Async delegate preparation is const-correct. That does not classify a remote
@@ -65,7 +65,7 @@ The typed CUDA example has two compilation boundaries:
   operations; compiled by NVCC. The native C++ header shares typed resource state
   and owned results, without an erased C callback/context interface.
 
-NVCC does not parse FF or Dynabridge templates. The adapter's `add_one` and `render`
+NVCC does not parse FF or Portal templates. The adapter's `add_one` and `render`
 operations use one context type. Normal completion polls successfully recorded
 events that cover the kernel and D2H copy. A failed event record drains its stream;
 it never treats an unrecorded event as proof that the kernel has finished.
@@ -83,7 +83,7 @@ For a Turing GPU such as the RTX 2080 Ti:
 
 ```sh
 cmake -S . -B build-typed-cuda -DCMAKE_BUILD_TYPE=Release \
-  -DDYNABRIDGE_INCLUDE_DIR="$PWD/../bridge" \
+  -DPORTAL_INCLUDE_DIR="$PWD/../portal" \
   -DCMAKE_CUDA_COMPILER="$HOME/.local/opt/cuda-13.4.3/bin/nvcc" \
   -DCMAKE_CUDA_ARCHITECTURES=75
 cmake --build build-typed-cuda --target flux_foundry_cuda_typed_demo \

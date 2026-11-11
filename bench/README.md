@@ -87,7 +87,7 @@ Matched Mandelbrot rendering on real hardware, Ryzen 7 3700X + RTX 2080 Ti:
 completed images/s, medians of five trials, with exceptions enabled. Each image
 includes CUDA resource creation, kernel execution, D2H, completion handling,
 resource cleanup and sampled image validation. Native uses the same backend and
-polling queue; FF paths add generated Dynabridge invocations and a fresh fast
+polling queue; FF paths add generated Portal invocations and a fresh fast
 runner per operation.
 
 | Image | In-flight window | Native callbacks | FF + DB concrete | FF + DB erased |

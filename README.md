@@ -30,7 +30,7 @@ signatures and error hooks. Measured overhead depends on application adapters,
 inlining, and build configuration; an exception-enabled build does not imply a
 fixed penalty. See the guide's [performance notes](docs/synchronous_hot_path.md#reading-performance-results).
 For an application combining runtime access, flow computation, and state
-permissions, see the [Dyna Bridge + FF + lease replay example](https://github.com/OtakuNathan/dynabridge/blob/main/docs/replay_composition.md).
+permissions, see the [Portal + FF + lease replay example](https://github.com/OtakuNathan/portal/blob/main/docs/replay_composition.md).
 
 ## 🧪 Project Status
 `flux_foundry` is currently an experimental / dogfooding-stage personal systems project. It has not yet been integrated into an external production codebase. The repository focuses on validating the design through focused tests, stress probes, benchmarks, sanitizers, and abstract protocol models. APIs and internal contracts may still evolve.
@@ -550,12 +550,12 @@ README.md
 
 MIT
 
-Planned runtime contract instrumentation is recorded in [the vaccine/poison design TODO](docs/contract_vaccine_todo.md); these APIs are not implemented yet.
+Debug `position` and `vaccine` checkpoints are available; their contracts and planned backend lifetime instrumentation are described in [the checkpoint design](docs/contract_vaccine_todo.md).
 
-### Typed external operations with Dynabridge
+### Typed external operations with Portal
 
 The [FF typed-call demo](docs/typed_async_demo.md) composes `await Host A`,
-`await Host B`, and a business calculation in one reusable Blueprint. Dynabridge
+`await Host B`, and a business calculation in one reusable Blueprint. Portal
 is an optional tool for schema-generated calls and owning invocations; FF owns
 composition and scheduling. Both concrete callable and erased modes are shown,
 including strict/relaxed no-exception builds.
@@ -565,7 +565,7 @@ adapter is ordinary C++, while NVCC compiles only the device translation unit.
 The example covers failed event recording and closing/releasing a context from a
 continuation. See the walkthrough for build commands and actual GPU validation.
 FF keeps its external-async/CUDA compatibility interfaces and has no mandatory
-Dynabridge dependency.
+Portal dependency.
 
 ### Constant-initialized blueprint, runtime execution
 

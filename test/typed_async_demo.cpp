@@ -1,21 +1,21 @@
-// FF owns the business pipeline. Dynabridge supplies schema-generated calls.
-#include <dynabridge/extensions/flux_foundry/async.h>
-#include <dynabridge/backend_base.h>
+// FF owns the business pipeline. Portal supplies schema-generated calls.
+#include <portal/extensions/flux_foundry/async.h>
+#include <portal/backend_base.h>
 #include <deque>
 #include <cstdio>
 #include <limits>
 #include <tuple>
-#define DYNABRIDGE_IMPORT_DEF "typed_async.def"
-#include <dynabridge/import.h>
-#undef DYNABRIDGE_IMPORT_DEF
+#define PORTAL_IMPORT_DEF "typed_async.def"
+#include <portal/import.h>
+#undef PORTAL_IMPORT_DEF
 
 namespace ff = flux_foundry;
-namespace db = dynabridge;
+namespace db = portal;
 namespace {
 void check(bool ok) { if (!ok) std::abort(); }
 
 // This demo's application loop is deliberately small. A real backend can
-// submit to an existing I/O service; Dynabridge does not choose its scheduler.
+// submit to an existing I/O service; Portal does not choose its scheduler.
 struct host_backend : db::backend_base<host_backend> {
     struct context : std::enable_shared_from_this<context> {
         using backend_t = host_backend;
@@ -43,7 +43,7 @@ template<> struct operation<db::import_symbols::calculator::multiply> {
 template<class Symbol, class Contract, class Receiver, class Tuple>
 auto host_backend::prepare_async(std::shared_ptr<Receiver> owner, Tuple arguments) {
     return db::make_invocation<int>(std::move(owner),
-        [arguments = std::move(arguments)](Receiver& receiver, auto done) DYNABRIDGE_NOEXCEPT_IF_DISABLED {
+        [arguments = std::move(arguments)](Receiver& receiver, auto done) PORTAL_NOEXCEPT_IF_DISABLED {
             auto& host = receiver.context();
             if (host.closed)
                 return db::async_submission::reject(std::make_error_code(std::errc::operation_not_permitted));
@@ -79,7 +79,7 @@ void run_pipeline(View host_a, View host_b, const std::shared_ptr<host_backend::
     using multiply_call = decltype(host_b.multiply(21, 2));
     auto blueprint = ff::make_blueprint<add_call, db::async_error>()
         | db::ff::await_static_invocation<add_call>()
-        | ff::then([host_b](output&& input) DYNABRIDGE_NOEXCEPT_IF_DISABLED {
+        | ff::then([host_b](output&& input) PORTAL_NOEXCEPT_IF_DISABLED {
             return ff::result_t<multiply_call, db::async_error>(ff::value_tag, host_b.multiply(input.value(), 2));
         })
         | db::ff::await_static_invocation<multiply_call>()

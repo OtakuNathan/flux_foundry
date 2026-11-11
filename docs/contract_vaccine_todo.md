@@ -113,7 +113,7 @@ Validation before shipping:
 ## Composition scenario: an RPC flow inside a business flow
 
 An outer blueprint can await Host A, await Host B, then calculate or aggregate
-results. Each await can wrap an inner local blueprint that encodes a Dynabridge
+results. Each await can wrap an inner local blueprint that encodes a Portal
 request, submits asynchronous I/O, awaits its response, and decodes the result.
 The remote host is an RPC destination, never a remote FF executor. Each layer
 owns its operation state and completes its parent exactly once. Cancellation or

@@ -1,11 +1,11 @@
 # Typed CUDA benchmark
 
 This standalone experiment compares a native C++ callback path with FF fast
-runners consuming concrete or erased Dynabridge invocations. All three paths
+runners consuming concrete or erased Portal invocations. All three paths
 use the same Mandelbrot kernel, per-operation CUDA resources, polling queue,
 in-flight bound and sampled image verification. Each FF operation creates a
 fresh runner from a reusable Blueprint. Kernel code stays behind a native C++
-boundary; NVCC does not compile FF or Dynabridge templates.
+boundary; NVCC does not compile FF or Portal templates.
 
 The [2026-11-05 RTX 2080 Ti snapshot](results/rtx2080ti-20261105/README.md)
 contains the end-to-end table, environment, exact revisions, raw CSV files and
@@ -27,17 +27,21 @@ policy were left active during the recorded trials.
 
 ## Reproduce
 
-Use separate checkouts of FF at `d1cfad070ed8bf667a0c0aff77977d7741d107fd` and
-Dynabridge at `84725ad350baf56c3cddb69aa934bf9eaabf3123`. The retained CUDA helper
-sources match that FF revision. The script checks commit IDs; ensure those
-checkouts have no header modifications. CUDA and GCC versions are recorded in
-the snapshot. The build targets `sm_75` and uses NVCC's
-`--allow-unsupported-compiler` for the recorded GCC toolchain.
+The current sources use Portal's renamed API. Use the FF and Portal revisions
+checked by `build.sh` for a new run. CUDA helper sources are unchanged; the
+build still targets `sm_75` and uses NVCC's `--allow-unsupported-compiler`
+for the recorded GCC toolchain.
+
+To reproduce the historical snapshot exactly, check out this benchmark's
+original version from FF commit `98d73c280667226f0fbb6f4408626ab875e2bd2a`.
+That version's script pins FF `d1cfad070ed8bf667a0c0aff77977d7741d107fd`
+and the pre-rename bridge `84725ad350baf56c3cddb69aa934bf9eaabf3123`.
+The historical CSV and logs retain their original names and revisions.
 
 From this directory:
 
 ```sh
-FF=/path/to/pinned/flux_foundry DB=/path/to/pinned/dynabridge \
+FF=/path/to/pinned/flux_foundry PORTAL=/path/to/pinned/portal \
   CUDA=/path/to/cuda bash build.sh
 ./benchmark-rebuilt > new-results.csv
 ./kernel_only-rebuilt > new-kernel-results.csv

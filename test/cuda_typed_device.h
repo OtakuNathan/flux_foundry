@@ -3,7 +3,7 @@
 #include <vector>
 
 // The native C++ device boundary carries owned results and per-operation state.
-// Neither FF nor Dynabridge templates are compiled by NVCC.
+// Neither FF nor Portal templates are compiled by NVCC.
 struct image_result { int width, height; std::vector<unsigned char> pixels; };
 namespace typed_cuda {
 struct resources {

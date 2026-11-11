@@ -1,10 +1,10 @@
 # libuv executor
 
 `executor/uv_executor.h` exposes `flux_foundry::uv_executor`, a C++14 FF executor
-for a caller-owned libuv loop. It originates from the Dynabridge adapter used by
+for a caller-owned libuv loop. It originates from the adapter in Portal (formerly Dynabridge) used by
 pal-shell-native: `dynabridge/extensions/flux_foundry/uv_executor.h` at commit
 `99d363fcff63c205d780cb7ff4ce018213c42357`. The common repository owner authorized
-integration under FF's MIT license. Pal and Dynabridge are not dependencies.
+integration under FF's MIT license. Pal and Portal are not dependencies.
 
 This is a loop executor using `uv_async`, not `uv_queue_work` or libuv's global
 thread pool. The caller chooses the loop thread. An idle loop waits for events;

@@ -17,17 +17,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Checkout Dynabridge tool for typed-call demos
+      - name: Checkout Portal tool for typed-call demos
         uses: actions/checkout@v4
         with:
-          repository: OtakuNathan/dynabridge
-          ref: 84725ad350baf56c3cddb69aa934bf9eaabf3123
-          path: build-deps/dynabridge
+          repository: OtakuNathan/portal
+          ref: 542bf5bbf6244f2a3948f7f01aa22a6233fba5fe
+          path: build-deps/portal
 
       - name: Configure
         run: >-
           cmake -S . -B build
-          -DDYNABRIDGE_INCLUDE_DIR="${{ github.workspace }}/build-deps/dynabridge"
+          -DPORTAL_INCLUDE_DIR="${{ github.workspace }}/build-deps/portal"
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
           -DCMAKE_BUILD_TYPE=Release
           -DFLUX_FOUNDRY_BUILD_TESTS=ON
@@ -180,15 +180,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: OtakuNathan/dynabridge
-          ref: 84725ad350baf56c3cddb69aa934bf9eaabf3123
-          path: build-deps/dynabridge
+          repository: OtakuNathan/portal
+          ref: 542bf5bbf6244f2a3948f7f01aa22a6233fba5fe
+          path: build-deps/portal
       - name: Configure
         run: |
           # Resolve the checkout inside the container's mounted workspace.
-          test -f "$PWD/build-deps/dynabridge/dynabridge/extensions/flux_foundry/async.h"
+          test -f "$PWD/build-deps/portal/portal/extensions/flux_foundry/async.h"
           cmake -S . -B build-cuda -DCMAKE_BUILD_TYPE=Release \
-            -DDYNABRIDGE_INCLUDE_DIR="$PWD/build-deps/dynabridge" \
+            -DPORTAL_INCLUDE_DIR="$PWD/build-deps/portal" \
             -DCMAKE_CUDA_ARCHITECTURES=75
       - name: Compile concrete, erased and no-exception variants
         run: >-

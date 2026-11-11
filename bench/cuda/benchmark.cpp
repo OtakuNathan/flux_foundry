@@ -1,7 +1,7 @@
 // Temporary matched GPU throughput experiment, 2026-11-05.
 // Same per-operation CUDA resources, completion queue and validation in all end-to-end modes.
-#include <dynabridge/extensions/flux_foundry/async.h>
-#include <dynabridge/backend_base.h>
+#include <portal/extensions/flux_foundry/async.h>
+#include <portal/backend_base.h>
 #include "cuda_typed_device.h"
 #include "cuda_completion_condition.h"
 #include <algorithm>
@@ -15,11 +15,11 @@
 #include <thread>
 #include <tuple>
 #include <vector>
-#define DYNABRIDGE_IMPORT_DEF "cuda_typed.def"
-#include <dynabridge/import.h>
-#undef DYNABRIDGE_IMPORT_DEF
+#define PORTAL_IMPORT_DEF "cuda_typed.def"
+#include <portal/import.h>
+#undef PORTAL_IMPORT_DEF
 namespace ff = flux_foundry;
-namespace db = dynabridge;
+namespace db = portal;
 
 static void ck(bool value, const char* what) { if (!value) { std::fprintf(stderr,"FAILED: %s\n",what); std::abort(); } }
 static void cu(cudaError_t code, const char* what) { if (code != cudaSuccess) { std::fprintf(stderr,"CUDA FAILED: %s: %s\n",what,cudaGetErrorString(code)); std::abort(); } }
