@@ -163,6 +163,40 @@ void race_close() {
     }
 }
 
+void concurrent_waves(std::size_t budget) {
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    uv_executor ex(&loop, 64, budget);
+    constexpr int producers = 4, waves = 100, per_wave = 31;
+    std::atomic<int> delivered{0};
+    int expected[producers]{};
+    std::vector<std::thread> workers;
+    for (int p = 0; p < producers; ++p) workers.emplace_back([&, p] {
+        for (int wave = 0; wave < waves; ++wave) {
+            for (int i = 0; i < per_wave; ++i) {
+                const int value = wave * per_wave + i;
+                task_wrapper_sbo task([&, p, value]() noexcept {
+                    CHECK(expected[p]++ == value);
+                    delivered.fetch_add(1, std::memory_order_release);
+                });
+                while (!ex.try_dispatch(std::move(task))) {
+                    CHECK(task);
+                    std::this_thread::yield();
+                }
+            }
+            while (delivered.load(std::memory_order_acquire) < (wave + 1) * per_wave * producers)
+                std::this_thread::yield();
+        }
+    });
+    std::thread closer([&] {
+        for (auto& worker : workers) worker.join();
+        ex.close();
+    });
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0);
+    closer.join();
+    for (int count : expected) CHECK(count == waves * per_wave);
+    CHECK(ex.closed() && uv_loop_close(&loop) == 0);
+}
+
 struct receiver {
     using value_type = result_t<int, error_type>;
     int* output;
@@ -199,5 +233,6 @@ int main() {
     owner_backpressure();
     independent_lifetime(false); independent_lifetime(true);
     allocation_failure(); race_close(); runners();
+    for (auto budget : {1u, 3u, 16u, 64u}) concurrent_waves(budget);
     std::puts("PASS: libuv bounds, retained rejection, owner affinity/inline, coalesced wakeups, budget rearm, close drain/races, independent handle lifetime, normal/fast runners");
 }

@@ -15,7 +15,9 @@ verdicts also remain active in Release builds.
 
 | Test | Coverage |
 | --- | --- |
-| `awaitable_lifecycle_contract` | Inline completion, worker completion before submit returns, gated delayed completion, submit failure, cancellation before start, cancellation before/after completion; inline and queued continuations. Checks exactly one result, result category, cancellation calls, and destruction after backend exit. |
+| `awaitable_lifecycle_contract` / `_noexc` | Inline completion, worker completion before submit returns, gated delayed completion, submit failure, cancellation before start, cancellation before/after completion; inline and queued continuations. Checks exactly one result, result category, cancellation calls, and destruction after backend exit. |
+| `pipeline_lifetime_enabled` / `_disabled` / `_noexc` | Move-only request and shared session cross two executors after public runner/blueprint handles are dropped. Inline/worker/delayed/rejected completion, soft/hard cancellation before/after completion and racing completion, dropping the public controller, nested normal/fast `when_all` across all three-branch completion orders, and normal/fast `when_any` with a late loser or rejected branch. Counts use relaxed atomics; queue publication uses mutexes. Checks exactly-once delivery and balanced resources after backend quiescence. |
+| `vaccine_enabled` / `_disabled` / `_noexc` | Read-only success/error/move-only/void inspection, normal/fast/const-view runners, queued handoff and disabled blueprint type/size identity. Failure subprocesses check source position, false/throwing predicates, custom hooks and mandatory termination. `vaccine_disabled_codegen` compares optimized executables (stripped symbols, no build ID) on Linux GCC/Clang. |
 | `allocation_failure_contract` | Fail allocation attempts 1 through 3 through the allocator interface; verify recovery on subsequent attempts and no live allocations. Throw from object construction and verify control-block cleanup. |
 | `allocation_failure_contract_noexc` | Same allocation failure schedule with exceptions disabled; verifies empty handles and cleanup. |
 | `simple_executor_contract` / `_noexc` | Capacities 1 and 2; nested full-queue dispatch, dispatch before run, concurrent shutdown with an explicitly blocked consumer, repeated shutdown, and draining all admitted work. |
@@ -31,8 +33,21 @@ cmake --build build-debug --target flux_foundry_gsource_executor_contract
 ctest --test-dir build-debug -L gsource --output-on-failure
 ```
 
-For GLib, register the executor before concurrent dispatch and keep registration
-and destruction synchronized with producers. When enqueueing fails on the
+For GLib, register the executor before concurrent dispatch and stop producers
+before destruction. Destroy it on the context owner, or after context dispatch
+has stopped. Destruction inside a task, including a nested context iteration,
+is supported: the current task finishes and queued tasks are discarded. Callback
+state lives in the GSource allocation and is retained until active callbacks
+return; no extra state allocation is needed and dispatch does not allocate queue storage. Re-registering an attached
+source reports `EALREADY`.
+
+Each enqueue still writes eventfd; the callback rearms after its ten-task budget.
+Four-producer wave tests exercise empty transitions and budget rearming at queue
+capacities 1, 2 and 64. Callback destruction tests also verify pending captures
+are released; sanitizer runs can detect stale callback state or source functions.
+Use `G_DEBUG=fatal-warnings` to treat GLib lifecycle diagnostics as failures.
+
+When enqueueing fails on the
 owning context thread, dispatch executes inline. This can recurse and does not
 preserve FIFO order. Other producers wait for queue space and must not block the
 consumer's progress path.
@@ -59,3 +74,23 @@ These regressions do not exhaust all allocator failure sites, fast-awaitable
 schedules, external backends, or long-running production workloads. Allocation
 injection here is scoped to `lite_ptr`'s custom allocator and constructor cleanup;
 it does not simulate process-wide out-of-memory conditions.
+
+## Repeating realistic lifecycle schedules
+
+The pipeline lifetime executable accepts a repetition count (1–10000). Each
+round runs 58 scenarios and reports the concrete runner/awaitable mode and aggregate completion order;
+there are no sleep-based correctness assumptions or random seeds to lose.
+A simultaneous cancel/completion case intentionally accepts either legal winner,
+while still requiring one delivered result and balanced ownership.
+
+```sh
+./build-debug/test/flux_foundry_pipeline_lifetime_enabled 100
+./build-debug/test/flux_foundry_pipeline_lifetime_disabled 100
+./build-debug/test/flux_foundry_pipeline_lifetime_noexc 100
+```
+
+Run these on ARM as well as x86. TSan uses the library's existing TSan-aware
+atomic paths; successful TSan runs do not establish correctness of every weak
+memory ordering in an ordinary build. Keep unsanitized ARM stress coverage.
+The nightly TSan workflow runs both enabled and disabled checkpoint variants and
+retains failing output, including the round and exact schedule.

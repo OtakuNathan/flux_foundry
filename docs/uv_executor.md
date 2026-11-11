@@ -95,11 +95,18 @@ closure. Queue state uses mutex synchronization, including with libuv versions
 where repeated async notifications coalesce; no one-notification-per-task
 assumption is made.
 
+Producers notify on an empty-to-nonempty queue transition under the same mutex
+used for admission and close. A callback rearms notifications when its task
+budget leaves queued work. This avoids repeated sends for an already queued
+batch without changing capacity, inline behavior, or the callback budget.
+
 `uv_executor_contract` tests owner affinity/inline nesting, full-queue retained
 rejection, dispatch under allocation failure, checked initialization failure,
 coalesced notification/budget rearm,
 accepted-task drain, concurrent producers/close, destruction before and during a
 callback, and normal/fast FF runner continuations. A standalone-header target
 checks that including this header does not require preceding FF headers.
+Repeated four-producer waves cover draining to empty and rearming at budgets
+1, 3, 16 and 64, with retained tasks retried after bounded rejection.
 `uv_executor_contract_noexc` runs these contracts with exceptions disabled;
 the legacy throwing-constructor assertion is specific to the exception build.

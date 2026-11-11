@@ -1,19 +1,72 @@
-# TODO: opt-in runtime contract instrumentation
+# Pipeline checkpoints and lifecycle instrumentation
 
-Status: design discussion, not an implemented API. Names and scope syntax are
-provisional. This work is independent of the no-exception/libuv changes.
+## Implemented: position and vaccine
 
-Provide two ways to enable the same contract checker:
+`flow/flow.h` exposes debug checkpoints; `flow/flow_contract.h` can also be
+included directly. A vaccine observes the **whole current result** as a const
+reference, including error results, and returns `bool`. It does not consume the
+result, change the error channel, or move/copy the payload to inspect it.
+
+```cpp
+auto bp = flux_foundry::make_blueprint<int>()
+    | flux_foundry::position("decode", flux_foundry::transform(
+        [](int x) noexcept { return x + 1; }))
+    | FLUX_FOUNDRY_POSITION("decoded response")
+    | flux_foundry::vaccine("positive decoded value", [](const auto& result) noexcept {
+        return result.has_error() || result.value() > 0;
+    })
+    | flux_foundry::end();
+```
+
+`position("name")` marks a source location for subsequent checkpoints, until the
+next position. `position("name", node)` puts that marker immediately before a
+builder such as `transform(...)`, `via(...)`, or `await<...>(...)`.
+`FLUX_FOUNDRY_POSITION("name")` also records the source file and line. A vaccine
+without a position reports `unpositioned`. Positions are captured when composing
+the blueprint; they survive node fusion and executor handoffs without thread-local
+"current position" state. Branch blueprints have their own positions.
+
+`vaccine("contract name", predicate, hook)` accepts an optional diagnostic hook
+with signature `void(const flux_foundry::contract_violation&)`. Names and source
+strings must outlive every execution of the blueprint; string literals are a safe
+default. The hook must not throw. A false predicate or, with exceptions enabled,
+a throwing predicate calls the hook and then aborts even if the hook returns.
+The default hook writes the contract, position, file/line and reason to stderr.
+`vaccine(predicate)` supplies a default contract name. Predicates must be const
+callable and return exactly `bool`; no-exception builds require a noexcept call.
+Const references prevent direct mutation/consumption of the result, but do not
+provide deep immutability of pointees or synchronize user-captured state.
+
+Checks default on when `NDEBUG` is absent. Define
+`FLUX_FOUNDRY_ENABLE_VACCINE=0` or `=1` consistently across translation units to
+override this. Disabled markers are removed during blueprint composition before
+fusion: no stored predicate, position, per-run allocation, atomics or branch.
+Argument expressions are still evaluated by C++ when constructing the blueprint;
+put expensive runtime inspection inside the predicate. Tests verify identical
+blueprint types/sizes and, on Linux GCC/Clang, byte-identical optimized executables
+(stripped symbols, no build ID) with and without disabled markers.
+
+Checks follow normal runner cancellation rules: hard cancellation can skip them
+and jump to the terminal node; soft cancellation may present an error result.
+Enabling checks can affect scheduling, code layout and fusion boundaries. They
+are not a replacement for TSan or a detector for a callback that dereferences an
+already freed awaitable. Library/backend lifetime testing remains independent.
+
+## Planned: backend boundary instrumentation
+
+The remaining design below is not an implemented API. It concerns protocol
+instrumentation beyond the user-authored result checkpoints above.
+
+Potential integration points for backend protocol checks:
 
 - An external decorator around a runner or awaitable integration.
 - Blueprint markers/checkpoints composed with the existing pipe syntax, e.g.
   `make_blueprint() | then(...) | vaccine(...) | poison(...) | end(...)`.
 
-A user checkpoint can inspect a borrowed result and validate a domain-specific
-precondition or invariant without consuming, copying, or modifying the payload.
-Make handling of value/error results explicit; a plain success-only transform
-cannot represent every contract check. The precise responsibilities of vaccine
-and poison, and whether markers apply to one node or a scoped region, remain open.
+Read-only value/error inspection is implemented above. A separate protocol layer
+could connect source markers to independently owned awaitable debug tokens.
+Any future poison marker, scoped invariant syntax, or implicit backend wrapping
+remains an open design question.
 
 For fast runner/awaitable contracts, markers must instrument the submission and
 completion boundaries during blueprint construction. A downstream calculation

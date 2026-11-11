@@ -1,4 +1,4 @@
-#include "flow/flow.h"
+#include "lifecycle_test_support.h"
 #include <atomic>
 #include <condition_variable>
 #include <cstdio>
@@ -8,7 +8,7 @@
 #include <vector>
 
 using namespace flux_foundry;
-using output = result_t<int, std::exception_ptr>;
+using output = result_t<int, lifecycle_test::error>;
 enum class completion { inline_now, worker_before_return, delayed, submit_failure };
 struct observation {
     completion mode;
@@ -17,10 +17,10 @@ struct observation {
     std::function<void()> complete;
     explicit observation(completion m) : mode(m) {}
 };
-struct controlled_awaitable final : awaitable_base<controlled_awaitable, int, std::exception_ptr> {
+struct controlled_awaitable final : awaitable_base<controlled_awaitable, int, lifecycle_test::error> {
     using async_result_type = output;
     observation* state;
-    explicit controlled_awaitable(result_t<observation*, std::exception_ptr>&& in) noexcept
+    explicit controlled_awaitable(result_t<observation*, lifecycle_test::error>&& in) noexcept
         : state(in.value()) { ++state->created; }
     ~controlled_awaitable() { ++state->destroyed; }
     int submit() noexcept {
@@ -43,6 +43,7 @@ struct controlled_awaitable final : awaitable_base<controlled_awaitable, int, st
         }
         return 0;
     }
+    bool available() const noexcept { return true; }
     void cancel() noexcept { ++state->canceled; }
 };
 struct receiver {
@@ -96,14 +97,14 @@ bool run_case(completion mode, bool cancel_first, bool pre_cancel, bool queued) 
     auto control = make_lite_ptr<flow_controller>();
     if (queued) {
         manual_executor executor;
-        auto bp = make_blueprint<observation*>() | await<controlled_awaitable>(&executor) | end();
+        auto bp = make_blueprint<observation*, lifecycle_test::error>() | await<controlled_awaitable>(&executor) | end();
         flow_runner<decltype(bp), receiver> runner(
             make_lite_ptr<decltype(bp)>(std::move(bp)), control, receiver{&state});
         ok = exercise(runner, state, control, cancel_first, pre_cancel);
         ok = ok && state.delivered == 0;
         executor.drain();
     } else {
-        auto bp = make_blueprint<observation*>() | await<controlled_awaitable>() | end();
+        auto bp = make_blueprint<observation*, lifecycle_test::error>() | await<controlled_awaitable>() | end();
         flow_runner<decltype(bp), receiver> runner(
             make_lite_ptr<decltype(bp)>(std::move(bp)), control, receiver{&state});
         ok = exercise(runner, state, control, cancel_first, pre_cancel);

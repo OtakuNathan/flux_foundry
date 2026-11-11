@@ -78,7 +78,10 @@ public:
                 if (state->count == state->capacity) return false;
                 state->tasks[(state->head + state->count) % state->capacity] = std::move(task);
                 ++state->count;
-                state->wake(); // Serialize the last send with closing the handle.
+                // A nonempty queue already has a pending/active callback; the
+                // consumer rearms it on budget exhaustion. Keep send/close
+                // serialized under the mutex, including empty-to-nonempty races.
+                if (state->count == 1) state->wake();
             }
         }
         // Never call user code with the queue mutex held. Inline nesting may

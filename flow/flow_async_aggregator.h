@@ -52,27 +52,29 @@ namespace detail {
         }
 
         intrusive_awaitable_ptr &operator=(const intrusive_awaitable_ptr &rhs) noexcept {
-            if (this != &rhs) {
-                reset();
-                p = rhs.p;
-                if (p) {
-                    p->retain();
-                }
+            if (p != rhs.p) {
+                // rhs may be owned by the object being replaced.
+                intrusive_awaitable_ptr tmp(rhs);
+                swap(tmp);
             }
             return *this;
         }
 
         intrusive_awaitable_ptr &operator=(intrusive_awaitable_ptr &&rhs) noexcept {
             if (this != &rhs) {
-                reset();
-                p = rhs.p;
-                rhs.p = nullptr;
+                intrusive_awaitable_ptr tmp(std::move(rhs));
+                swap(tmp);
             }
             return *this;
         }
 
         ~intrusive_awaitable_ptr() noexcept {
             reset();
+        }
+
+        void swap(intrusive_awaitable_ptr &rhs) noexcept {
+            using std::swap;
+            swap(p, rhs.p);
         }
 
         void reset() noexcept {

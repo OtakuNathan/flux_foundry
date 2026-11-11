@@ -58,13 +58,13 @@ add_test(NAME hazard_ptr_contract_noexc COMMAND flux_foundry_hazard_ptr_contract
 set_tests_properties(hazard_ptr_contract_noexc PROPERTIES LABELS "smoke;noexc" TIMEOUT 30)
 
 # Deterministic contract regressions; timeout also catches deadlocks.
-foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment)
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment continuation_emplace)
     flux_foundry_add_probe(flux_foundry_${contract}_contract ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract COMMAND flux_foundry_${contract}_contract)
     set_tests_properties(${contract}_contract PROPERTIES LABELS "smoke;contract" TIMEOUT 20)
 endforeach()
 
-foreach(contract allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment)
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment continuation_emplace)
     flux_foundry_add_noexc_probe(flux_foundry_${contract}_contract_noexc ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract_noexc COMMAND flux_foundry_${contract}_contract_noexc)
     set_tests_properties(${contract}_contract_noexc PROPERTIES LABELS "smoke;contract;noexc" TIMEOUT 20)
@@ -88,7 +88,8 @@ if(TARGET flux_foundry_gsource_executor)
     flux_foundry_add_probe(flux_foundry_gsource_executor_contract gsource_executor_contract.cpp)
     target_link_libraries(flux_foundry_gsource_executor_contract PRIVATE flux_foundry::gsource_executor)
     add_test(NAME gsource_executor_contract COMMAND flux_foundry_gsource_executor_contract)
-    set_tests_properties(gsource_executor_contract PROPERTIES LABELS "smoke;contract;gsource" TIMEOUT 20)
+    set_tests_properties(gsource_executor_contract PROPERTIES LABELS "smoke;contract;gsource" TIMEOUT 20
+        ENVIRONMENT "G_DEBUG=fatal-warnings")
 endif()
 
 # Stress
@@ -327,7 +328,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
                 -DFF_NO_EXCEPTIONS=${no_exceptions}
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/builder_storage_rejection.cmake)
         set_tests_properties(builder_storage_rejection_${mode}
-            PROPERTIES LABELS "smoke;contract;compile-fail" TIMEOUT 180)
+            # 81 compiler invocations per mode; allow slower ARM development hosts.
+            PROPERTIES LABELS "smoke;contract;compile-fail" TIMEOUT 600)
     endforeach()
 endif()
 
@@ -347,3 +349,61 @@ foreach(std 14 17 20)
         endforeach()
     endif()
 endforeach()
+
+# User checkpoints and realistic pipeline ownership across executor/backend handoffs.
+foreach(mode enabled disabled noexc)
+    if(mode STREQUAL "noexc")
+        flux_foundry_add_noexc_probe(flux_foundry_vaccine_${mode} vaccine_contract.cpp)
+        flux_foundry_add_noexc_probe(flux_foundry_pipeline_lifetime_${mode} pipeline_lifetime_contract.cpp)
+    else()
+        flux_foundry_add_probe(flux_foundry_vaccine_${mode} vaccine_contract.cpp)
+        flux_foundry_add_probe(flux_foundry_pipeline_lifetime_${mode} pipeline_lifetime_contract.cpp)
+    endif()
+    if(mode STREQUAL "disabled")
+        set(vaccine_enabled 0)
+    else()
+        set(vaccine_enabled 1)
+    endif()
+    foreach(probe vaccine pipeline_lifetime)
+        set_target_properties(flux_foundry_${probe}_${mode} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+        target_compile_definitions(flux_foundry_${probe}_${mode} PRIVATE FLUX_FOUNDRY_ENABLE_VACCINE=${vaccine_enabled})
+        add_test(NAME ${probe}_${mode} COMMAND flux_foundry_${probe}_${mode})
+        set_tests_properties(${probe}_${mode} PROPERTIES LABELS "smoke;contract;lifecycle" TIMEOUT 30)
+        if(mode STREQUAL "noexc")
+            set_property(TEST ${probe}_${mode} APPEND PROPERTY LABELS noexc)
+        endif()
+    endforeach()
+    if(NOT mode STREQUAL "disabled")
+        foreach(reason false default throw)
+            if(mode STREQUAL "noexc" AND reason STREQUAL "throw")
+                continue()
+            endif()
+            if(reason STREQUAL "default")
+                set(expected "flux_foundry vaccine: expected failure at selected")
+            elseif(reason STREQUAL "throw")
+                set(expected "HOOK OK reason=1 contract=expected failure")
+            else()
+                set(expected "HOOK OK reason=0 contract=expected failure")
+            endif()
+            add_test(NAME vaccine_failure_${mode}_${reason}
+                COMMAND ${CMAKE_COMMAND} -DFF_EXECUTABLE=$<TARGET_FILE:flux_foundry_vaccine_${mode}>
+                    -DFF_MODE=${reason} "-DFF_EXPECT=${expected}" -P ${CMAKE_CURRENT_SOURCE_DIR}/vaccine_failure.cmake)
+            set_tests_properties(vaccine_failure_${mode}_${reason} PROPERTIES LABELS "smoke;contract" TIMEOUT 20)
+        endforeach()
+    endif()
+endforeach()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_test(NAME vaccine_disabled_codegen
+        COMMAND ${CMAKE_COMMAND} -DFF_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DFF_SOURCE_DIR=${PROJECT_SOURCE_DIR} -DFF_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/vaccine-erasure
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/vaccine_erasure.cmake)
+    set_tests_properties(vaccine_disabled_codegen PROPERTIES LABELS "smoke;contract" TIMEOUT 60)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_test(NAME vaccine_predicate_rejection
+        COMMAND ${CMAKE_COMMAND} -DFF_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DFF_SOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/vaccine_rejection.cmake)
+    set_tests_properties(vaccine_predicate_rejection PROPERTIES LABELS "smoke;contract;compile-fail" TIMEOUT 60)
+endif()

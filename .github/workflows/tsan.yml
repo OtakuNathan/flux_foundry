@@ -37,6 +37,22 @@ jobs:
           c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/awaitable_lifecycle_contract.cpp -o /tmp/flux_foundry_tsan/lifecycle -pthread -fsanitize=thread
           TSAN_OPTIONS='halt_on_error=1 exitcode=66' timeout 30 /tmp/flux_foundry_tsan/lifecycle
 
+      - name: Pipeline lifetime handoffs under TSAN
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/flux_foundry_tsan_logs
+          export TSAN_OPTIONS='halt_on_error=1 exitcode=66'
+          for enabled in 0 1; do
+            c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. \
+              -DFLUX_FOUNDRY_ENABLE_VACCINE=$enabled test/pipeline_lifetime_contract.cpp \
+              -o /tmp/flux_foundry_tsan/pipeline_lifetime_$enabled -pthread -fsanitize=thread
+            timeout 300 /tmp/flux_foundry_tsan/pipeline_lifetime_$enabled 20 \
+              > /tmp/flux_foundry_tsan_logs/pipeline_lifetime_$enabled.log 2>&1 || {
+                cat /tmp/flux_foundry_tsan_logs/pipeline_lifetime_$enabled.log
+                exit 1
+              }
+          done
+
       - name: Run nightly TSAN regressions
         run: |
           set -euo pipefail

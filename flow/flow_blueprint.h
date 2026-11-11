@@ -141,6 +141,17 @@ namespace flux_foundry {
         using node_tag_via = std::integral_constant<size_t, 2>;
         using node_tag_async = std::integral_constant<size_t, 3>;
         using node_tag_end = std::integral_constant<size_t, 4>;
+        using node_tag_observer = std::integral_constant<size_t, 5>;
+
+        // Read-only checkpoints forward the original result without materializing
+        // another result_t, and are kept outside calculation-node fusion.
+        template <typename R, typename F>
+        struct flow_observer_node {
+            using tag = node_tag_observer;
+            using I_t = R;
+            using O_t = R;
+            F f;
+        };
 
         // flow calc
         template <typename I, typename O, typename F, size_t N = 1>
@@ -337,6 +348,34 @@ namespace flux_foundry {
             decltype(remove_first_impl(std::declval<flat_storage<Ts...>>(),
                                        std::declval<std::make_index_sequence<sizeof ... (Ts) - 1>>())) {
             return remove_first_impl(std::move(t), std::make_index_sequence<sizeof ... (Ts) - 1>{});
+        }
+
+        template <typename I, typename O, typename Head, typename... Tail, typename F,
+            std::enable_if_t<!std::is_same<typename Head::tag, node_tag_end>::value, int> = 0>
+        constexpr auto operator|(flow_blueprint<I, O, Head, Tail...>&& bp, flow_observer_node<O, F>&& node) {
+            return flow_blueprint<I, O, flow_observer_node<O, F>, Head, Tail...>(
+                flat_storage_prepend(std::move(node), std::move(bp.nodes_)));
+        }
+
+        template <typename Head, typename... Tail>
+        struct preceding_execution_tag { using type = typename Head::tag; };
+        template <typename R, typename F, typename Head, typename... Tail>
+        struct preceding_execution_tag<flow_observer_node<R, F>, Head, Tail...>
+            : preceding_execution_tag<Head, Tail...> {};
+
+        template <typename I, typename O, typename R, typename F, typename... Tail, typename Node,
+            std::enable_if_t<disjunction_v<
+                std::is_same<typename Node::tag, node_tag_calc>,
+                std::is_same<typename Node::tag, node_tag_via>,
+                std::is_same<typename Node::tag, node_tag_async>>, int> = 0>
+        constexpr auto operator|(flow_blueprint<I, O, flow_observer_node<R, F>, Tail...>&& bp, Node&& node) {
+            // Debug markers must not make a forbidden async | via composition
+            // appear valid only while instrumentation is enabled.
+            static_assert(!(std::is_same<typename Node::tag, node_tag_via>::value &&
+                std::is_same<typename preceding_execution_tag<Tail...>::type, node_tag_async>::value),
+                "configure the await executor directly; checkpoints do not permit async | via");
+            return flow_blueprint<I, typename Node::O_t, Node, flow_observer_node<R, F>, Tail...>(
+                flat_storage_prepend(std::move(node), std::move(bp.nodes_)));
         }
 
         // calc | calc

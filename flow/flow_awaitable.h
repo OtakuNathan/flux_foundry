@@ -91,6 +91,21 @@ namespace flux_foundry {
                 self->next_step = std::move(next);
             }
 
+            // Fresh continuations can be constructed directly in their final storage.
+            template <typename F, std::enable_if_t<conjunction_v<
+                negation<is_self_constructing<next_step_t, std::decay_t<F>>>,
+                callable_handle_impl::is_callable_and_compatible<std::decay_t<F>, void, result_t<T, E>&&>,
+                std::is_constructible<next_step_t, F&&>>, int> = 0>
+            void emplace_nextstep(F&& next)
+                noexcept(noexcept(std::declval<next_step_t&>() = std::declval<F&&>())) {
+                if (self->next_step) {
+                    // Preserve replacement guarantees if next aliases the old callback.
+                    self->next_step = std::forward<F>(next);
+                } else {
+                    self->next_step.template emplace<F>(std::forward<F>(next));
+                }
+            }
+
             int submit_async() noexcept {
                 // can only submit once
                 auto expected = idle;
@@ -214,6 +229,21 @@ namespace flux_foundry {
 
             void emplace_nextstep(next_step_t&& next) noexcept {
                 self->next_step = std::move(next);
+            }
+
+            // Fresh continuations can be constructed directly in their final storage.
+            template <typename F, std::enable_if_t<conjunction_v<
+                negation<is_self_constructing<next_step_t, std::decay_t<F>>>,
+                callable_handle_impl::is_callable_and_compatible<std::decay_t<F>, void, result_t<T, E>&&>,
+                std::is_constructible<next_step_t, F&&>>, int> = 0>
+            void emplace_nextstep(F&& next)
+                noexcept(noexcept(std::declval<next_step_t&>() = std::declval<F&&>())) {
+                if (self->next_step) {
+                    // Preserve replacement guarantees if next aliases the old callback.
+                    self->next_step = std::forward<F>(next);
+                } else {
+                    self->next_step.template emplace<F>(std::forward<F>(next));
+                }
             }
 
             int submit_async() noexcept {

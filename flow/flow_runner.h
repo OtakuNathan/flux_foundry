@@ -420,6 +420,13 @@ namespace flux_foundry {
                 ipc<I - 1>::run(self, node.f(std::forward<param_t>(in)));
             }
 
+            template <typename node_t, typename param_t, typename canceled>
+            static void dispatch(node_t& node, flow_runner& self, param_t&& in,
+                                 flow_impl::node_tag_observer, canceled) noexcept {
+                node.f(static_cast<const std::decay_t<param_t>&>(in));
+                ipc<I - 1>::run(self, std::forward<param_t>(in));
+            }
+
             // dispatch impl
             template <typename dispatcher_t, typename param_t>
             static void dispatch_impl(dispatcher_t&, flow_runner& self, param_t&& in,
@@ -458,9 +465,11 @@ namespace flux_foundry {
                 );
             }
 
-            // no cancel 
+            // Keep the concrete closure until the delegate stores it, avoiding
+            // an intermediate type-erased callback and its payload move.
+            // no cancel
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
-            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t&,
+            static auto make_async_next_step(const bp_ptr& data, const dispatcher_t&,
                 const adaptor_t& adaptor, controller_t&& controller, std::true_type) noexcept {
                 return [data = data, adaptor = adaptor,
                         controller = std::forward<controller_t>(controller)](resume_param_t&& in) mutable noexcept {
@@ -470,7 +479,7 @@ namespace flux_foundry {
             }
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
-            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
+            static auto make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
                 const adaptor_t& adaptor, controller_t&& controller, std::false_type) noexcept {
                 return [data = data, dispatcher = dispatcher,
                         adaptor = adaptor, controller = std::forward<controller_t>(controller)] (resume_param_t&& in) mutable noexcept {
@@ -487,7 +496,7 @@ namespace flux_foundry {
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t,
                 typename inline_executor_t>
-            static callable_wrapper<void(resume_param_t&&)> make_submit_next_step(
+            static auto make_submit_next_step(
                 flow_runner&, const bp_ptr& data, const dispatcher_t& dispatcher, const adaptor_t& adaptor,
                 controller_t&& controller, inline_executor_t inline_executor, std::false_type) noexcept {
                 return make_async_next_step<resume_param_t>(data, dispatcher, adaptor,
@@ -495,7 +504,7 @@ namespace flux_foundry {
             }
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
-            static callable_wrapper<void(resume_param_t&&)> make_submit_next_step(
+            static auto make_submit_next_step(
                 flow_runner& self, const bp_ptr&, const dispatcher_t&, const adaptor_t& adaptor,
                 controller_t&&, std::true_type, std::true_type) noexcept {
                 return [runner = &self, adaptor_ptr = &adaptor](resume_param_t&& in) noexcept {
@@ -505,7 +514,7 @@ namespace flux_foundry {
 
             // with cancel
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
-            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t&,
+            static auto make_async_next_step(const bp_ptr& data, const dispatcher_t&,
                 const adaptor_t& adaptor, controller_t&& controller, size_t token, std::true_type) noexcept {
                 return [data = data, adaptor = adaptor, state = token,
                         controller = std::forward<controller_t>(controller)]
@@ -530,7 +539,7 @@ namespace flux_foundry {
             }
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
-            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
+            static auto make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
                 const adaptor_t& adaptor, controller_t&& controller, size_t token, std::false_type) noexcept {
                 return [data = data, state = token, adaptor = adaptor, 
                         controller = std::forward<controller_t>(controller), dispatcher = dispatcher] 
@@ -562,7 +571,7 @@ namespace flux_foundry {
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t,
                 typename inline_executor_t>
-            static callable_wrapper<void(resume_param_t&&)> make_submit_next_step(
+            static auto make_submit_next_step(
                 flow_runner&, const bp_ptr& data, const dispatcher_t& dispatcher, const adaptor_t& adaptor,
                 controller_t&& controller, size_t token, inline_executor_t inline_executor, std::false_type) noexcept {
                 return make_async_next_step<resume_param_t>(data, dispatcher, adaptor,
@@ -981,6 +990,13 @@ namespace flux_foundry {
                 ipc<I - 1>::run(self, node.f(std::forward<param_t>(in)));
             }
 
+            template <typename node_t, typename param_t>
+            static void dispatch(node_t& node, flow_fast_runner& self, param_t&& in,
+                                 flow_impl::node_tag_observer) noexcept {
+                node.f(static_cast<const std::decay_t<param_t>&>(in));
+                ipc<I - 1>::run(self, std::forward<param_t>(in));
+            }
+
             // dispatch impl
             template <typename dispatcher_t, typename param_t>
             static void dispatch_impl(dispatcher_t&, flow_fast_runner& self, param_t&& in, std::true_type) noexcept {
@@ -1006,9 +1022,11 @@ namespace flux_foundry {
                     std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>{});
             }
 
-            // no cancel 
+            // Keep the concrete closure until the delegate stores it, avoiding
+            // an intermediate type-erased callback and its payload move.
+            // no cancel
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
-            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t&,
+            static auto make_async_next_step(const bp_ptr& data, const dispatcher_t&,
                 const adaptor_t& adaptor, std::true_type) noexcept {
                 return [data = data, adaptor = adaptor](resume_param_t&& in) mutable noexcept {
                     flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
@@ -1017,7 +1035,7 @@ namespace flux_foundry {
             }
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
-            static callable_wrapper<void(resume_param_t&&)> make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher, 
+            static auto make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
                 const adaptor_t& adaptor, std::false_type) noexcept {
                 return [data = data, dispatcher = dispatcher, adaptor = adaptor] (resume_param_t&& in) mutable noexcept {
                     dispatcher(task_wrapper_sbo([data = std::move(data),
@@ -1032,14 +1050,14 @@ namespace flux_foundry {
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t,
                 typename inline_executor_t>
-            static callable_wrapper<void(resume_param_t&&)> make_submit_next_step(
+            static auto make_submit_next_step(
                 flow_fast_runner&, const bp_ptr& data, const dispatcher_t& dispatcher, const adaptor_t& adaptor,
                 inline_executor_t inline_executor, std::false_type) noexcept {
                 return make_async_next_step<resume_param_t>(data, dispatcher, adaptor, inline_executor);
             }
 
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
-            static callable_wrapper<void(resume_param_t&&)> make_submit_next_step(
+            static auto make_submit_next_step(
                 flow_fast_runner& self, const bp_ptr&, const dispatcher_t&, const adaptor_t& adaptor,
                 std::true_type, std::true_type) noexcept {
                 return [runner = &self, adaptor_ptr = &adaptor](resume_param_t&& in) noexcept {

@@ -40,6 +40,47 @@ revisions; its precise hardware mechanism remains unresolved. The feature is
 retained with this workload-specific regression documented, rather than a claim
 that every build has unchanged performance.
 
+## Direct continuation construction (2026-11-11)
+
+Compared with `b19c735`, runner helpers now return concrete closures and the
+awaitable delegate constructs fresh callbacks in their final storage. An SBO
+move-count probe drops from two payload moves to one. Existing erased-callback
+transfers and replacement of occupied callbacks retain their previous paths.
+
+Natural-layout C++14 probes used identical sources and flags on both revisions:
+`-O3 -DNDEBUG -pthread`, plus `-fno-exceptions
+-DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1 -fno-rtti -march=native -fstrict-aliasing`
+for no-exception builds. Runs were pinned to CPU 3 with per-process ASLR disabled,
+alternating old/new order and varying an environment variable's length to move
+the initial stack. Each reported process result is the probe's seven-round median.
+For Ryzen 7 3700X, medians of the first two process runs were:
+
+| Compiler / mode | `runner.fast_awaitable.async4` before → after (ns/op) | Change |
+|---|---:|---:|
+| Clang 23 / exceptions | 91.73 → 72.50 | −21.0% |
+| Clang 23 / no exceptions | 87.56 → 58.40 | −33.3% |
+| GCC 16 / exceptions | 94.47 → 68.89 | −27.1% |
+| GCC 16 / no exceptions | 88.62 → 67.56 | −23.8% |
+
+On Cortex-A72 / Clang 19, two runs in opposite orders with different stack
+placements gave 557.78 → 438.53 ns/op (−21.4%) with exceptions and
+522.65 → 364.92 ns/op (−30.2%) without exceptions for the same case.
+
+These awaitables complete synchronously in `submit()`: the results measure
+framework overhead, not end-to-end asynchronous I/O speedups.
+
+The full Clang 23 exception-enabled executable also showed layout-sensitive
+changes in the unaffected `runner.sync.20nodes` case. At four environment-padding
+lengths (0/16/32/48 bytes), before → after results were 31.36 → 36.80,
+31.24 → 36.84, 34.62 → 57.60, and 67.37 → 36.07 ns/op. Isolating the three
+purely synchronous cases produced byte-identical executables from both header
+versions. In the full executable, the synchronous callback's instruction sequence
+matches after address relocations are excluded, while code placement and the
+main stack frame differ. This supports layout sensitivity; the precise hardware
+mechanism is unresolved, and the slower placements still count as workload
+regressions. The asynchronous four-step improvement persisted at all four
+placements. No padding or forced alignment was added to the library.
+
 ## CUDA backend comparison (RTX 2080 Ti, 2026-11-05)
 
 Matched Mandelbrot rendering on real hardware, Ryzen 7 3700X + RTX 2080 Ti:

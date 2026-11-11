@@ -5,6 +5,7 @@
 #include "memory/lite_ptr.h"
 #include "utility/callable_wrapper.h"
 #include "task/task_wrapper.h"
+#include "flow/flow_async_aggregator.h"
 
 using namespace flux_foundry;
 
@@ -46,6 +47,49 @@ bool pointer_assignment_edges() {
     node_ptr empty;
     a = empty;
     if (a || destroyed != 1) return false;
+    a = std::move(empty);
+    return !a && !empty && destroyed == 1;
+}
+
+struct intrusive_node;
+using intrusive_ptr = detail::intrusive_awaitable_ptr<intrusive_node>;
+struct intrusive_node {
+    std::atomic<unsigned> refs{0};
+    intrusive_ptr* next;
+    int* destroyed;
+    int value;
+    intrusive_node(intrusive_ptr* n, int* d, int v) noexcept : next(n), destroyed(d), value(v) {}
+    ~intrusive_node() { ++*destroyed; delete next; }
+    void retain() noexcept { refs.fetch_add(1, std::memory_order_relaxed); }
+    void release() noexcept {
+        if (refs.fetch_sub(1, std::memory_order_acq_rel) == 1) delete this;
+    }
+};
+
+bool nested_intrusive_assignment(bool move) {
+    int parent_destroyed = 0, child_destroyed = 0;
+    intrusive_ptr owner(new intrusive_node(
+        new intrusive_ptr(new intrusive_node(nullptr, &child_destroyed, 42)), &parent_destroyed, 0));
+    if (move) owner = std::move(*owner->next);
+    else owner = *owner->next;
+    const bool ok = parent_destroyed == 1 && child_destroyed == 0 && owner &&
+                    owner->value == 42 && owner->refs.load() == 1;
+    owner.reset();
+    return ok && child_destroyed == 1;
+}
+
+bool intrusive_assignment_edges() {
+    int destroyed = 0;
+    intrusive_ptr a(new intrusive_node(nullptr, &destroyed, 42)), b(a);
+    a = b;
+    intrusive_ptr& alias = a;
+    a = alias;
+    a = std::move(alias);
+    if (destroyed || a->refs.load() != 2 || b.get() != a.get()) return false;
+    a = std::move(b);
+    if (b || a->refs.load() != 1 || destroyed) return false;
+    intrusive_ptr empty;
+    a = empty;
     a = std::move(empty);
     return !a && !empty && destroyed == 1;
 }
@@ -122,6 +166,9 @@ int main() {
     check("copy a pointer owned by the replaced pointee", nested_pointer_assignment(false));
     check("move a pointer owned by the replaced pointee", nested_pointer_assignment(true));
     check("pointer self/shared/empty assignments", pointer_assignment_edges());
+    check("copy an intrusive pointer owned by the replaced pointee", nested_intrusive_assignment(false));
+    check("move an intrusive pointer owned by the replaced pointee", nested_intrusive_assignment(true));
+    check("intrusive pointer self/shared/empty assignments", intrusive_assignment_edges());
     check("SBO callable ownership", callable_assignment_edges<callable_wrapper<int()>, 1>());
     check("heap callable ownership", callable_assignment_edges<callable_wrapper<int()>, 128>());
     check("const SBO callable ownership", callable_assignment_edges<callable_wrapper<int() const>, 1>());
