@@ -58,13 +58,13 @@ add_test(NAME hazard_ptr_contract_noexc COMMAND flux_foundry_hazard_ptr_contract
 set_tests_properties(hazard_ptr_contract_noexc PROPERTIES LABELS "smoke;noexc" TIMEOUT 30)
 
 # Deterministic contract regressions; timeout also catches deadlocks.
-foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move)
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment)
     flux_foundry_add_probe(flux_foundry_${contract}_contract ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract COMMAND flux_foundry_${contract}_contract)
     set_tests_properties(${contract}_contract PROPERTIES LABELS "smoke;contract" TIMEOUT 20)
 endforeach()
 
-foreach(contract allocation_failure simple_executor mutable_callable void_recovery end_move)
+foreach(contract allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment)
     flux_foundry_add_noexc_probe(flux_foundry_${contract}_contract_noexc ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract_noexc COMMAND flux_foundry_${contract}_contract_noexc)
     set_tests_properties(${contract}_contract_noexc PROPERTIES LABELS "smoke;contract;noexc" TIMEOUT 20)

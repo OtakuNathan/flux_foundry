@@ -255,6 +255,18 @@ namespace flux_foundry {
             if (this == &rhs) {
                 return *this;
             }
+            // An empty destination can receive the payload directly. Keep the
+            // temporary for an occupied destination: rhs may be owned by it.
+            if (!this->manager_) {
+                if (rhs.manager_) {
+                    rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
+                    rhs.manager_(nullptr, rhs.data_, type_erase_lifespan_op::destroy);
+                    using std::swap;
+                    swap(this->invoker_, rhs.invoker_);
+                    swap(this->manager_, rhs.manager_);
+                }
+                return *this;
+            }
             raw_type_erase_base tmp(std::move(rhs));
             this->swap(tmp);
             return *this;

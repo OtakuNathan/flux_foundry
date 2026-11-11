@@ -589,11 +589,11 @@ namespace flux_foundry {
                 using resume_param_t = typename node_t::Df_t::awaitable_t::async_result_type;
                 using awaitable_t = typename node_t::Df_t::awaitable_t;
                 using completes_inline_t = conjunction<is_inline_executor_t, awaitable_completes_inline<awaitable_t>>;
-                // first make a copy here
-                auto controller = self.controller;
+                // The asynchronous continuation copies its controller when
+                // captured; inline completion only borrows this runner.
                 awaitable.emplace_nextstep(
                     make_submit_next_step<resume_param_t>(self, self.data, dispatcher, adaptor,
-                        std::move(controller), is_inline_executor_t{}, completes_inline_t{})
+                        self.controller, is_inline_executor_t{}, completes_inline_t{})
                 );
 
                 prepare_submit(self, completes_inline_t{});

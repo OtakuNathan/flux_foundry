@@ -33,8 +33,8 @@ namespace flux_foundry {
     //   concurrently from different threads (refcount is atomic)
     // - Concurrent access to the SAME lite_ptr instance requires external
     //   synchronization (the cb pointer itself is NOT atomic)
-    // - If you need atomic operations on the pointer itself, use std::atomic<lite_ptr>
-    //   or external synchronization
+    // - Publishing/replacing a shared pointer slot requires external synchronization;
+    //   lite_ptr is not trivially copyable and cannot be used with std::atomic<lite_ptr>.
 
     template <typename T,
               typename F = default_deleter<T>,
@@ -199,21 +199,19 @@ namespace flux_foundry {
         }
 
         lite_ptr& operator=(const lite_ptr& rhs) noexcept {
-            if (this != &rhs) {
-                release();
-                rhs.retain();
-                if (rhs.cb) {
-                    cb = rhs.cb;
-                }
+            if (cb != rhs.cb) {
+                // Acquire the incoming owner before destroying anything that
+                // might own rhs (for example, a handle stored in the pointee).
+                lite_ptr tmp(rhs);
+                swap(tmp);
             }
             return *this;
         }
 
         lite_ptr& operator=(lite_ptr&& rhs) noexcept {
             if (this != &rhs) {
-                release();
-                cb = rhs.cb;
-                rhs.cb = nullptr;
+                lite_ptr tmp(std::move(rhs));
+                swap(tmp);
             }
             return *this;
         }
