@@ -204,7 +204,7 @@ namespace flux_foundry {
 
             template <typename F_I, typename E, 
                 std::enable_if_t<negation_v<std::is_void<F_I>>>* = nullptr>
-            static auto make(transform_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
+            static constexpr auto make(transform_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using F_O = invoke_result_t<F, F_I>;
                 auto wrapper = [f = std::move(self.f)](result_t<F_I, E>&& in) mutable
                     noexcept(noexcept(call<F_O, E, F>(std::is_void<F_O> {}, std::false_type{}, std::declval<F&>(), std::declval<F_I>()))) {
@@ -218,7 +218,7 @@ namespace flux_foundry {
 
             template <typename F_I, typename E, 
                 std::enable_if_t<std::is_void<F_I>::value>* = nullptr>
-            static auto make(transform_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
+            static constexpr auto make(transform_node&& self) noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using F_O = invoke_result_t<F>;
                 auto wrapper = [f = std::move(self.f)](result_t<F_I, E>&& in) mutable
                         noexcept(noexcept(call<F_O, E, F>(std::is_void<F_O> {}, std::true_type{}, std::declval<F&>(),
@@ -233,7 +233,7 @@ namespace flux_foundry {
         };
 
         template <typename I, typename O, typename... Nodes, typename F>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, transform_node<F>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, transform_node<F>&& a) {
             static_assert(is_nothrow_invocable_with<F, typename O::value_type>::value,
                 "The callable F is not compatible with current blueprint, "
                 "and must be nothrow-invocable.");
@@ -251,7 +251,7 @@ namespace flux_foundry {
             F f;
 
             template <typename F_I, typename F_O>
-            static auto make(then_node&& self) 
+            static constexpr auto make(then_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -272,7 +272,7 @@ namespace flux_foundry {
         };
 
         template <typename I, typename O, typename... Nodes, typename F>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, then_node<F>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, then_node<F>&& a) {
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "callable F is not compatible with current blueprint");
@@ -296,7 +296,7 @@ namespace flux_foundry {
 
             template <typename F_I, typename F_O,
                 std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
-            static auto make(error_node&& self)
+            static constexpr auto make(error_node&& self)
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -317,7 +317,7 @@ namespace flux_foundry {
 
             template <typename F_I, typename F_O,
                 std::enable_if_t<std::is_void<typename F_I::value_type>::value>* = nullptr>
-            static auto make(error_node&& self)
+            static constexpr auto make(error_node&& self)
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
                 static_assert(std::is_void<typename F_O::value_type>::value,
                     "on_error must preserve a void success type.");
@@ -340,7 +340,7 @@ namespace flux_foundry {
         };
 
         template <typename I, typename O, typename ... Nodes, typename F>
-        auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, error_node<F>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, error_node<F>&& a) {
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
                 "The callable F in error is not compatible with current blueprint.");
@@ -365,7 +365,7 @@ namespace flux_foundry {
 
             template <typename F_I, typename F_O,
                 std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
-            static auto make(exception_catch_node&& self)
+            static constexpr auto make(exception_catch_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using R = result_t<F_O, std::exception_ptr>;
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
@@ -392,7 +392,7 @@ namespace flux_foundry {
 
             template <typename F_I, typename F_O,
                 std::enable_if_t<std::is_void<typename F_I::value_type>::value>* = nullptr>
-            static auto make(exception_catch_node&& self)
+            static constexpr auto make(exception_catch_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 using R = result_t<F_O, std::exception_ptr>;
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
@@ -418,7 +418,7 @@ namespace flux_foundry {
         };
 
         template <typename I, typename O, typename ... Nodes, typename F, typename Exception>
-        auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, exception_catch_node<F, Exception>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes ...>&& bp, exception_catch_node<F, Exception>&& a) {
             static_assert(std::is_base_of<std::exception, Exception>::value,
                 "The callable F must take a class inherits std::exception.");
 
@@ -447,7 +447,7 @@ namespace flux_foundry {
             Executor e;
 
             template <typename F_I>
-            static auto make(via_node&& node) noexcept {
+            static constexpr auto make(via_node&& node) noexcept {
                 using wrapper_t = dispatch_wrapper_t<Executor>;
                 wrapper_t wrapper{std::move(node.e)};
                 return flow_via_node<F_I, F_I, wrapper_t>(std::move(wrapper));
@@ -455,7 +455,7 @@ namespace flux_foundry {
         };
 
         template <typename I, typename O, typename... Nodes, typename Executor>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, via_node<Executor>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, via_node<Executor>&& a) {
             auto node = via_node<Executor>::template make<O>(std::move(a));
             return std::move(bp) | std::move(node);
         }
@@ -474,7 +474,7 @@ namespace flux_foundry {
             Executor e;
 
             template <typename F_I, typename F_O>
-            static auto make(async_node&& node) noexcept {
+            static constexpr auto make(async_node&& node) noexcept {
                 using wrapper_t = dispatch_wrapper_t<Executor>;
                 wrapper_t wrapper{std::move(node.e)};
                 return flow_async_node<F_I, F_O, wrapper_t, flow_impl::identity, awaitable_factory<Awaitable>> {
@@ -484,7 +484,7 @@ namespace flux_foundry {
         };
 
         template <typename I, typename O, typename... Nodes, typename Executor, typename Awaitable>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, async_node<Executor, Awaitable>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, async_node<Executor, Awaitable>&& a) {
             using F_O = typename Awaitable::async_result_type;
 
             static_assert(is_result_t_v<F_O>,
@@ -520,7 +520,7 @@ namespace flux_foundry {
                 detail::flow_when_all_fast_awaitable<BPs...>, detail::flow_when_all_awaitable<BPs...>>;
 
             template <typename F_I>
-            static auto make(when_all_node&& node, lite_ptr<BPs> ... bps) noexcept {
+            static constexpr auto make(when_all_node&& node, lite_ptr<BPs> ... bps) noexcept {
                 using wrapper_t = dispatch_wrapper_t<Executor>;
                 wrapper_t wrapper{std::move(node.e)};
 
@@ -574,7 +574,7 @@ namespace flux_foundry {
                     detail::flow_when_any_fast_awaitable<BPs...>, detail::flow_when_any_awaitable<BPs...>>;
 
             template <typename F_I>
-            static auto make(when_any_node&& node, lite_ptr<BPs> ... bps) noexcept {
+            static constexpr auto make(when_any_node&& node, lite_ptr<BPs> ... bps) noexcept {
                 using wrapper_t = dispatch_wrapper_t<Executor>;
                 wrapper_t wrapper{std::move(node.e)};
 
@@ -609,7 +609,7 @@ namespace flux_foundry {
             F f;
 
             template <typename F_I>
-            static auto make(end_node&& self)
+            static constexpr auto make(end_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
                 auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -629,7 +629,7 @@ namespace flux_foundry {
         template <>
         struct end_node <void> {
             template <typename F_I>
-            static auto make(end_node&&) noexcept {
+            static constexpr auto make(end_node&&) noexcept {
                 auto wrapper = [](F_I&& in) noexcept {
                     return std::move(in);
                 };
@@ -639,7 +639,7 @@ namespace flux_foundry {
 
         template <typename I, typename O, typename... Nodes,
             typename F, std::enable_if_t<!std::is_void<F>::value, int> = 0>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
 
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
             static_assert(is_invocable_with<F, O&&>::value,
@@ -660,14 +660,14 @@ namespace flux_foundry {
 
         template <typename I, typename O, typename... Nodes,
             typename F, std::enable_if_t<std::is_void<F>::value, int> = 0>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, end_node<F>&& a) {
             auto node = end_node<void>::make<O>(std::move(a));
             return std::move(bp) | std::move(node);
         }
     }
 
     template <typename T, typename E = std::exception_ptr>
-    auto make_blueprint() noexcept(conjunction_v<
+    constexpr auto make_blueprint() noexcept(conjunction_v<
         std::is_nothrow_move_constructible<T>,
         std::is_nothrow_constructible<result_t<T, E>, decltype(value_tag), T&&>>) {
         using R = result_t<T, E>;
@@ -681,26 +681,26 @@ namespace flux_foundry {
     }
 
     template <typename F>
-    auto transform(F&& f) noexcept {
+    constexpr auto transform(F&& f) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::transform_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
-    auto then(F&& f) noexcept {
+    constexpr auto then(F&& f) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::then_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
     template <typename F>
-    auto on_error(F&& f) noexcept {
+    constexpr auto on_error(F&& f) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::error_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     template <typename Exception, typename F>
-    inline auto catch_exception(F&& f) noexcept {
+    inline constexpr auto catch_exception(F&& f) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::exception_catch_node<std::decay_t<F>, Exception> { std::forward<F>(f) };
     }
@@ -709,7 +709,7 @@ namespace flux_foundry {
     // CRITICAL: Max payload size is controlled by the SBO buffer (e.g., 64 bytes).
     // Ensure that the captured data (result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Executor>
-    auto via(Executor&& exec) noexcept {
+    constexpr auto via(Executor&& exec) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<Executor>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
         return flow_impl::via_node<E> { std::forward<Executor>(exec) };
@@ -727,7 +727,7 @@ namespace flux_foundry {
     // CRITICAL: Max payload size is controlled by the SBO buffer (e.g., 64 bytes).
     // Ensure that the async result(result_t) does not exceed the remaining buffer space.(OR it will trigger heap alloc)
     template <typename Awaitable, typename Executor>
-    auto await(Executor&& executor_to_resume) noexcept {
+    constexpr auto await(Executor&& executor_to_resume) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<Executor>(), "invalid flow builder storage");
         using E = std::decay_t<Executor>;
         return flow_impl::async_node<E, Awaitable> { std::forward<Executor>(executor_to_resume) };
@@ -860,12 +860,12 @@ namespace flux_foundry {
     }
 
     template <typename F>
-    auto end(F&& f) noexcept {
+    constexpr auto end(F&& f) noexcept {
         static_assert(flow_impl::require_nothrow_builder_storage<F>(), "invalid flow builder storage");
         return flow_impl::end_node<std::decay_t<F>> { std::forward<F>(f) };
     }
 
-    inline auto end() noexcept {
+    inline constexpr auto end() noexcept {
         return flow_impl::end_node<void>{};
     }
 }

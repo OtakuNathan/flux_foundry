@@ -566,3 +566,33 @@ The example covers failed event recording and closing/releasing a context from a
 continuation. See the walkthrough for build commands and actual GPU validation.
 FF keeps its external-async/CUDA compatibility interfaces and has no mandatory
 Dynabridge dependency.
+
+### Constant-initialized blueprint, runtime execution
+
+Blueprints describe work; constant construction does not run that work. With C++20,
+use `constinit auto` when a reusable blueprint should be initialized at compile time
+but remain mutable for the existing runner/callable contracts:
+
+```cpp
+struct add_three {
+    int operator()(int input) const noexcept { return input + 3; }
+};
+constexpr auto build_bp() {
+    return flux_foundry::make_blueprint<int>()
+        | flux_foundry::transform(add_three{})
+        | flux_foundry::end();
+}
+constinit auto bp = build_bp(); // C++20; bp is NOT const
+// At runtime: make_fast_runner_view(bp, receiver), then runner(request).
+```
+
+`test/constexpr_blueprint_demo.cpp` demonstrates repeated execution with runtime
+inputs. CMake tests C++14 runtime construction, C++17 constexpr composition and
+C++20 constinit initialization, with exceptions enabled and disabled when supported.
+C++14 support is retained; internal lambda closure types prevent full constexpr
+construction in C++14. C++17 supports constexpr construction when stored values
+are constant-expression-compatible. `constexpr` is not `consteval`: runtime
+construction and captures are still permitted.
+
+`constinit auto` deliberately keeps the BP mutable. Direct execution of a const
+BP is not part of this minimal patch; const wrapper support is a separate experiment.

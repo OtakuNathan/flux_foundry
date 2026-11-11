@@ -23,13 +23,13 @@ namespace flux_foundry {
         };
 
         template <typename T, size_t... I, typename ... Ts>
-        auto flat_storage_prepend_impl(T&& n, flat_storage<Ts...>&& t, std::index_sequence<I...>) {
+        constexpr auto flat_storage_prepend_impl(T&& n, flat_storage<Ts...>&& t, std::index_sequence<I...>) {
             return flat_storage<std::decay_t<T>, Ts...>(std::forward<T>(n), get<I>(std::move(t))...);
         }
 
         // actually this is designed to store bp nodes, because tuple_cat is toooooo complicated.
         template <typename T, typename ... Ts>
-        auto flat_storage_prepend(T&& n, flat_storage<Ts...>&& t) {
+        constexpr auto flat_storage_prepend(T&& n, flat_storage<Ts...>&& t) {
             return flat_storage_prepend_impl(std::forward<T>(n), std::move(t),
                                              std::make_index_sequence<sizeof ... (Ts)>{});
         }
@@ -98,7 +98,7 @@ namespace flux_foundry {
             zipped_callable() = delete;
 
             template <typename F_T_ = F_T, typename G_T_ = G_T>
-            zipped_callable(F_T_ &&f_, G_T_ &&g_)
+            constexpr zipped_callable(F_T_ &&f_, G_T_ &&g_)
             noexcept(conjunction_v<std::is_nothrow_constructible<F_T, F_T_ &&>,
                     std::is_nothrow_constructible<G_T, G_T_ &&>>)
                     : fg(std::forward<F_T_>(f_), std::forward<G_T_>(g_)) {
@@ -121,7 +121,7 @@ namespace flux_foundry {
         };
 
         template <typename F, typename G>
-        auto zip_callables(F &&f, G &&g)
+        constexpr auto zip_callables(F &&f, G &&g)
         noexcept(std::is_nothrow_constructible<
                 zipped_callable<std::decay_t<F>, std::decay_t<G>>, F &&, G &&>::value) {
             return zipped_callable<std::decay_t<F>, std::decay_t<G>>(
@@ -130,7 +130,7 @@ namespace flux_foundry {
         }
 
         template <typename F, typename G, typename... Os>
-        auto zip_callables(F &&f, G &&g, Os &&... os) {
+        constexpr auto zip_callables(F &&f, G &&g, Os &&... os) {
             return zip_callables(zip_callables(std::forward<F>(f), std::forward<G>(g)), std::forward<Os>(os)...);
         }
 
@@ -158,7 +158,7 @@ namespace flux_foundry {
 
             flow_calc_node &operator=(flow_calc_node &&) = default;
 
-            explicit flow_calc_node(F_t f_)
+            explicit constexpr flow_calc_node(F_t f_)
             noexcept(std::is_nothrow_move_constructible<F_t>::value)
                     : f(std::move(f_)) {
             }
@@ -166,7 +166,7 @@ namespace flux_foundry {
 
         template <typename F_I, typename F_O, typename F, size_t F_N,
                 typename G_I, typename G_O, typename G>
-        auto operator|(flow_calc_node<F_I, F_O, F, F_N> a, flow_calc_node<G_I, G_O, G> b)
+        constexpr auto operator|(flow_calc_node<F_I, F_O, F, F_N> a, flow_calc_node<G_I, G_O, G> b)
         noexcept(noexcept(zip_callables(std::move(a.f), std::move(b.f)))) {
             using zipped_t = decltype(zip_callables(std::declval<F>(), std::declval<G>()));
             return flow_calc_node<F_I, G_O, zipped_t, F_N + 1>(zip_callables(std::move(a.f), std::move(b.f)));
@@ -190,7 +190,7 @@ namespace flux_foundry {
 
             flow_via_node &operator=(flow_via_node &&) = default;
 
-            explicit flow_via_node(D_t f_)
+            explicit constexpr flow_via_node(D_t f_)
             noexcept(std::is_nothrow_move_constructible<D_t>::value)
                     : dispatcher(std::move(f_)) {
             }
@@ -215,7 +215,7 @@ namespace flux_foundry {
             flow_async_node& operator=(const flow_async_node&) = default;
             flow_async_node& operator=(flow_async_node&&) = default;
 
-            explicit flow_async_node(D_t d_, A_t a_, Df_t df_)
+            explicit constexpr flow_async_node(D_t d_, A_t a_, Df_t df_)
                 noexcept(conjunction_v<
                     std::is_nothrow_move_constructible<D_t>,
                     std::is_nothrow_move_constructible<A_t>,
@@ -252,7 +252,7 @@ namespace flux_foundry {
 
             flow_end_node &operator=(flow_end_node &&) = default;
 
-            explicit flow_end_node(F_t f_)
+            explicit constexpr flow_end_node(F_t f_)
                 noexcept(std::is_nothrow_move_constructible<F_t>::value)
                     : f(std::move(f_)) {
             }
@@ -281,7 +281,7 @@ namespace flux_foundry {
 
             flow_blueprint() = default;
 
-            explicit flow_blueprint(storage_t &&s)
+            explicit constexpr flow_blueprint(storage_t &&s)
                 noexcept(std::is_nothrow_move_constructible<storage_t>::value)
                     : nodes_(std::move(s)) {
             }
@@ -325,13 +325,13 @@ namespace flux_foundry {
         constexpr bool is_runnable_bp_v = is_runnable_bp<T>::value;
 
         template <std::size_t ... I, typename ... Ts>
-        auto remove_first_impl(flat_storage<Ts...> &&t, std::index_sequence<I...>)
+        constexpr auto remove_first_impl(flat_storage<Ts...> &&t, std::index_sequence<I...>)
             -> flat_storage<flat_storage_element_t<I + 1, flat_storage<Ts...>>...> {
             return make_flat_storage(get<I + 1>(std::move(t))...);
         }
 
         template <typename ... Ts>
-        auto remove_first(flat_storage<Ts...> &&t) ->
+        constexpr auto remove_first(flat_storage<Ts...> &&t) ->
             decltype(remove_first_impl(std::declval<flat_storage<Ts...>>(),
                                        std::declval<std::make_index_sequence<sizeof ... (Ts) - 1>>())) {
             return remove_first_impl(std::move(t), std::make_index_sequence<sizeof ... (Ts) - 1>{});
@@ -340,7 +340,7 @@ namespace flux_foundry {
         // calc | calc
         template <typename G_I, typename G_O, typename G,
                 typename I, typename O, typename F_I, typename F_O, typename F, size_t N, typename ... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
+        constexpr auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
             static_assert(is_invocable_with<G, O>::value,
                           "calc node is not invocable with current blueprint output type");
             auto merged = get<0>(std::move(bp.nodes_)) | std::move(b);
@@ -351,7 +351,7 @@ namespace flux_foundry {
 
         template <typename G_I, typename G_O, typename G,
                 typename I, typename O, typename F_I, typename F_O, typename F, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
+        constexpr auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...>&& bp, flow_calc_node<G_I, G_O, G>&& b) {
             static_assert(is_invocable_with<G, O>::value,
                           "calc node is not invocable with current blueprint output type");
             return flow_blueprint<I, G_O, flow_calc_node<G_I, G_O, G>, flow_calc_node<F_I, F_O, F, MAX_ZIP_N>, Others...>(
@@ -362,7 +362,7 @@ namespace flux_foundry {
         // calc | via
         template <typename P_I, typename P_O, typename P,
                 typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_via_node<P_I, P_O, P>&& b) {
+        constexpr auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_via_node<P_I, P_O, P>&& b) {
             return flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, flow_calc_node<F_I, F_O, F, N>, Others...>(
                     flat_storage_prepend(std::move(b), std::move(bp.nodes_))
             );
@@ -371,7 +371,7 @@ namespace flux_foundry {
         // calc | async
         template <typename A_I, typename A_O, typename A_E, typename A_A, typename A_DF,
             typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_async_node<A_I, A_O, A_E, A_A, A_DF>&& b)
+        constexpr auto operator|(flow_blueprint<I, O, flow_calc_node<F_I, F_O, F, N>, Others...>&& bp, flow_async_node<A_I, A_O, A_E, A_A, A_DF>&& b)
         {
             static_assert(is_invocable_with<A_DF, O>::value,
                 "async node's delegate factory doesn't accept with the current blueprint's output type");
@@ -382,7 +382,7 @@ namespace flux_foundry {
         // via | via
         template <typename P_I, typename P_O, typename P,
             typename I, typename O, typename P_I_, typename P_O_, typename P_, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_via_node<P_I_, P_O_, P_>, Others...>&& bp,
+        constexpr auto operator|(flow_blueprint<I, O, flow_via_node<P_I_, P_O_, P_>, Others...>&& bp,
                        flow_via_node<P_I, P_O, P>&& b) {
             return flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, Others...>(
                     flat_storage_prepend(std::move(b), remove_first(std::move(bp.nodes_)))
@@ -392,7 +392,7 @@ namespace flux_foundry {
         // calc | via
         template <typename F, typename F_I, typename F_O,
                 typename I, typename O, typename P_I, typename P_O, typename P, typename ... Others>
-        auto operator|(flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, Others...>&& bp, flow_calc_node<F_I, F_O, F>&& a) {
+        constexpr auto operator|(flow_blueprint<I, O, flow_via_node<P_I, P_O, P>, Others...>&& bp, flow_calc_node<F_I, F_O, F>&& a) {
             static_assert(is_invocable_with<F, O>::value,
                           "calc node is not invocable with current blueprint output type");
             return flow_blueprint<I, F_O, flow_calc_node<F_I, F_O, F>, flow_via_node<P_I, P_O, P>, Others...>(
@@ -403,7 +403,7 @@ namespace flux_foundry {
         // via | async
         template <typename A_I, typename A_O, typename A_E, typename A_A, typename A_DF,
             typename I, typename O, typename V_I, typename V_O, typename V_P, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_via_node<V_I, V_O, V_P>, Others...>&& bp,
+        constexpr auto operator|(flow_blueprint<I, O, flow_via_node<V_I, V_O, V_P>, Others...>&& bp,
             flow_async_node<A_I, A_O, A_E, A_A, A_DF>&& b) {
             static_assert(is_invocable_with<A_DF, O>::value,
                 "async node's delegate factory is not invocable with current blueprint output type");
@@ -414,7 +414,7 @@ namespace flux_foundry {
         // async | calc
         template <typename A_I, typename A_O, typename A_E, typename A_A, typename A_DF,
             typename I, typename O, typename F, typename F_I, typename F_O, size_t N, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_async_node<A_I, A_O, A_E, A_A, A_DF>, Others...>&& bp,
+        constexpr auto operator|(flow_blueprint<I, O, flow_async_node<A_I, A_O, A_E, A_A, A_DF>, Others...>&& bp,
             flow_calc_node<F_I, F_O, F, N>&& b) {
             static_assert(is_invocable_with<F, O>::value,
                 "calc node is not invocable with current blueprint output type");
@@ -426,7 +426,7 @@ namespace flux_foundry {
         // async | async
         template <typename A_I, typename A_O, typename A_E, typename A_A, typename A_DF,
             typename I, typename O, typename A_I_, typename A_O_, typename A_E_, typename A_A_, typename A_DF_, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_async_node<A_I_, A_O_, A_E_, A_A_, A_DF_>, Others...>&& bp,
+        constexpr auto operator|(flow_blueprint<I, O, flow_async_node<A_I_, A_O_, A_E_, A_A_, A_DF_>, Others...>&& bp,
             flow_async_node<A_I, A_O, A_E, A_A, A_DF>&& b) {
             static_assert(is_invocable_with<A_DF, O>::value,
                 "async node's delegate factory is not invocable with current blueprint output");
@@ -438,16 +438,16 @@ namespace flux_foundry {
         // async | via (delete no need, cause async implies via)
         template <typename A_I, typename A_O, typename A_E, typename A_A, typename A_DF,
             typename I, typename O, typename P_, typename P_I_, typename P_O_, typename... Others>
-        auto operator|(flow_blueprint<I, O, flow_async_node<A_I, A_O, A_E, A_A, A_DF>, Others...>&& bp,
+        constexpr auto operator|(flow_blueprint<I, O, flow_async_node<A_I, A_O, A_E, A_A, A_DF>, Others...>&& bp,
             flow_via_node<P_, P_I_, P_O_>&& b) = delete;
 
         // end | others
         template <typename I, typename O, typename F, typename F_I, typename F_O, typename ... Others, typename Node>
-        auto operator|(flow_blueprint<I, O, flow_end_node<F_I, F_O, F>, Others...>, Node &&) = delete;
+        constexpr auto operator|(flow_blueprint<I, O, flow_end_node<F_I, F_O, F>, Others...>, Node &&) = delete;
 
         // others | end
         template <typename F, typename F_I, typename F_O, typename I, typename O, typename ... Nodes>
-        auto operator|(flow_blueprint<I, O, Nodes...>&& bp, flow_end_node<F_I, F_O, F>&& b) {
+        constexpr auto operator|(flow_blueprint<I, O, Nodes...>&& bp, flow_end_node<F_I, F_O, F>&& b) {
             static_assert(is_invocable_with<F, O>::value,
                           "end node is not invocable with current blueprint output type");
             return flow_blueprint<I, O, flow_end_node<F_I, F_O, F>, Nodes...>(

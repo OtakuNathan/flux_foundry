@@ -53,7 +53,7 @@ namespace flux_foundry {
                 std::enable_if_t<std::is_nothrow_default_constructible<T_>::value
 #endif
                 > * = nullptr>
-        flat_storage_leaf()
+        constexpr flat_storage_leaf()
             noexcept(std::is_nothrow_default_constructible<T_>::value) : _value{} {
         }
 
@@ -65,7 +65,7 @@ namespace flux_foundry {
                 std::is_nothrow_constructible<T_, Args&&...>>
 #endif
         >>
-        flat_storage_leaf(Args &&... args)
+        constexpr flat_storage_leaf(Args &&... args)
             noexcept(std::is_nothrow_constructible<T_, Args && ...>::value)
                 : _value(std::forward<Args>(args)...) {
         }
@@ -77,20 +77,20 @@ namespace flux_foundry {
                 typename = std::enable_if_t<std::is_nothrow_constructible<T_, std::initializer_list<K>, Args&&...>::value>
 #endif
         >
-        flat_storage_leaf(std::initializer_list<K> il, Args &&... args)
+        constexpr flat_storage_leaf(std::initializer_list<K> il, Args &&... args)
         noexcept(std::is_nothrow_constructible<T_, std::initializer_list<K>, Args && ...>::value)
                 : _value(il, std::forward<Args>(args)...) {
         }
 
-        reference_type get() & noexcept {
+        constexpr reference_type get() & noexcept {
             return _value;
         }
 
-        const_reference_type get() const & noexcept {
+        constexpr const_reference_type get() const & noexcept {
             return _value;
         }
 
-        rvalue_reference_type get() && noexcept {
+        constexpr rvalue_reference_type get() && noexcept {
             return std::move(_value);
         }
 
@@ -152,7 +152,7 @@ namespace flux_foundry {
                         std::enable_if_t<std::is_nothrow_default_constructible<T_>::value
 #endif
                 > * = nullptr>
-        flat_storage_leaf()
+        constexpr flat_storage_leaf()
             noexcept(std::is_nothrow_default_constructible<T_>::value) : T{} {
         }
 
@@ -164,7 +164,7 @@ namespace flux_foundry {
                 std::is_nothrow_constructible<T_, Args&&...>>
 #endif
         >>
-        flat_storage_leaf(Args &&... args)
+        constexpr flat_storage_leaf(Args &&... args)
         noexcept(std::is_nothrow_constructible<T_, Args && ...>::value)
                 : T(std::forward<Args>(args)...) {
         }
@@ -176,20 +176,20 @@ namespace flux_foundry {
                 typename = std::enable_if_t<std::is_nothrow_constructible<T_, std::initializer_list<K>, Args&&...>::value>
 #endif
         >
-        flat_storage_leaf(std::initializer_list<K> il, Args &&... args)
+        constexpr flat_storage_leaf(std::initializer_list<K> il, Args &&... args)
         noexcept(std::is_nothrow_constructible<T_, std::initializer_list<K>, Args && ...>::value)
                 : T(il, std::forward<Args>(args)...) {
         }
 
-        reference_type get() & noexcept {
+        constexpr reference_type get() & noexcept {
             return static_cast<T &>(*this);
         }
 
-        const_reference_type get() const & noexcept {
+        constexpr const_reference_type get() const & noexcept {
             return static_cast<T const &>(*this);
         }
 
-        rvalue_reference_type get() && noexcept {
+        constexpr rvalue_reference_type get() && noexcept {
             return std::move(*this);
         }
 
@@ -240,24 +240,24 @@ namespace flux_foundry {
                 typename = std::enable_if_t<conjunction_v<std::is_nothrow_constructible<A_, T&&>, std::is_nothrow_constructible<B_, U&&> > >
 #endif
         >
-        compressed_pair(T&& a, U&& b)
+        constexpr compressed_pair(T&& a, U&& b)
         noexcept(conjunction_v<std::is_nothrow_constructible<A_, T&&>, std::is_nothrow_constructible<B_, U&&>>)
                 : _base0(std::forward<T>(a)), _base1(std::forward<U>(b)) {
         }
 
-        typename _base0::reference_type first() noexcept {
+        constexpr typename _base0::reference_type first() noexcept {
             return static_cast<_base0 &>(*this).get();
         }
 
-        typename _base1::reference_type second() noexcept {
+        constexpr typename _base1::reference_type second() noexcept {
             return static_cast<_base1 &>(*this).get();
         }
 
-        typename _base0::const_reference_type first() const noexcept {
+        constexpr typename _base0::const_reference_type first() const noexcept {
             return static_cast<const _base0 &>(*this).get();
         }
 
-        typename _base1::const_reference_type second() const noexcept {
+        constexpr typename _base1::const_reference_type second() const noexcept {
             return static_cast<const _base1 &>(*this).get();
         }
 
@@ -334,7 +334,7 @@ namespace flux_foundry {
             };
 
         public:
-            flat_storage_base() = default;
+            constexpr flat_storage_base() = default;
 
             template<typename... Us,
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
@@ -343,7 +343,7 @@ namespace flux_foundry {
                     typename = std::enable_if_t<conjunction_v<std::is_nothrow_constructible<flat_storage_leaf<Ts, idx>, Us&&>...>>
 #endif
             >
-            flat_storage_base(Us &&... us)
+            constexpr flat_storage_base(Us &&... us)
             noexcept(conjunction_v<std::is_nothrow_constructible<flat_storage_leaf<Ts, idx>, Us &&>...>)
                     : flat_storage_leaf<Ts, idx>(std::forward<Us>(us))... {
             }
@@ -378,21 +378,21 @@ namespace flux_foundry {
             }
 
             template <size_t I>
-            decltype(auto) get() const & noexcept {
+            constexpr decltype(auto) get() const & noexcept {
                 static_assert(I < sizeof...(Ts), "get<I>: index out of range");
                 using leaf_type = typename nth_leaf<I>::type;
                 return static_cast<const leaf_type&>(*this).get();
             }
 
             template <size_t I>
-            decltype(auto) get() & noexcept {
+            constexpr decltype(auto) get() & noexcept {
                 static_assert(I < sizeof...(Ts), "get<I>: index out of range");
                 using leaf_type = typename nth_leaf<I>::type;
                 return static_cast<leaf_type&>(*this).get();
             }
 
             template <size_t I>
-            decltype(auto) get() && noexcept {
+            constexpr decltype(auto) get() && noexcept {
                 static_assert(I < sizeof...(Ts), "get<I>: index out of range");
                 using leaf_type = typename nth_leaf<I>::type;
                 return static_cast<leaf_type&&>(*this).get();
@@ -440,22 +440,22 @@ namespace flux_foundry {
     using flat_storage_element_t = typename flat_storage_element<I, Storage>::type;
 
     template <size_t I, typename... Fs>
-    decltype(auto) get(flat_storage<Fs...> &storage) noexcept {
+    constexpr decltype(auto) get(flat_storage<Fs...> &storage) noexcept {
         return storage.template get<I>();
     }
 
     template <size_t I, typename... Fs>
-    decltype(auto) get(const flat_storage<Fs...> &storage) noexcept {
+    constexpr decltype(auto) get(const flat_storage<Fs...> &storage) noexcept {
         return storage.template get<I>();
     }
 
     template<size_t I, typename... Fs>
-    decltype(auto) get(flat_storage<Fs...> &&storage) noexcept {
+    constexpr decltype(auto) get(flat_storage<Fs...> &&storage) noexcept {
         return std::move(storage).template get<I>();
     }
 
     template <typename ... Args>
-    auto make_flat_storage(Args && ... args)
+    constexpr auto make_flat_storage(Args && ... args)
         noexcept(std::is_nothrow_constructible<flat_storage<std::decay_t<Args>...>, Args&&...>::value) {
         return flat_storage<std::decay_t<Args>...>(std::forward<Args>(args)...);
     }

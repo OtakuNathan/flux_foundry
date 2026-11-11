@@ -322,3 +322,18 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
             PROPERTIES LABELS "smoke;contract;compile-fail" TIMEOUT 180)
     endforeach()
 endif()
+
+# Constant construction is optional; retain the existing C++14 runtime baseline.
+foreach(std 14 17 20)
+    if("cxx_std_${std}" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+        set(target flux_foundry_constexpr_blueprint_demo_cxx${std})
+        flux_foundry_add_probe(${target} constexpr_blueprint_demo.cpp)
+        flux_foundry_add_noexc_probe(${target}_noexc constexpr_blueprint_demo.cpp)
+        set_target_properties(${target} ${target}_noexc PROPERTIES
+            CXX_STANDARD ${std} CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+        add_test(NAME constexpr_blueprint_demo_cxx${std} COMMAND ${target})
+        add_test(NAME constexpr_blueprint_demo_cxx${std}_noexc COMMAND ${target}_noexc)
+        set_tests_properties(constexpr_blueprint_demo_cxx${std} PROPERTIES LABELS "smoke;contract")
+        set_tests_properties(constexpr_blueprint_demo_cxx${std}_noexc PROPERTIES LABELS "smoke;contract;noexc")
+    endif()
+endforeach()
