@@ -75,6 +75,17 @@ schedules, external backends, or long-running production workloads. Allocation
 injection here is scoped to `lite_ptr`'s custom allocator and constructor cleanup;
 it does not simulate process-wide out-of-memory conditions.
 
+## Poison instrumentation
+
+`poison_enabled`, `poison_disabled`, and `poison_noexc` cover borrowed values,
+move-only callbacks, inline/worker completion, and a real simple_executor handoff.
+Failure subprocesses check expired borrows, logical buffer reuse, duplicate and
+racing completion, rejection, missing completion at quiescence, and callback
+entry after owner destruction. `poison_disabled_codegen` compares erased and
+plain optimized executables. Existing pipeline lifetime scenarios also instrument
+the backend boundary, including cancellation with a legitimate late completion.
+See [the API and limitations](../docs/poison.md).
+
 ## Repeating realistic lifecycle schedules
 
 The pipeline lifetime executable accepts a repetition count (1–10000). Each

@@ -15,5 +15,6 @@
 #include "flow_async_aggregator.h"
 #include "flow_node.h"
 #include "flow_contract.h"
+#include "flow_poison.h"
 
 #endif //FLOW_H

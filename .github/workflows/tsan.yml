@@ -109,6 +109,15 @@ jobs:
 
           echo "TSAN nightly: PASS"
 
+      - name: Poison contracts under TSAN
+        run: |
+          for enabled in 0 1; do
+            c++ -std=c++14 -O1 -g -fno-omit-frame-pointer -I. test/poison_contract.cpp \
+              -DFLUX_FOUNDRY_ENABLE_POISON=$enabled -pthread -fsanitize=thread \
+              -o /tmp/flux_foundry_tsan/poison_$enabled
+            TSAN_OPTIONS='halt_on_error=1 exitcode=66' timeout 30 /tmp/flux_foundry_tsan/poison_$enabled
+          done
+
       - name: Upload TSAN logs on failure
         if: failure()
         uses: actions/upload-artifact@v4

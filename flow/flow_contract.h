@@ -14,6 +14,10 @@
 # endif
 #endif
 
+#ifndef FLUX_FOUNDRY_ENABLE_POISON
+# define FLUX_FOUNDRY_ENABLE_POISON FLUX_FOUNDRY_ENABLE_VACCINE
+#endif
+
 namespace flux_foundry {
     struct pipeline_position {
         const char* name;
@@ -131,7 +135,7 @@ namespace flux_foundry {
         template <typename I, typename O, typename... Nodes>
         constexpr decltype(auto) operator|(flow_blueprint<I, O, Nodes...>&& bp, position_node marker) {
             static_assert(!is_runnable_bp_v<flow_blueprint<I, O, Nodes...>>, "position must precede end()");
-#if FLUX_FOUNDRY_ENABLE_VACCINE
+#if FLUX_FOUNDRY_ENABLE_VACCINE || FLUX_FOUNDRY_ENABLE_POISON
             return std::move(bp) | flow_observer_node<O, position_marker>{{marker.location}};
 #else
             (void)marker;

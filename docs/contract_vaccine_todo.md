@@ -52,21 +52,20 @@ Enabling checks can affect scheduling, code layout and fusion boundaries. They
 are not a replacement for TSan or a detector for a callback that dereferences an
 already freed awaitable. Library/backend lifetime testing remains independent.
 
-## Planned: backend boundary instrumentation
+## Implemented: explicit poison instrumentation
 
-The remaining design below is not an implemented API. It concerns protocol
+See [poison](poison.md) for scoped borrowed references, pipeline invalidation,
+backend completion wrappers, and explicit quiescence checking. These are opt-in
+integration points; they do not automatically instrument every awaitable.
+
+## Further backend boundary instrumentation
+
+The remaining ideas below are not all implemented APIs. It concerns protocol
 instrumentation beyond the user-authored result checkpoints above.
 
-Potential integration points for backend protocol checks:
-
-- An external decorator around a runner or awaitable integration.
-- Blueprint markers/checkpoints composed with the existing pipe syntax, e.g.
-  `make_blueprint() | then(...) | vaccine(...) | poison(...) | end(...)`.
-
-Read-only value/error inspection is implemented above. A separate protocol layer
-could connect source markers to independently owned awaitable debug tokens.
-Any future poison marker, scoped invariant syntax, or implicit backend wrapping
-remains an open design question.
+The implemented poison layer requires explicit owner and callback integration.
+Automatic wrapping, runner reentry/reuse checks, and validation of an advertised
+`completes_inline` property remain future work.
 
 For fast runner/awaitable contracts, markers must instrument the submission and
 completion boundaries during blueprint construction. A downstream calculation

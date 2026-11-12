@@ -70,7 +70,7 @@ template <bool Fast> using operation_base = std::conditional_t<Fast,
     fast_awaitable_base<operation<Fast>, request, error>,
     awaitable_base<operation<Fast>, request, error>>;
 template <bool Fast>
-struct operation final : operation_base<Fast> {
+struct TS_EMPTY_BASES operation final : operation_base<Fast>, private poison_scope {
     using async_result_type = output;
     request input;
     counts* state;
@@ -84,22 +84,23 @@ struct operation final : operation_base<Fast> {
         return std::move(in.value());
     }
     explicit operation(output&& in) noexcept : input(take_request(std::move(in))), state(input.session->state) { ++state->created; }
-    ~operation() { ++state->destroyed; }
+    ~operation() { poison_scope::invalidate(); ++state->destroyed; }
     bool available() const noexcept { return true; }
     void cancel() noexcept { ++state->canceled; }
     int submit() noexcept {
-        if (input.io->mode == completion::rejected) return -1;
+        auto check = poison_scope::submission({"pipeline backend", __FILE__, __LINE__});
+        if (input.io->mode == completion::rejected) return check.submitted(-1);
         // Real backends can retain an operation beyond logical cancellation.
         this->retain();
-        auto complete = [this]() noexcept {
+        auto complete = FLUX_FOUNDRY_POISON_CALLBACK(check, [this]() noexcept {
             this->resume(output(value_tag, std::move(input)));
             this->release();
-        };
+        });
         if (input.io->mode == completion::inline_now) complete();
         else if (input.io->mode == completion::before_return) {
             std::thread worker(complete); worker.join();
         } else input.io->pending.dispatch(task_wrapper_sbo(std::move(complete)));
-        return 0;
+        return check.submitted(0);
     }
 };
 struct receiver {
