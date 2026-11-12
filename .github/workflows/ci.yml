@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: OtakuNathan/portal
-          ref: 542bf5bbf6244f2a3948f7f01aa22a6233fba5fe
+          ref: 7a6f53bbc30d3b4159e36de138486bffe90f3e62
           path: build-deps/portal
 
       - name: Configure
@@ -181,7 +181,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: OtakuNathan/portal
-          ref: 542bf5bbf6244f2a3948f7f01aa22a6233fba5fe
+          ref: 7a6f53bbc30d3b4159e36de138486bffe90f3e62
           path: build-deps/portal
       - name: Configure
         run: |
