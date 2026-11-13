@@ -1,0 +1,239 @@
+{
+  "uname": [
+    "Linux",
+    "Nathan-PC",
+    "7.3.3-1-cachyos",
+    "#1 SMP PREEMPT_DYNAMIC Sat, 07 Nov 2026 13:54:44 +0000",
+    "x86_64",
+    ""
+  ],
+  "topology": "CPU CORE SOCKET NODE L1d:L1i:L2:L3\n  0    0      0    0 0:0:0:0\n  1    1      0    0 1:1:1:0\n  2    2      0    0 2:2:2:0\n  3    3      0    0 3:3:3:0\n  4    4      0    0 4:4:4:1\n  5    5      0    0 5:5:5:1\n  6    6      0    0 6:6:6:1\n  7    7      0    0 7:7:7:1\n  8    0      0    0 0:0:0:0\n  9    1      0    0 1:1:1:0\n 10    2      0    0 2:2:2:0\n 11    3      0    0 3:3:3:0\n 12    4      0    0 4:4:4:1\n 13    5      0    0 5:5:5:1\n 14    6      0    0 6:6:6:1\n 15    7      0    0 7:7:7:1\n",
+  "revision": "0b39b1b85b1d1674d945cc23e91865e8c6fe6222",
+  "runs": [
+    {
+      "name": "same-l3",
+      "command": [
+        "python3",
+        "bench/io_adapters/compare_backoff.py",
+        "--policies",
+        "adaptive",
+        "--loop-policies",
+        "blocking",
+        "poll",
+        "--trials",
+        "6",
+        "--owner-cpu",
+        "3",
+        "--producer-cpu",
+        "2",
+        "--out",
+        "/home/nathan/ff-loop-linux-20261113-jH7SiZ/same-l3"
+      ],
+      "before": {
+        "time": 1794573111.1181645,
+        "loadavg": "0.00 0.00 0.00 1/431 65784",
+        "governors": {
+          "policy11": "powersave",
+          "policy8": "powersave",
+          "policy6": "powersave",
+          "policy4": "powersave",
+          "policy2": "powersave",
+          "policy14": "powersave",
+          "policy0": "powersave",
+          "policy12": "powersave",
+          "policy9": "powersave",
+          "policy10": "powersave",
+          "policy7": "powersave",
+          "policy5": "powersave",
+          "policy3": "powersave",
+          "policy15": "powersave",
+          "policy1": "powersave",
+          "policy13": "powersave"
+        },
+        "boost": "1",
+        "temperatures": {
+          "/sys/class/hwmon/hwmon2/temp3_input": "31750",
+          "/sys/class/hwmon/hwmon2/temp1_input": "27250"
+        }
+      },
+      "exit_code": 0,
+      "after": {
+        "time": 1794573188.903626,
+        "loadavg": "1.27 0.40 0.14 1/430 65923",
+        "governors": {
+          "policy11": "powersave",
+          "policy8": "powersave",
+          "policy6": "powersave",
+          "policy4": "powersave",
+          "policy2": "powersave",
+          "policy14": "powersave",
+          "policy0": "powersave",
+          "policy12": "powersave",
+          "policy9": "powersave",
+          "policy10": "powersave",
+          "policy7": "powersave",
+          "policy5": "powersave",
+          "policy3": "powersave",
+          "policy15": "powersave",
+          "policy1": "powersave",
+          "policy13": "powersave"
+        },
+        "boost": "1",
+        "temperatures": {
+          "/sys/class/hwmon/hwmon2/temp3_input": "40000",
+          "/sys/class/hwmon/hwmon2/temp1_input": "44625"
+        }
+      }
+    },
+    {
+      "name": "cross-l3",
+      "command": [
+        "python3",
+        "bench/io_adapters/compare_backoff.py",
+        "--policies",
+        "adaptive",
+        "--loop-policies",
+        "blocking",
+        "poll",
+        "--trials",
+        "6",
+        "--owner-cpu",
+        "3",
+        "--producer-cpu",
+        "4",
+        "--out",
+        "/home/nathan/ff-loop-linux-20261113-jH7SiZ/cross-l3"
+      ],
+      "before": {
+        "time": 1794573188.9049268,
+        "loadavg": "1.27 0.40 0.14 2/430 65923",
+        "governors": {
+          "policy11": "powersave",
+          "policy8": "powersave",
+          "policy6": "powersave",
+          "policy4": "powersave",
+          "policy2": "powersave",
+          "policy14": "powersave",
+          "policy0": "powersave",
+          "policy12": "powersave",
+          "policy9": "powersave",
+          "policy10": "powersave",
+          "policy7": "powersave",
+          "policy5": "powersave",
+          "policy3": "powersave",
+          "policy15": "powersave",
+          "policy1": "powersave",
+          "policy13": "powersave"
+        },
+        "boost": "1",
+        "temperatures": {
+          "/sys/class/hwmon/hwmon2/temp3_input": "40000",
+          "/sys/class/hwmon/hwmon2/temp1_input": "44625"
+        }
+      },
+      "exit_code": 0,
+      "after": {
+        "time": 1794573268.3800726,
+        "loadavg": "1.80 0.76 0.29 1/431 66069",
+        "governors": {
+          "policy11": "powersave",
+          "policy8": "powersave",
+          "policy6": "powersave",
+          "policy4": "powersave",
+          "policy2": "powersave",
+          "policy14": "powersave",
+          "policy0": "powersave",
+          "policy12": "powersave",
+          "policy9": "powersave",
+          "policy10": "powersave",
+          "policy7": "powersave",
+          "policy5": "powersave",
+          "policy3": "powersave",
+          "policy15": "powersave",
+          "policy1": "powersave",
+          "policy13": "powersave"
+        },
+        "boost": "1",
+        "temperatures": {
+          "/sys/class/hwmon/hwmon2/temp3_input": "39500",
+          "/sys/class/hwmon/hwmon2/temp1_input": "43000"
+        }
+      }
+    },
+    {
+      "name": "unpinned",
+      "command": [
+        "python3",
+        "bench/io_adapters/compare_backoff.py",
+        "--policies",
+        "adaptive",
+        "--loop-policies",
+        "blocking",
+        "poll",
+        "--trials",
+        "6",
+        "--owner-cpu",
+        "-1",
+        "--producer-cpu",
+        "-1",
+        "--out",
+        "/home/nathan/ff-loop-linux-20261113-jH7SiZ/unpinned"
+      ],
+      "before": {
+        "time": 1794573268.3811028,
+        "loadavg": "1.80 0.76 0.29 2/431 66069",
+        "governors": {
+          "policy11": "powersave",
+          "policy8": "powersave",
+          "policy6": "powersave",
+          "policy4": "powersave",
+          "policy2": "powersave",
+          "policy14": "powersave",
+          "policy0": "powersave",
+          "policy12": "powersave",
+          "policy9": "powersave",
+          "policy10": "powersave",
+          "policy7": "powersave",
+          "policy5": "powersave",
+          "policy3": "powersave",
+          "policy15": "powersave",
+          "policy1": "powersave",
+          "policy13": "powersave"
+        },
+        "boost": "1",
+        "temperatures": {
+          "/sys/class/hwmon/hwmon2/temp3_input": "40000",
+          "/sys/class/hwmon/hwmon2/temp1_input": "43000"
+        }
+      },
+      "exit_code": 0,
+      "after": {
+        "time": 1794573347.1435316,
+        "loadavg": "1.87 1.02 0.42 1/432 66207",
+        "governors": {
+          "policy11": "powersave",
+          "policy8": "powersave",
+          "policy6": "powersave",
+          "policy4": "powersave",
+          "policy2": "powersave",
+          "policy14": "powersave",
+          "policy0": "powersave",
+          "policy12": "powersave",
+          "policy9": "powersave",
+          "policy10": "powersave",
+          "policy7": "powersave",
+          "policy5": "powersave",
+          "policy3": "powersave",
+          "policy15": "powersave",
+          "policy1": "powersave",
+          "policy13": "powersave"
+        },
+        "boost": "1",
+        "temperatures": {
+          "/sys/class/hwmon/hwmon2/temp3_input": "51500",
+          "/sys/class/hwmon/hwmon2/temp1_input": "43750"
+        }
+      }
+    }
+  ]
+}
