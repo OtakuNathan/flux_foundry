@@ -129,3 +129,10 @@ atomic paths; successful TSan runs do not establish correctness of every weak
 memory ordering in an ordinary build. Keep unsanitized ARM stress coverage.
 The nightly TSan workflow runs both enabled and disabled checkpoint variants and
 retains failing output, including the round and exact schedule.
+
+## Identity-routed awaitable pooling
+
+`ctest --test-dir <build> -L identity-pool --output-on-failure` runs the new
+identity allocator contract, the ordinary/fast pipeline lifetime contracts
+with the default policy enabled, their no-exception counterparts, legacy policy controls, and
+compile-time rejection cases. See [the policy contract](../docs/identity_pool.md).

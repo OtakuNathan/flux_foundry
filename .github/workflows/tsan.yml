@@ -26,9 +26,11 @@ jobs:
             -DFLUX_FOUNDRY_ENABLE_UV_EXECUTOR=ON -DFLUX_FOUNDRY_ENABLE_IO_URING=ON
           cmake --build build-io-tsan --parallel 2 --target \
             flux_foundry_uv_executor_contract flux_foundry_uv_executor_contract_noexc \
-            flux_foundry_io_uring_attachment_contract flux_foundry_io_uring_attachment_contract_noexc
+            flux_foundry_io_uring_attachment_contract flux_foundry_io_uring_attachment_contract_noexc \
+            flux_foundry_identity_pool_contract flux_foundry_identity_pool_contract_noexc \
+            flux_foundry_identity_pool_pipeline flux_foundry_identity_pool_pipeline_noexc
           TSAN_OPTIONS='halt_on_error=1 exitcode=66' \
-            ctest --test-dir build-io-tsan -R '^(uv_executor_contract.*|io_uring_attachment_contract.*)$' --output-on-failure --timeout 120
+            ctest --test-dir build-io-tsan -R '^(uv_executor_contract.*|io_uring_attachment_contract.*|identity_pool_(contract|pipeline).*)$' --output-on-failure --timeout 120
 
       - name: Build TSAN probes
         run: |

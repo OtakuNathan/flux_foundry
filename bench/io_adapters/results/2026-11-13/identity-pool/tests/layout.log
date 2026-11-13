@@ -1,0 +1,2 @@
+identity=0,cache=256,ordinary=112,fast=112,identity_bytes=8
+identity=1,cache=256,ordinary=128,fast=112,identity_bytes=8

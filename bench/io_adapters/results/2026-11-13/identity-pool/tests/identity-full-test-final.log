@@ -1,0 +1,224 @@
+Test project /tmp/ff-io-perf-vFZ6HVwW/build/identity-full
+        Start  62: builder_storage_rejection_exceptions
+        Start  63: builder_storage_rejection_noexc_0
+        Start  64: builder_storage_rejection_noexc_1
+        Start   1: io_uring_adapter_rejection_exceptions
+  1/104 Test   #1: io_uring_adapter_rejection_exceptions ...   Passed    5.74 sec
+        Start   2: io_uring_adapter_rejection_noexc
+  2/104 Test   #2: io_uring_adapter_rejection_noexc ........   Passed    5.51 sec
+        Start  49: identity_pool_rejection
+  3/104 Test  #49: identity_pool_rejection .................   Passed    3.25 sec
+        Start  89: vaccine_predicate_rejection
+  4/104 Test  #89: vaccine_predicate_rejection .............   Passed    1.65 sec
+        Start 114: poison_selector_rejection
+  5/104 Test #114: poison_selector_rejection ...............   Passed    1.19 sec
+        Start  88: vaccine_disabled_codegen
+  6/104 Test  #88: vaccine_disabled_codegen ................   Passed    1.06 sec
+        Start 113: poison_disabled_codegen
+  7/104 Test #113: poison_disabled_codegen .................   Passed    1.02 sec
+        Start  36: uv_executor_contract_noexc
+  8/104 Test  #36: uv_executor_contract_noexc ..............   Passed    0.12 sec
+        Start  35: uv_executor_contract
+  9/104 Test  #35: uv_executor_contract ....................   Passed    0.11 sec
+        Start  10: flow_fork_join_semantics
+ 10/104 Test  #10: flow_fork_join_semantics ................   Passed    0.06 sec
+        Start  39: pooling_handoff_contract
+ 11/104 Test  #39: pooling_handoff_contract ................   Passed    0.04 sec
+        Start  40: pooling_handoff_contract_noexc
+ 12/104 Test  #40: pooling_handoff_contract_noexc ..........   Passed    0.04 sec
+        Start  43: identity_pool_contract
+ 13/104 Test  #43: identity_pool_contract ..................   Passed    0.03 sec
+        Start  44: identity_pool_contract_noexc
+ 14/104 Test  #44: identity_pool_contract_noexc ............   Passed    0.03 sec
+        Start  42: legacy_pool_pipeline_noexc
+ 15/104 Test  #42: legacy_pool_pipeline_noexc ..............   Passed    0.01 sec
+        Start  47: identity_pool_pipeline
+ 16/104 Test  #47: identity_pool_pipeline ..................   Passed    0.01 sec
+        Start  48: identity_pool_pipeline_noexc
+ 17/104 Test  #48: identity_pool_pipeline_noexc ............   Passed    0.01 sec
+        Start  83: pipeline_lifetime_disabled
+ 18/104 Test  #83: pipeline_lifetime_disabled ..............   Passed    0.01 sec
+        Start  41: legacy_pool_pipeline
+ 19/104 Test  #41: legacy_pool_pipeline ....................   Passed    0.01 sec
+        Start  78: pipeline_lifetime_enabled
+ 20/104 Test  #78: pipeline_lifetime_enabled ...............   Passed    0.01 sec
+        Start  85: pipeline_lifetime_noexc
+ 21/104 Test  #85: pipeline_lifetime_noexc .................   Passed    0.01 sec
+        Start 108: poison_noexc_late
+ 22/104 Test #108: poison_noexc_late .......................   Passed    0.01 sec
+        Start  93: poison_enabled_rejected
+ 23/104 Test  #93: poison_enabled_rejected .................   Passed    0.01 sec
+        Start  96: poison_enabled_late
+ 24/104 Test  #96: poison_enabled_late .....................   Passed    0.01 sec
+        Start  80: vaccine_failure_enabled_default
+ 25/104 Test  #80: vaccine_failure_enabled_default .........   Passed    0.01 sec
+        Start 109: poison_noexc_race
+ 26/104 Test #109: poison_noexc_race .......................   Passed    0.01 sec
+        Start 107: poison_noexc_missing
+ 27/104 Test #107: poison_noexc_missing ....................   Passed    0.01 sec
+        Start  79: vaccine_failure_enabled_false
+ 28/104 Test  #79: vaccine_failure_enabled_false ...........   Passed    0.01 sec
+        Start  97: poison_enabled_race
+ 29/104 Test  #97: poison_enabled_race .....................   Passed    0.01 sec
+        Start  98: poison_enabled_reuse
+ 30/104 Test  #98: poison_enabled_reuse ....................   Passed    0.01 sec
+        Start 110: poison_noexc_reuse
+ 31/104 Test #110: poison_noexc_reuse ......................   Passed    0.01 sec
+        Start  86: vaccine_failure_noexc_false
+ 32/104 Test  #86: vaccine_failure_noexc_false .............   Passed    0.01 sec
+        Start  99: poison_enabled_node
+ 33/104 Test  #99: poison_enabled_node .....................   Passed    0.01 sec
+        Start  95: poison_enabled_missing
+ 34/104 Test  #95: poison_enabled_missing ..................   Passed    0.01 sec
+        Start  91: poison_enabled_expired
+ 35/104 Test  #91: poison_enabled_expired ..................   Passed    0.01 sec
+        Start  81: vaccine_failure_enabled_throw
+ 36/104 Test  #81: vaccine_failure_enabled_throw ...........   Passed    0.01 sec
+        Start  92: poison_enabled_duplicate
+ 37/104 Test  #92: poison_enabled_duplicate ................   Passed    0.01 sec
+        Start 100: poison_enabled_destroyed
+ 38/104 Test #100: poison_enabled_destroyed ................   Passed    0.01 sec
+        Start 106: poison_noexc_inline-rejected
+ 39/104 Test #106: poison_noexc_inline-rejected ............   Passed    0.01 sec
+        Start 105: poison_noexc_rejected
+ 40/104 Test #105: poison_noexc_rejected ...................   Passed    0.01 sec
+        Start 112: poison_noexc_destroyed
+ 41/104 Test #112: poison_noexc_destroyed ..................   Passed    0.01 sec
+        Start 104: poison_noexc_duplicate
+ 42/104 Test #104: poison_noexc_duplicate ..................   Passed    0.01 sec
+        Start  87: vaccine_failure_noexc_default
+ 43/104 Test  #87: vaccine_failure_noexc_default ...........   Passed    0.01 sec
+        Start 103: poison_noexc_expired
+ 44/104 Test #103: poison_noexc_expired ....................   Passed    0.01 sec
+        Start  94: poison_enabled_inline-rejected
+ 45/104 Test  #94: poison_enabled_inline-rejected ..........   Passed    0.01 sec
+        Start 111: poison_noexc_node
+ 46/104 Test #111: poison_noexc_node .......................   Passed    0.01 sec
+        Start  15: hazard_ptr_contract
+ 47/104 Test  #15: hazard_ptr_contract .....................   Passed    0.00 sec
+        Start   9: flow_fullchain_smoke_noexc
+ 48/104 Test   #9: flow_fullchain_smoke_noexc ..............   Passed    0.00 sec
+        Start  16: hazard_ptr_contract_noexc
+ 49/104 Test  #16: hazard_ptr_contract_noexc ...............   Passed    0.00 sec
+        Start   8: flow_fullchain_smoke
+ 50/104 Test   #8: flow_fullchain_smoke ....................   Passed    0.00 sec
+        Start  17: awaitable_lifecycle_contract
+ 51/104 Test  #17: awaitable_lifecycle_contract ............   Passed    0.00 sec
+        Start  45: identity_pool_lifecycle
+ 52/104 Test  #45: identity_pool_lifecycle .................   Passed    0.00 sec
+        Start   7: flow_smoke
+ 53/104 Test   #7: flow_smoke ..............................   Passed    0.00 sec
+        Start  90: poison_enabled
+ 54/104 Test  #90: poison_enabled ..........................   Passed    0.00 sec
+        Start  46: identity_pool_lifecycle_noexc
+ 55/104 Test  #46: identity_pool_lifecycle_noexc ...........   Passed    0.00 sec
+        Start  25: awaitable_lifecycle_contract_noexc
+ 56/104 Test  #25: awaitable_lifecycle_contract_noexc ......   Passed    0.00 sec
+        Start   3: io_uring_attachment_contract
+ 57/104 Test   #3: io_uring_attachment_contract ............   Passed    0.00 sec
+        Start   6: io_uring_runtime_noexc
+ 58/104 Test   #6: io_uring_runtime_noexc ..................   Passed    0.00 sec
+        Start 102: poison_noexc
+ 59/104 Test #102: poison_noexc ............................   Passed    0.00 sec
+        Start  30: end_move_contract_noexc
+ 60/104 Test  #30: end_move_contract_noexc .................   Passed    0.00 sec
+        Start   5: io_uring_attachment_contract_noexc
+ 61/104 Test   #5: io_uring_attachment_contract_noexc ......   Passed    0.00 sec
+        Start 101: poison_disabled
+ 62/104 Test #101: poison_disabled .........................   Passed    0.00 sec
+        Start  31: ownership_assignment_contract_noexc
+ 63/104 Test  #31: ownership_assignment_contract_noexc .....   Passed    0.00 sec
+        Start  22: end_move_contract
+ 64/104 Test  #22: end_move_contract .......................   Passed    0.00 sec
+        Start  14: runner_reuse_contract
+ 65/104 Test  #14: runner_reuse_contract ...................   Passed    0.00 sec
+        Start  32: continuation_emplace_contract_noexc
+ 66/104 Test  #32: continuation_emplace_contract_noexc .....   Passed    0.00 sec
+        Start  23: ownership_assignment_contract
+ 67/104 Test  #23: ownership_assignment_contract ...........   Passed    0.00 sec
+        Start  34: end_move_contract_noexc_relaxed
+ 68/104 Test  #34: end_move_contract_noexc_relaxed .........   Passed    0.00 sec
+        Start   4: io_uring_runtime
+ 69/104 Test   #4: io_uring_runtime ........................   Passed    0.00 sec
+        Start  11: external_async_awaitable_probe
+ 70/104 Test  #11: external_async_awaitable_probe ..........   Passed    0.00 sec
+        Start  12: external_async_awaitable_probe_noexc
+ 71/104 Test  #12: external_async_awaitable_probe_noexc ....   Passed    0.00 sec
+        Start  24: continuation_emplace_contract
+ 72/104 Test  #24: continuation_emplace_contract ...........   Passed    0.00 sec
+        Start  29: void_recovery_contract_noexc
+ 73/104 Test  #29: void_recovery_contract_noexc ............   Passed    0.00 sec
+        Start  33: void_recovery_contract_noexc_relaxed
+ 74/104 Test  #33: void_recovery_contract_noexc_relaxed ....   Passed    0.00 sec
+        Start  21: void_recovery_contract
+ 75/104 Test  #21: void_recovery_contract ..................   Passed    0.00 sec
+        Start  58: cuda_completion_condition
+ 76/104 Test  #58: cuda_completion_condition ...............   Passed    0.00 sec
+        Start  59: builder_storage_contract
+ 77/104 Test  #59: builder_storage_contract ................   Passed    0.00 sec
+        Start  65: constexpr_blueprint_demo_cxx14
+ 78/104 Test  #65: constexpr_blueprint_demo_cxx14 ..........   Passed    0.00 sec
+        Start  61: builder_storage_contract_noexc_1
+ 79/104 Test  #61: builder_storage_contract_noexc_1 ........   Passed    0.00 sec
+        Start  26: allocation_failure_contract_noexc
+ 80/104 Test  #26: allocation_failure_contract_noexc .......   Passed    0.00 sec
+        Start  77: vaccine_enabled
+ 81/104 Test  #77: vaccine_enabled .........................   Passed    0.00 sec
+        Start  27: simple_executor_contract_noexc
+ 82/104 Test  #27: simple_executor_contract_noexc ..........   Passed    0.00 sec
+        Start  67: const_transform_contract_cxx14
+ 83/104 Test  #67: const_transform_contract_cxx14 ..........   Passed    0.00 sec
+        Start  19: simple_executor_contract
+ 84/104 Test  #19: simple_executor_contract ................   Passed    0.00 sec
+        Start  66: constexpr_blueprint_demo_cxx14_noexc
+ 85/104 Test  #66: constexpr_blueprint_demo_cxx14_noexc ....   Passed    0.00 sec
+        Start  69: constexpr_blueprint_demo_cxx17
+ 86/104 Test  #69: constexpr_blueprint_demo_cxx17 ..........   Passed    0.00 sec
+        Start  60: builder_storage_contract_noexc_0
+ 87/104 Test  #60: builder_storage_contract_noexc_0 ........   Passed    0.00 sec
+        Start  84: vaccine_noexc
+ 88/104 Test  #84: vaccine_noexc ...........................   Passed    0.00 sec
+        Start  82: vaccine_disabled
+ 89/104 Test  #82: vaccine_disabled ........................   Passed    0.00 sec
+        Start  18: allocation_failure_contract
+ 90/104 Test  #18: allocation_failure_contract .............   Passed    0.00 sec
+        Start  28: mutable_callable_contract_noexc
+ 91/104 Test  #28: mutable_callable_contract_noexc .........   Passed    0.00 sec
+        Start  75: const_transform_contract_cxx20
+ 92/104 Test  #75: const_transform_contract_cxx20 ..........   Passed    0.00 sec
+        Start  68: const_transform_contract_cxx14_noexc
+ 93/104 Test  #68: const_transform_contract_cxx14_noexc ....   Passed    0.00 sec
+        Start  20: mutable_callable_contract
+ 94/104 Test  #20: mutable_callable_contract ...............   Passed    0.00 sec
+        Start  71: const_transform_contract_cxx17
+ 95/104 Test  #71: const_transform_contract_cxx17 ..........   Passed    0.00 sec
+        Start  13: core_edge_cases
+ 96/104 Test  #13: core_edge_cases .........................   Passed    0.00 sec
+        Start  70: constexpr_blueprint_demo_cxx17_noexc
+ 97/104 Test  #70: constexpr_blueprint_demo_cxx17_noexc ....   Passed    0.00 sec
+        Start  76: const_transform_contract_cxx20_noexc
+ 98/104 Test  #76: const_transform_contract_cxx20_noexc ....   Passed    0.00 sec
+        Start  72: const_transform_contract_cxx17_noexc
+ 99/104 Test  #72: const_transform_contract_cxx17_noexc ....   Passed    0.00 sec
+        Start  74: constexpr_blueprint_demo_cxx20_noexc
+100/104 Test  #74: constexpr_blueprint_demo_cxx20_noexc ....   Passed    0.00 sec
+        Start  73: constexpr_blueprint_demo_cxx20
+101/104 Test  #73: constexpr_blueprint_demo_cxx20 ..........   Passed    0.00 sec
+102/104 Test  #63: builder_storage_rejection_noexc_0 .......   Passed   32.24 sec
+103/104 Test  #64: builder_storage_rejection_noexc_1 .......   Passed   32.28 sec
+104/104 Test  #62: builder_storage_rejection_exceptions ....   Passed   33.80 sec
+
+100% tests passed out of 104
+
+Label Time Summary:
+compile-fail     = 115.64 sec*proc (8 tests)
+contract         = 118.40 sec*proc (91 tests)
+extension        =   0.01 sec*proc (3 tests)
+identity-pool    =   3.35 sec*proc (9 tests)
+io_uring         =  11.26 sec*proc (6 tests)
+lifecycle        =   0.18 sec*proc (29 tests)
+noexc            =   0.17 sec*proc (24 tests)
+smoke            = 118.49 sec*proc (104 tests)
+uv               =   0.23 sec*proc (2 tests)
+
+Total Test time (real) =  33.80 sec

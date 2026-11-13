@@ -210,3 +210,23 @@ done
 - Queue/static-stack models are protocol abstractions; `StaticListDualStack.tla` is closer to code structure (tagged heads + `next` tags) but still abstracts CAS retries/backoff and payload lifetime.
 - The older models are safety-oriented. The attachment models additionally check
   conditional liveness under the stated fairness assumptions; none proves throughput.
+
+## Awaitable pool identities (`IdentityPool.tla`)
+
+The identity pool model covers publisher admission vs TLS exit, inbox
+reservation vs delayed publication, local adoption on full/closed/stale routes,
+and generation changes when a registration slot is reused. One sender stands
+for a batch. Invariants require tickets to protect the current TLS generation,
+exclusive ownership of each batch, bounded occupancy and no access after exit.
+The model abstracts atomic operations and does not prove C++ memory ordering
+or starvation freedom.
+
+```sh
+java -cp ../Pal/tla2tools.jar tlc2.TLC -workers 2 \
+  -metadir build/identity-model -config test/model/IdentityPool.cfg \
+  test/model/IdentityPool.tla
+```
+
+The three-sender, capacity-two, two-generation configuration explores 4,749
+distinct states. Negative controls removing the close quiescence guard or
+the admission generation check both violate `Protected`.

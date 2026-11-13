@@ -10,11 +10,25 @@
 #include <new>
 #include <type_traits>
 #include "../memory/pooling.h"
+#if FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
+#include "../memory/identity_pool.h"
+#endif
 #include "../memory/result_t.h"
 #include "../utility/callable_wrapper.h"
 #include "flow_def.h"
 
 namespace flux_foundry {
+    static_assert(FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL == 0 || FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL == 1,
+        "FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL must be 0 or 1");
+    namespace detail {
+#if FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
+        template <typename T>
+        using awaitable_pool = identity_pooling_base<T, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT>;
+#else
+        template <typename T>
+        using awaitable_pool = pooling_base<T, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT>;
+#endif
+    }
     // Opt-in contract for awaitables which always call resume() from submit()
     // before returning success. The default is deliberately conservative: an
     // awaitable is assumed to hand work off asynchronously unless it declares
@@ -35,7 +49,7 @@ namespace flux_foundry {
 
     // Contract: Awaitables in flux_foundry MUST NOT start any side effects before submit_async() is called.
     template <typename derived, typename T, typename E>
-    struct awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
+    struct awaitable_base : public detail::awaitable_pool<derived> {
     private:
         // State transitions:
         // idle -> waiting (via submit_async, atomic CAS)
@@ -167,7 +181,11 @@ namespace flux_foundry {
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
                 std::atomic_thread_fence(std::memory_order_acquire);
 #endif
+#if FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
+                detail::awaitable_pool<derived>::destroy_pooled(static_cast<derived*>(this));
+#else
                 delete static_cast<derived*>(this);
+#endif
             }
         }
 
@@ -204,7 +222,7 @@ namespace flux_foundry {
     //    that `next_step` is visible to the thread or execution context that calls
     //    `resume()`.
     template <typename derived, typename T, typename E>
-    struct fast_awaitable_base : public pooling_base<derived, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT> {
+    struct fast_awaitable_base : public detail::awaitable_pool<derived> {
     private:
         using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
         std::atomic<size_t> refcount;
@@ -276,7 +294,11 @@ namespace flux_foundry {
             UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
                 std::atomic_thread_fence(std::memory_order_acquire);
 #endif
+#if FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
+                detail::awaitable_pool<derived>::destroy_pooled(static_cast<derived*>(this));
+#else
                 delete static_cast<derived*>(this);
+#endif
             }
         }
 

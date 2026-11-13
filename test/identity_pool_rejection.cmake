@@ -1,0 +1,22 @@
+foreach(case RANGE 0 10)
+    execute_process(COMMAND "${FF_CXX_COMPILER}" -std=c++14 -fsyntax-only
+        -I${FF_SOURCE_DIR} -DFF_IDENTITY_CASE=${case}
+        "${FF_SOURCE_DIR}/test/identity_pool_reject.cpp"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE errors)
+    if(case EQUAL 0)
+        if(NOT result EQUAL 0)
+            message(FATAL_ERROR "identity pool positive control failed\n${output}\n${errors}")
+        endif()
+    else()
+        if(case LESS 8)
+            set(expected "identity pool")
+        else()
+            set(expected "identity-pooled awaitables must use the inherited")
+        endif()
+        string(FIND "${errors}" "${expected}" found)
+        if(result EQUAL 0 OR found EQUAL -1)
+            message(FATAL_ERROR "identity pool case ${case}: expected diagnostic missing\n${errors}")
+        endif()
+    endif()
+endforeach()
+message(STATUS "identity pool: positive control and 10 intended rejections passed")

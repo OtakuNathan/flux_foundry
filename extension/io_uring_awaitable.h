@@ -157,10 +157,10 @@ struct io_uring_awaitable final
         "io_uring operation requirement: Operation must be an unqualified object type owned by the awaitable.");
     static_assert(detail::uring_prepare_prob<Operation>::value,
         "io_uring operation requirement: provide void prepare(io_uring_sqe*) noexcept, callable on an lvalue.");
-    static_assert(std::is_nothrow_move_constructible<Operation>::value,
-        "io_uring operation requirement: Operation must be nothrow move constructible.");
     static_assert(std::is_nothrow_destructible<Operation>::value,
         "io_uring operation requirement: Operation must be nothrow destructible.");
+    static_assert(std::is_nothrow_move_constructible<Operation>::value,
+        "io_uring operation requirement: Operation must be nothrow move constructible.");
     static_assert(detail::io_error_prob<E>::value,
         "I/O awaitable requirement: specialize extension::detail::io_error<E> with static E make(int) noexcept.");
 

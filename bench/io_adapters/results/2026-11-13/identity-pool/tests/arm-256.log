@@ -1,0 +1,30 @@
+Internal ctest changing into directory: /home/nathan/Documents/coding/flux_foundry/build/verified-io
+Test project /home/nathan/Documents/coding/flux_foundry/build/verified-io
+    Start 35: legacy_pool_pipeline
+1/9 Test #35: legacy_pool_pipeline .............   Passed    0.05 sec
+    Start 36: legacy_pool_pipeline_noexc
+2/9 Test #36: legacy_pool_pipeline_noexc .......   Passed    0.05 sec
+    Start 37: identity_pool_contract
+3/9 Test #37: identity_pool_contract ...........   Passed    0.11 sec
+    Start 38: identity_pool_contract_noexc
+4/9 Test #38: identity_pool_contract_noexc .....   Passed    0.11 sec
+    Start 39: identity_pool_lifecycle
+5/9 Test #39: identity_pool_lifecycle ..........   Passed    0.02 sec
+    Start 40: identity_pool_lifecycle_noexc
+6/9 Test #40: identity_pool_lifecycle_noexc ....   Passed    0.01 sec
+    Start 41: identity_pool_pipeline
+7/9 Test #41: identity_pool_pipeline ...........   Passed    0.05 sec
+    Start 42: identity_pool_pipeline_noexc
+8/9 Test #42: identity_pool_pipeline_noexc .....   Passed    0.04 sec
+    Start 43: identity_pool_rejection
+9/9 Test #43: identity_pool_rejection ..........   Passed   10.49 sec
+
+100% tests passed, 0 tests failed out of 9
+
+Label Time Summary:
+compile-fail     =  10.49 sec*proc (1 test)
+contract         =  10.94 sec*proc (9 tests)
+identity-pool    =  10.94 sec*proc (9 tests)
+smoke            =  10.94 sec*proc (9 tests)
+
+Total Test time (real) =  10.96 sec

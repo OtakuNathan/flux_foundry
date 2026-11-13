@@ -1,0 +1,91 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 32 and seed -1393256175714817508 with 1 worker on 4 cores with 228MB heap and 64MB offheap memory [pid: 13310] (Linux 6.18.39+rpt-rpi-v8 aarch64, Debian 21.0.10 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /home/nathan/Documents/coding/flux_foundry/build/identity-pool/negative-epoch/IdentityPool.tla
+Parsing file /tmp/Naturals.tla
+Parsing file /tmp/FiniteSets.tla
+Parsing file /tmp/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module IdentityPool
+Starting... (2026-11-13 07:21:17)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-13 07:21:18.
+Error: Invariant Protected is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ returned = {}
+/\ epoch = 1
+/\ adopted = {}
+/\ origin = (s1 :> 0 @@ s2 :> 0 @@ s3 :> 0)
+/\ reserved = {}
+/\ phase = "open"
+/\ inbox = {}
+/\ pc = (s1 :> "unallocated" @@ s2 :> "unallocated" @@ s3 :> "unallocated")
+/\ tickets = {}
+/\ badAccess = FALSE
+
+State 2: <Allocate line 17, col 3 to line 20, col 87 of module IdentityPool>
+/\ returned = {}
+/\ epoch = 1
+/\ adopted = {}
+/\ origin = (s1 :> 1 @@ s2 :> 0 @@ s3 :> 0)
+/\ reserved = {}
+/\ phase = "open"
+/\ inbox = {}
+/\ pc = (s1 :> "staged" @@ s2 :> "unallocated" @@ s3 :> "unallocated")
+/\ tickets = {}
+/\ badAccess = FALSE
+
+State 3: <Close line 61, col 3 to line 62, col 92 of module IdentityPool>
+/\ returned = {}
+/\ epoch = 1
+/\ adopted = {}
+/\ origin = (s1 :> 1 @@ s2 :> 0 @@ s3 :> 0)
+/\ reserved = {}
+/\ phase = "closing"
+/\ inbox = {}
+/\ pc = (s1 :> "staged" @@ s2 :> "unallocated" @@ s3 :> "unallocated")
+/\ tickets = {}
+/\ badAccess = FALSE
+
+State 4: <Destroy line 65, col 3 to line 67, col 75 of module IdentityPool>
+/\ returned = {}
+/\ epoch = 1
+/\ adopted = {}
+/\ origin = (s1 :> 1 @@ s2 :> 0 @@ s3 :> 0)
+/\ reserved = {}
+/\ phase = "gone"
+/\ inbox = {}
+/\ pc = (s1 :> "staged" @@ s2 :> "unallocated" @@ s3 :> "unallocated")
+/\ tickets = {}
+/\ badAccess = FALSE
+
+State 5: <Reuse line 70, col 3 to line 72, col 85 of module IdentityPool>
+/\ returned = {}
+/\ epoch = 2
+/\ adopted = {}
+/\ origin = (s1 :> 1 @@ s2 :> 0 @@ s3 :> 0)
+/\ reserved = {}
+/\ phase = "open"
+/\ inbox = {}
+/\ pc = (s1 :> "staged" @@ s2 :> "unallocated" @@ s3 :> "unallocated")
+/\ tickets = {}
+/\ badAccess = FALSE
+
+State 6: <Acquire line 23, col 3 to line 25, col 86 of module IdentityPool>
+/\ returned = {}
+/\ epoch = 2
+/\ adopted = {}
+/\ origin = (s1 :> 1 @@ s2 :> 0 @@ s3 :> 0)
+/\ reserved = {}
+/\ phase = "open"
+/\ inbox = {}
+/\ pc = (s1 :> "admitted" @@ s2 :> "unallocated" @@ s3 :> "unallocated")
+/\ tickets = {s1}
+/\ badAccess = FALSE
+
+129 states generated, 94 distinct states found, 50 states left on queue.
+The depth of the complete state graph search is 6.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 4 and the 95th percentile is 4).
+Finished in 03s at (2026-11-13 07:21:18)

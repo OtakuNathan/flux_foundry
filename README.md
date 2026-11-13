@@ -80,6 +80,11 @@ enable `FLUX_FOUNDRY_ENABLE_IO_URING` / `FLUX_FOUNDRY_ENABLE_DPDK` and link
 completion; the adapters do not create worker threads or own the ring, EAL, or
 ports. See [I/O attachment contracts and examples](docs/io_attachments.md).
 
+The [awaitable identity pool](docs/identity_pool.md) batches cross-thread
+returns to the allocating thread and adopts late returns after that thread exits.
+It is enabled by default; define `FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL=0` to use
+the previous awaitable allocation policy.
+
 Install the header-only package into a prefix:
 
 ```bash

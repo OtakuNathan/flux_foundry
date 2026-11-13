@@ -1,0 +1,6 @@
+PASS: identity routing, batched TLS refill, stale/exhausted slots, adoption, exit races, late TLS and alignment
+[OK] lifecycle mode=2 cancel-first=0 pre-cancel=1 queued=1
+[OK] aggregate fast=1 any=1 reject=1 order=102 created=2 destroyed=2
+PASS: identity routing, batched TLS refill, stale/exhausted slots, adoption, exit races, late TLS and alignment
+[OK] lifecycle mode=2 cancel-first=0 pre-cancel=1 queued=1
+[OK] aggregate fast=1 any=1 reject=1 order=102 created=2 destroyed=2

@@ -1,0 +1,59 @@
+round=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=0 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=1 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=3 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=4 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=1 mode=0 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=1 mode=1 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=1 mode=2 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=1 mode=3 order=0 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=1 mode=2 order=4 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=0 mode=0 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=0 mode=1 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=0 mode=2 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=0 mode=3 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=0 mode=2 order=4 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=1 mode=0 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=1 mode=1 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=1 mode=2 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=1 mode=3 order=0 hard=0
+[OK] handoff fast-runner=1 fast-awaitable=1 mode=2 order=4 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=1 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=2 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=3 hard=0
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=1 hard=1
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=2 hard=1
+[OK] handoff fast-runner=0 fast-awaitable=0 mode=2 order=3 hard=1
+[OK] aggregate fast=0 any=0 reject=0 order=012 created=3 destroyed=3
+[OK] aggregate fast=1 any=0 reject=0 order=012 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=0 order=021 created=3 destroyed=3
+[OK] aggregate fast=1 any=0 reject=0 order=021 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=0 order=102 created=3 destroyed=3
+[OK] aggregate fast=1 any=0 reject=0 order=102 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=0 order=120 created=3 destroyed=3
+[OK] aggregate fast=1 any=0 reject=0 order=120 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=0 order=201 created=3 destroyed=3
+[OK] aggregate fast=1 any=0 reject=0 order=201 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=0 order=210 created=3 destroyed=3
+[OK] aggregate fast=1 any=0 reject=0 order=210 created=3 destroyed=3
+[OK] aggregate fast=0 any=1 reject=0 order=012 created=2 destroyed=2
+[OK] aggregate fast=1 any=1 reject=0 order=012 created=2 destroyed=2
+[OK] aggregate fast=0 any=1 reject=0 order=102 created=2 destroyed=2
+[OK] aggregate fast=1 any=1 reject=0 order=102 created=2 destroyed=2
+[OK] aggregate fast=0 any=0 reject=1 order=012 created=2 destroyed=2
+[OK] aggregate fast=1 any=0 reject=1 order=012 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=1 order=021 created=2 destroyed=2
+[OK] aggregate fast=1 any=0 reject=1 order=021 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=1 order=102 created=2 destroyed=2
+[OK] aggregate fast=1 any=0 reject=1 order=102 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=1 order=120 created=2 destroyed=2
+[OK] aggregate fast=1 any=0 reject=1 order=120 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=1 order=201 created=2 destroyed=2
+[OK] aggregate fast=1 any=0 reject=1 order=201 created=3 destroyed=3
+[OK] aggregate fast=0 any=0 reject=1 order=210 created=2 destroyed=2
+[OK] aggregate fast=1 any=0 reject=1 order=210 created=3 destroyed=3
+[OK] aggregate fast=0 any=1 reject=1 order=012 created=2 destroyed=2
+[OK] aggregate fast=1 any=1 reject=1 order=012 created=2 destroyed=2
+[OK] aggregate fast=0 any=1 reject=1 order=102 created=2 destroyed=2
+[OK] aggregate fast=1 any=1 reject=1 order=102 created=2 destroyed=2

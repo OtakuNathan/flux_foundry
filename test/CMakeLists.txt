@@ -186,6 +186,41 @@ foreach(suffix "" "_noexc")
     set_tests_properties(pooling_handoff_contract${suffix} PROPERTIES LABELS "smoke;contract" TIMEOUT 60)
 endforeach()
 
+flux_foundry_add_probe(flux_foundry_identity_pool_contract identity_pool_contract.cpp)
+flux_foundry_add_noexc_probe(flux_foundry_identity_pool_contract_noexc identity_pool_contract.cpp)
+flux_foundry_add_probe(flux_foundry_identity_pool_lifecycle awaitable_lifecycle_contract.cpp)
+flux_foundry_add_noexc_probe(flux_foundry_identity_pool_lifecycle_noexc awaitable_lifecycle_contract.cpp)
+flux_foundry_add_probe(flux_foundry_identity_pool_pipeline pipeline_lifetime_contract.cpp)
+flux_foundry_add_noexc_probe(flux_foundry_identity_pool_pipeline_noexc pipeline_lifetime_contract.cpp)
+flux_foundry_add_probe(flux_foundry_legacy_pool_pipeline pipeline_lifetime_contract.cpp)
+flux_foundry_add_noexc_probe(flux_foundry_legacy_pool_pipeline_noexc pipeline_lifetime_contract.cpp)
+foreach(suffix "" "_noexc")
+    target_link_libraries(flux_foundry_legacy_pool_pipeline${suffix} PRIVATE Threads::Threads)
+    target_compile_definitions(flux_foundry_legacy_pool_pipeline${suffix} PRIVATE
+        FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL=0)
+    set_target_properties(flux_foundry_legacy_pool_pipeline${suffix} PROPERTIES
+        CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    add_test(NAME legacy_pool_pipeline${suffix} COMMAND flux_foundry_legacy_pool_pipeline${suffix})
+    set_tests_properties(legacy_pool_pipeline${suffix} PROPERTIES LABELS "smoke;contract;identity-pool" TIMEOUT 90)
+endforeach()
+foreach(kind contract lifecycle pipeline)
+    foreach(suffix "" "_noexc")
+        target_link_libraries(flux_foundry_identity_pool_${kind}${suffix} PRIVATE Threads::Threads)
+        target_compile_definitions(flux_foundry_identity_pool_${kind}${suffix} PRIVATE
+            FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL=1)
+        set_target_properties(flux_foundry_identity_pool_${kind}${suffix} PROPERTIES
+            CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+        add_test(NAME identity_pool_${kind}${suffix} COMMAND flux_foundry_identity_pool_${kind}${suffix})
+        set_tests_properties(identity_pool_${kind}${suffix} PROPERTIES LABELS "smoke;contract;identity-pool" TIMEOUT 90)
+    endforeach()
+endforeach()
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+    add_test(NAME identity_pool_rejection COMMAND ${CMAKE_COMMAND}
+        -DFF_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DFF_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/identity_pool_rejection.cmake)
+    set_tests_properties(identity_pool_rejection PROPERTIES LABELS "smoke;contract;compile-fail;identity-pool" TIMEOUT 60)
+endif()
+
 flux_foundry_add_probe(flux_foundry_hazard_ptr_stack_stress hazard_ptr_stack_stress.cpp)
 add_test(NAME hazard_ptr_stack_stress
     COMMAND flux_foundry_hazard_ptr_stack_stress 2 2 10000)

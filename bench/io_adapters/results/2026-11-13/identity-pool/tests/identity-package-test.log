@@ -1,0 +1,9 @@
+Test project /tmp/ff-io-perf-vFZ6HVwW/build/identity-consumer
+    Start 1: flux_foundry_package_consumer
+1/2 Test #1: flux_foundry_package_consumer ............   Passed    0.00 sec
+    Start 2: flux_foundry_package_io_uring_consumer
+2/2 Test #2: flux_foundry_package_io_uring_consumer ...   Passed    0.00 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   0.00 sec

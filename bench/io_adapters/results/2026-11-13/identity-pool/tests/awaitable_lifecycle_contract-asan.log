@@ -1,0 +1,12 @@
+[OK] lifecycle mode=0 cancel-first=0 pre-cancel=0 queued=0
+[OK] lifecycle mode=1 cancel-first=0 pre-cancel=0 queued=0
+[OK] lifecycle mode=2 cancel-first=0 pre-cancel=0 queued=0
+[OK] lifecycle mode=3 cancel-first=0 pre-cancel=0 queued=0
+[OK] lifecycle mode=2 cancel-first=1 pre-cancel=0 queued=0
+[OK] lifecycle mode=2 cancel-first=0 pre-cancel=1 queued=0
+[OK] lifecycle mode=0 cancel-first=0 pre-cancel=0 queued=1
+[OK] lifecycle mode=1 cancel-first=0 pre-cancel=0 queued=1
+[OK] lifecycle mode=2 cancel-first=0 pre-cancel=0 queued=1
+[OK] lifecycle mode=3 cancel-first=0 pre-cancel=0 queued=1
+[OK] lifecycle mode=2 cancel-first=1 pre-cancel=0 queued=1
+[OK] lifecycle mode=2 cancel-first=0 pre-cancel=1 queued=1

@@ -203,5 +203,17 @@ CPU IDs according to the host's actual cache topology.
 [Shared-pool follow-up](results/2026-11-13/producer-perf/README.md) profiles the
 remaining producer-side cost and tests small batch transfers between TLS caches
 and the shared pool. Cross-core throughput improves, but single-core DPDK
-tradeoffs keep those allocator variants experimental. Production pooling is
-unchanged; the added cross-thread reclamation contracts are retained.
+tradeoffs left those generic allocator variants unapplied; the added
+cross-thread reclamation contracts are retained.
+
+The subsequent [identity-pool study](results/2026-11-13/identity-pool/README.md)
+routes batches to the original allocator's TLS inbox without allocation headers
+or executor involvement. It compares capacities 128/256/512/1024 and retains
+256 with a batch of 16 as the latency/space compromise. The awaitable policy is
+enabled by default; `FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL=0` selects the legacy
+policy. To reproduce a capacity comparison on suitable CPU IDs:
+
+```sh
+python3 bench/io_adapters/compare_identity_pool.py --out build/identity-compare \
+  --trials 7 --owner 3 --producers 2 4 --capacities 128 256 512 1024
+```

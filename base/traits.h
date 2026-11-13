@@ -104,6 +104,11 @@
 #define FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
 #endif
 
+// Identity-routed awaitable pooling. Keep consistent across translation units.
+#ifndef FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
+#define FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL 1
+#endif
+
 #ifndef FLUX_FOUNDRY_CACHE_LINE_SIZE
 #  if defined(__APPLE__) && defined(__aarch64__)
 #    define FLUX_FOUNDRY_CACHE_LINE_SIZE 128
