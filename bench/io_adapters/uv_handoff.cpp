@@ -27,10 +27,11 @@ int main(int argc, char** argv) {
     o.samples = number(argv[3]);
     o.work = number(argv[4]);
     const auto budget = number(argv[5]);
-    o.consumer_cpu = number(argv[6]);
-    o.producer_cpu = number(argv[7]);
+    o.consumer_cpu = !std::strcmp(argv[6], "-1") ? -1 : static_cast<int>(number(argv[6]));
+    o.producer_cpu = !std::strcmp(argv[7], "-1") ? -1 : static_cast<int>(number(argv[7]));
     o.capacity = 1024;
-    require(o.samples > 0 && budget > 0 && o.producer_cpu != o.consumer_cpu,
+    require(o.samples > 0 && budget > 0 &&
+            (o.producer_cpu < 0 || o.consumer_cpu < 0 || o.producer_cpu != o.consumer_cpu),
             "positive samples/budget and distinct CPUs required");
     pin(o.producer_cpu);
 

@@ -14,7 +14,7 @@ using probe::require;
 struct metrics { double ns_per_op, close_us; std::uint64_t retries; };
 
 metrics measure(unsigned producers, std::size_t count, std::size_t capacity,
-                std::size_t budget, unsigned owner_cpu, unsigned first_producer_cpu) {
+                std::size_t budget, int owner_cpu, int first_producer_cpu) {
     probe::pin(owner_cpu);
     uv_loop_t loop;
     require(uv_loop_init(&loop) == 0, "uv_loop_init failed");
@@ -37,7 +37,7 @@ metrics measure(unsigned producers, std::size_t count, std::size_t capacity,
         };
         for (unsigned p = 0; p < producers; ++p) {
             threads.emplace_back([&, p] {
-                probe::pin(first_producer_cpu + p);
+                probe::pin(first_producer_cpu < 0 ? -1 : first_producer_cpu + static_cast<int>(p));
                 ready.fetch_add(1, std::memory_order_release);
                 while (!go.load(std::memory_order_acquire)) std::this_thread::yield();
                 const auto n = count / producers + (p < count % producers);
@@ -79,7 +79,8 @@ int main(int argc, char** argv) {
     }
     const unsigned producers = std::stoul(argv[2]);
     const auto count = std::stoull(argv[3]), capacity = std::stoull(argv[4]), budget = std::stoull(argv[5]);
-    const unsigned owner = std::stoul(argv[6]), first = std::stoul(argv[7]);
+    const int owner = std::stoi(argv[6]), first = std::stoi(argv[7]);
+    require(owner >= -1 && first >= -1, "CPU must be -1 (unpinned) or nonnegative");
     require(count && capacity && budget, "count/capacity/budget must be positive");
     // Match a multithreaded host even for owner-inline: glibc/libstdc++ may
     // otherwise use single-thread shortcuts for mutexes and shared_ptr counts.

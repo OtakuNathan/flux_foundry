@@ -4,6 +4,11 @@ These Linux probes exercise the **actual public FF adapters**. The older
 `bench/event_loop` executable has its own experimental libuv adapter and does
 not measure `executor/uv_executor.h`.
 
+For a one-command macOS/Linux suite using the current adapters, see
+[`python3 bench/run.py --uv on`](../README.md#one-command-macos--linux-suite).
+The UV C++ drivers accept `-1` for each CPU argument to disable affinity;
+the Linux comparison scripts below retain their pinned defaults.
+
 ## Run
 
 Requirements: C++14 compiler, Python 3, pthreads, pkg-config, libuv and liburing

@@ -2,6 +2,60 @@
 
 This document keeps the microbenchmark material out of the root `README`.
 
+## One-command macOS / Linux suite
+
+From the repository root, with Python 3 and a C++14 compiler:
+
+```sh
+python3 bench/run.py
+```
+
+On a Mac, install the Xcode command-line tools if `c++` is unavailable
+(`xcode-select --install`). To include the UV throughput and awaitable handoff
+probes, install libuv and pkg-config, then require that suite explicitly:
+
+```sh
+brew install libuv pkg-config
+python3 bench/run.py --uv on
+```
+
+The default `--uv auto` includes UV when pkg-config finds libuv, otherwise it
+prints a skip notice. Nothing is downloaded or installed by the runner. It uses
+`CXX` (default `c++`) and optional `EXTRA_CXXFLAGS`; Homebrew include/library
+paths come from pkg-config. Run natively on Apple Silicon, on AC power with
+other heavy work stopped. Threads are unpinned on both platforms; results do
+not identify performance/efficiency-core placement or match the pinned Ryzen
+topology experiments.
+
+The runner builds release binaries, executes three process trials, and saves
+`summary.txt`, `results.csv`, `environment.json` (revision, compiler, commands),
+and raw stdout/stderr under a new `build/bench-TIMESTAMP/` directory. Use
+`--trials 7` for more repetitions, `--out /path/to/new-directory` to choose the
+destination, or `--skip-flow --trials 1 --samples 4096 --count 65536` for a smoke
+run. A compilation/runtime failure stops the suite and keeps its logs.
+
+Measurements have separate meanings:
+
+- Flow with/without exceptions: ns/op, including inline-completing awaitables.
+  These are not I/O latencies. Raw flow `p95` describes round averages.
+- Simple executor: one producer/consumer, scheduled 500k/s and 2M/s, raw tasks,
+  fast awaitable + fast runner, and ordinary awaitable + ordinary runner.
+- Optional UV saturation: tiny tasks, one or three producers, completed tasks/s.
+- Optional UV handoff: raw tasks, ordinary awaitable + fast runner, and ordinary
+  awaitable + ordinary runner, with the same two scheduled arrival rates.
+
+Scheduled tests use work=128 and queue capacity=1024; UV drain budget is 16.
+Their throughput is constrained by offered load and is **not** a saturation
+measurement. `e2e_p99_us` starts at planned arrival, including producer lateness;
+`actual_p99_us` starts at submission. Reported p99 summaries are medians of each
+trial's p99, not pooled quantiles. Timing instrumentation is included. The UV
+drivers warm up before measurement; the simple executor probe starts with cold
+pools. The default allocator policy is compiled as-is; this is not an old/new
+allocator comparison. The suite does not exercise io_uring, DPDK, or a real NIC.
+
+Share `summary.txt` and `environment.json` for an initial comparison; retain the
+CSV and raw logs for investigating variability.
+
 For actual UV executor old/new comparisons and io_uring/DPDK awaitable costs,
 see [`bench/io_adapters/README.md`](io_adapters/README.md).
 
