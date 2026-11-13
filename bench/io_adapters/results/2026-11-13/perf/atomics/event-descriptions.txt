@@ -1,0 +1,24 @@
+
+memory:
+  ls_locks.bus_lock
+       [Retired lock instructions. Bus lock when a locked operations crosses a
+        cache boundary or is done on an uncacheable memory type. Comparable to
+        legacy bus lock. Unit: cpu]
+        cpu/event=0x25,umask=1/
+  ls_locks.non_spec_lock
+       [Retired lock instructions. Non-speculative lock succeeded. Unit: cpu]
+        cpu/event=0x25,umask=2/
+  ls_locks.spec_lock_hi_spec
+       [Retired lock instructions. High speculative cacheable lock speculation
+        succeeded. Unit: cpu]
+        cpu/event=0x25,umask=8/
+  ls_locks.spec_lock_lo_spec
+       [Retired lock instructions. Low speculative cacheable lock speculation
+        succeeded. Unit: cpu]
+        cpu/event=0x25,umask=4/
+  ls_bad_status2.stli_other
+       [Non-forwardable conflict; used to reduce STLI's via software. All
+        reasons. Store To Load Interlock (STLI) are loads that were unable to
+        complete because of a possible match with an older store,and the older
+        store could not do STLF for some reason. Unit: cpu]
+        cpu/event=0x24,umask=2/

@@ -1,0 +1,2306 @@
+ Percent |	Source code & Disassembly of dpdk-current for cycles:u (3806 samples, percent: local period)
+------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3     Disassembly of section .text:
+         :
+         : 5     0000000000011880 <double measure<1u, 4u>(unsigned short, unsigned long)>:
+         : 6     seen->consume(std::move(out).value());
+         : 7     }
+         : 8     };
+         :
+         : 10    template <unsigned Size, unsigned Mode>
+         : 11    double measure(std::uint16_t port, std::size_t bursts) {
+    0.00 :   11880:  sub    $0x208,%rsp
+         : 13    static_assert(std::is_nothrow_move_constructible<batch_type>::value
+         : 14    && std::is_nothrow_destructible<batch_type>::value,
+         : 15    "DPDK context requirement: packet batches must be nothrow movable and destructible.");
+         : 16    using callback = void (*)(void*, batch_type&&, int);
+         : 17    using cancel_probe = bool (*)(void*);
+         : 18    dpdk_rx_context(std::uint16_t port, std::uint16_t queue) noexcept : port_(port), queue_(queue) {}
+    0.00 :   11887:  pxor   %xmm0,%xmm0
+         : 20    inline void* aligned_alloc(size_t align, size_t size) noexcept {
+         : 21    assert((align & (align - 1)) == 0 && "align must be power of 2");
+         : 22    assert(align >= alignof(std::nullptr_t) && "align must be >= alignof(void*)");
+         : 23    #ifndef _WIN32
+         : 24    void* _p = nullptr;
+         : 25    UNLIKELY_IF (posix_memalign(&_p, align, size) != 0) {
+    0.00 :   1188b:  mov    $0x80,%edx
+    0.00 :   11890:  mov    %rbx,0x1d8(%rsp)
+    0.00 :   11898:  mov    %r14,0x1f8(%rsp)
+    0.00 :   118a0:  mov    %rsi,(%rsp)
+    0.00 :   118a4:  mov    $0x40,%esi
+    0.00 :   118a9:  mov    %fs:0x28,%rax
+    0.00 :   118b2:  mov    %rax,0x1c8(%rsp)
+    0.00 :   118ba:  xor    %eax,%eax
+    0.00 :   118bc:  movzwl %di,%eax
+    0.00 :   118bf:  movups %xmm0,0xf8(%rsp)
+         : 36    using context_type = dpdk_rx_context<Size>;
+         : 37    using batch_type = dpdk_packet_batch<Size>;
+         : 38    context_type context(port, 0);
+         : 39    observed seen{port};
+    0.00 :   118c7:  pxor   %xmm0,%xmm0
+    0.00 :   118cb:  mov    %eax,0xf0(%rsp)
+         : 42    auto bp = make_blueprint<context_type*, E>() | await_dpdk_rx<Size>() | end();
+    0.00 :   118d2:  lea    0xb1e8(%rip),%rax        # 1cac1 <flux_foundry::flow_impl::inline_executor::executor()::exec>
+         : 44    observed seen{port};
+    0.00 :   118d9:  movaps %xmm0,0x90(%rsp)
+         : 46    auto bp = make_blueprint<context_type*, E>() | await_dpdk_rx<Size>() | end();
+    0.00 :   118e1:  mov    %rax,0x70(%rsp)
+         :
+         : 49    flow_blueprint() = default;
+         :
+         : 51    explicit constexpr flow_blueprint(storage_t &&s)
+         : 52    noexcept(std::is_nothrow_move_constructible<storage_t>::value)
+         : 53    : nodes_(std::move(s)) {
+    0.00 :   118e6:  mov    0xe0(%rsp),%rax
+    0.00 :   118ee:  movdqa 0x70(%rsp),%xmm0
+         : 56    observed seen{port};
+    0.00 :   118f4:  mov    %di,0x90(%rsp)
+    0.00 :   118fc:  lea    0xd0(%rsp),%rdi
+    0.00 :   11904:  movq   $0x0,0x108(%rsp)
+         : 60    auto bp = make_blueprint<context_type*, E>() | await_dpdk_rx<Size>() | end();
+    0.00 :   11910:  movaps %xmm0,0x80(%rsp)
+         : 62    std::is_nothrow_constructible<T_, Args&&...>>
+         : 63    #endif
+         : 64    >>
+         : 65    constexpr flat_storage_leaf(Args &&... args)
+         : 66    noexcept(std::is_nothrow_constructible<T_, Args && ...>::value)
+         : 67    : _value(std::forward<Args>(args)...) {
+    0.00 :   11918:  movq   %xmm0,0xd8(%rsp)
+    0.00 :   11921:  movdqa 0xd0(%rsp),%xmm0
+    0.00 :   1192a:  movb   $0x0,0x110(%rsp)
+         : 71    observed seen{port};
+    0.00 :   11932:  movq   $0x0,0xa0(%rsp)
+    0.00 :   1193e:  movaps %xmm0,0xb0(%rsp)
+    0.00 :   11946:  mov    %rax,0xc0(%rsp)
+         : 75    void* _p = nullptr;
+    0.00 :   1194e:  movq   $0x0,0xd0(%rsp)
+         : 77    UNLIKELY_IF (posix_memalign(&_p, align, size) != 0) {
+    0.00 :   1195a:  call   3440 <posix_memalign@plt>
+    0.00 :   1195f:  test   %eax,%eax
+    0.00 :   11961:  jne    130f9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1879>
+         : 81    return nullptr;
+         : 82    }
+         : 83    return _p;
+    0.00 :   11967:  mov    0xd0(%rsp),%rax
+    0.00 :   1196f:  mov    %rax,0x8(%rsp)
+         : 86    noexcept
+         : 87    #endif
+         : 88    {
+         : 89    A alloc(std::forward<AllocLike>(alloc_like));
+         : 90    auto cb_ = static_cast<cb_t*>(alloc.allocate(alignof(cb_t), alloc_size()));
+         : 91    if (!cb_) {
+    0.00 :   11974:  test   %rax,%rax
+    0.00 :   11977:  je     130f9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1879>
+         : 94    noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
+         : 95    #if !FLUX_FOUNDRY_HAS_EXCEPTIONS
+         : 96    static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
+         : 97    "T must be nothrow constructible with Args...");
+         : 98    #endif
+         : 99    return ::new (addr) T(std::forward<Args>(args)...);
+    0.00 :   1197d:  movdqa 0xb0(%rsp),%xmm0
+    0.00 :   11986:  mov    %rax,%rcx
+         : 102   ~__atomic_base() noexcept = default;
+         : 103   __atomic_base(const __atomic_base&) = delete;
+         : 104   __atomic_base& operator=(const __atomic_base&) = delete;
+         : 105   __atomic_base& operator=(const __atomic_base&) volatile = delete;
+         :
+         : 107   constexpr __atomic_base(__int_type __i) noexcept : _M_i (__i) { }
+    0.00 :   11989:  movq   $0x1,0x40(%rax)
+    0.00 :   11991:  movups %xmm0,(%rax)
+    0.00 :   11994:  mov    0xc0(%rsp),%rax
+    0.00 :   1199c:  mov    %rax,0x10(%rcx)
+         : 112   ssize_t n;
+         : 113   do { n = ::read(ack, buffer, sizeof(buffer)); } while (n < 0 && errno == EINTR);
+         : 114   if (n < 4 || std::memcmp(buffer, "ack\n", 4) != 0) std::abort();
+         : 115   }
+         : 116   inline unsigned& phase() { static unsigned n = 0; return n; }
+         : 117   inline void begin() { if (++phase() == 2) command("enable\n"); }
+    0.00 :   119a0:  mov    0x11a35a(%rip),%eax        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   119a6:  add    $0x1,%eax
+    0.00 :   119a9:  mov    %eax,0x11a351(%rip)        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   119af:  cmp    $0x2,%eax
+    0.00 :   119b2:  je     12caa <double measure<1u, 4u>(unsigned short, unsigned long)+0x142a>
+         : 123   require(!error, "DPDK context failed");
+         : 124   static_cast<observed*>(data)->consume(std::move(batch));
+         : 125   };
+         : 126   auto canceled = [](void*) noexcept { return false; };
+         : 127   probe_perf::begin();
+         : 128   const auto start = probe::clock::now();
+    0.00 :   119b8:  call   33a0 <std::chrono::_V2::steady_clock::now()@plt>
+         : 130   for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   119bd:  cmpq   $0x0,(%rsp)
+         : 132   const auto start = probe::clock::now();
+    0.00 :   119c2:  mov    %rax,%r14
+         : 134   for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   119c5:  je     11efa <double measure<1u, 4u>(unsigned short, unsigned long)+0x67a>
+    0.00 :   119cb:  movq   0x9235(%rip),%xmm5        # 1ac08 <__do_global_dtors_aux_fini_array_entry+0x50>
+    0.00 :   119d3:  lea    -0xb74a(%rip),%rax        # 6290 <flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>::is_canceled(void*)>
+    0.00 :   119da:  mov    %rbp,0x1e0(%rsp)
+    0.00 :   119e2:  movq   0x9226(%rip),%xmm6        # 1ac10 <__do_global_dtors_aux_fini_array_entry+0x58>
+    0.00 :   119ea:  mov    %r13,0x1f0(%rsp)
+    0.00 :   119f2:  xor    %r13d,%r13d
+    0.00 :   119f5:  pinsrq $0x1,%rax,%xmm5
+    0.00 :   119fc:  lea    -0xa383(%rip),%rax        # 7680 <flux_foundry::life_span_manager<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator> >, receiver<1u> >::ipc<1ul>::make_async_next_step<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator> >, receiver<1u> >, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator> >, receiver<1u> > const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}, true>::manage(void*, void const*, flux_foundry::type_erase_lifespan_op)>
+    0.00 :   11a03:  movaps %xmm5,0x30(%rsp)
+    0.00 :   11a08:  pinsrq $0x1,%rax,%xmm6
+    0.00 :   11a0f:  lea    -0xe596(%rip),%rax        # 3480 <flux_foundry::callable_wrapper<void (flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)>::stub(void*, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)>
+    0.00 :   11a16:  movaps %xmm6,0x20(%rsp)
+    0.00 :   11a1b:  movq   %rax,%xmm7
+         : 149   #endif // __glibcxx_atomic_wait
+         :
+         : 151   _GLIBCXX_ALWAYS_INLINE __int_type
+         : 152   fetch_add(__int_type __i,
+         : 153   memory_order __m = memory_order_seq_cst) noexcept
+         : 154   { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+    0.00 :   11a20:  mov    0x8(%rsp),%rax
+         : 156   system_error(int __v, const error_category& __ecat, const char* __what)
+         : 157   : system_error(error_code(__v, __ecat), __what) { }
+         :
+         : 159   system_error(int __v, const error_category& __ecat)
+         : 160   : runtime_error(error_code(__v, __ecat).message()),
+         : 161   _M_code(__v, __ecat) { }
+    0.00 :   11a25:  mov    %r14,0x48(%rsp)
+    0.00 :   11a2a:  mov    %r12,0x1e8(%rsp)
+    0.00 :   11a32:  mov    %r15,0x200(%rsp)
+    0.00 :   11a3a:  movaps %xmm7,0x10(%rsp)
+    0.00 :   11a3f:  lea    0x40(%rax),%rbp
+    0.00 :   11a43:  nopl   0x0(%rax,%rax,1)
+    0.00 :   11a48:  lock addq $0x1,0x0(%rbp)
+    6.97 :   11a4e:  lock addq $0x1,0x0(%rbp)
+         : 170   { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+         :
+         : 172   _GLIBCXX_ALWAYS_INLINE __int_type
+         : 173   fetch_sub(__int_type __i,
+         : 174   memory_order __m = memory_order_seq_cst) noexcept
+         : 175   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    7.38 :   11a54:  lock subq $0x1,0x0(%rbp)
+         : 177   cb = nullptr;
+         : 178   if (ccb) {
+         : 179   #if FLUX_FOUNDRY_WITH_TSAN
+         : 180   UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_acq_rel) == 1) {
+         : 181   #else
+         : 182   UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+    8.15 :   11a5a:  je     12a48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x11c8>
+    0.03 :   11a60:  lea    0xf0(%rsp),%rax
+         : 185   typename = std::enable_if_t<std::is_nothrow_move_constructible<T_>::value>
+         : 186   #endif
+         : 187   >
+         : 188   explicit raw_either_storage_base(first_t, T &&t)
+         : 189   noexcept(std::is_nothrow_move_constructible<T>::value)
+         : 190   : _state{either_state::first} {
+    0.00 :   11a68:  movl   $0x1,0x88(%rsp)
+    0.00 :   11a73:  mov    %rax,0x80(%rsp)
+         : 193   }
+         : 194   }
+         : 195   };
+         :
+         : 197   static cache_stack& cache() noexcept {
+         : 198   static thread_local cache_stack c;
+    0.00 :   11a7b:  cmpb   $0x0,%fs:0xffffffffffffeff0
+    0.00 :   11a84:  je     12170 <double measure<1u, 4u>(unsigned short, unsigned long)+0x8f0>
+         : 201   LIKELY_IF(top > 0) {
+    0.00 :   11a8a:  mov    %fs:0xfffffffffffffff8,%rax
+    0.00 :   11a93:  test   %rax,%rax
+    0.32 :   11a96:  je     12038 <double measure<1u, 4u>(unsigned short, unsigned long)+0x7b8>
+         : 205   return ptrs[--top];
+    0.00 :   11a9c:  sub    $0x1,%rax
+    0.00 :   11aa0:  mov    %fs:-0x1008(,%rax,8),%rbx
+    0.00 :   11aa9:  mov    %rax,%fs:0xfffffffffffffff8
+         :
+         : 210   void* alloc() noexcept {
+         : 211   constexpr size_t sz = detail::alloc_size(size, align);
+         :
+         : 213   void* p = nullptr;
+         : 214   if ((p = cache().pop())) {
+    0.00 :   11ab2:  test   %rbx,%rbx
+    0.00 :   11ab5:  je     12038 <double measure<1u, 4u>(unsigned short, unsigned long)+0x7b8>
+         : 217   alignas(align) unsigned char data_[size];
+         :
+         : 219   static constexpr size_t buf_size = size;
+         :
+         : 221   raw_type_erase_base() noexcept
+         : 222   : invoker_{ derived::stub }, manager_ { nullptr } {
+    0.00 :   11abb:  movdqa 0x10(%rsp),%xmm3
+         : 224   atomic& operator=(const atomic&) = delete;
+         : 225   atomic& operator=(const atomic&) volatile = delete;
+         :
+         : 227   #pragma GCC diagnostic push
+         : 228   #pragma GCC diagnostic ignored "-Wc++14-extensions" // constexpr ctor body
+         : 229   constexpr atomic(_Tp __i) noexcept : _M_i(__i)
+    0.16 :   11ac1:  movl   $0x0,(%rbx)
+         : 231   constexpr __atomic_base(__int_type __i) noexcept : _M_i (__i) { }
+    0.00 :   11ac7:  movq   $0x1,0x8(%rbx)
+    0.00 :   11acf:  movaps %xmm3,0x10(%rbx)
+         : 234   using context_type = dpdk_rx_context<Capacity, Api>;
+         : 235   using batch_type = typename context_type::batch_type;
+         : 236   using async_result_type = result_t<batch_type, E>;
+         : 237   static_assert(detail::io_error_prob<E>::value,
+         : 238   "I/O awaitable requirement: specialize extension::detail::io_error<E> with static E make(int) noexcept.");
+         : 239   explicit dpdk_rx_awaitable(result_t<context_type*, E>&& input) noexcept : context(input.value()) {}
+    0.38 :   11ad3:  mov    0x80(%rsp),%rax
+    0.00 :   11adb:  movb   $0x0,0x58(%rbx)
+    0.00 :   11adf:  mov    %rax,0x50(%rbx)
+    0.00 :   11ae3:  movl   $0x1,0xd8(%rsp)
+    0.00 :   11aee:  mov    %rbx,0xd0(%rsp)
+         : 245   { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+    0.00 :   11af6:  lock addq $0x1,0x0(%rbp)
+    3.51 :   11afc:  mov    0xd0(%rsp),%rbx
+         : 248   this->swap(tmp);
+         : 249   return *this;
+         : 250   }
+         :
+         : 252   explicit operator bool() const noexcept {
+         : 253   return this->manager_ != nullptr;
+    0.13 :   11b04:  mov    0x18(%rbx),%rax
+         : 255   negation<is_self_constructing<next_step_t, std::decay_t<F>>>,
+         : 256   callable_handle_impl::is_callable_and_compatible<std::decay_t<F>, void, result_t<T, E>&&>,
+         : 257   std::is_constructible<next_step_t, F&&>>, int> = 0>
+         : 258   void emplace_nextstep(F&& next)
+         : 259   noexcept(noexcept(std::declval<next_step_t&>() = std::declval<F&&>())) {
+         : 260   if (self->next_step) {
+    0.00 :   11b08:  test   %rax,%rax
+    0.00 :   11b0b:  je     12148 <double measure<1u, 4u>(unsigned short, unsigned long)+0x8c8>
+         : 263   lite_ptr(lite_ptr&& rhs) noexcept : cb{rhs.cb} {
+    0.00 :   11b11:  mov    0x8(%rsp),%rcx
+         :
+         : 266   compressed_pair(const compressed_pair &rhs)
+         : 267   noexcept(conjunction_v<std::is_nothrow_copy_constructible<A_>, std::is_nothrow_copy_constructible<B_> >)
+         : 268   = default;
+         :
+         : 270   compressed_pair(compressed_pair &&rhs)
+    0.00 :   11b16:  lea    0x90(%rsp),%rdx
+         : 272   public:
+         : 273   callable_wrapper() noexcept = default;
+         :
+         : 275   template <typename T, bool sbo_enabled>
+         : 276   void do_customize() noexcept {
+         : 277   this->invoker_ = callable_vfns<T, sbo_enabled>::call;
+    0.00 :   11b1e:  movdqa 0x20(%rsp),%xmm7
+    0.00 :   11b24:  mov    %rdx,0x168(%rsp)
+         : 280   derived_->template do_customize<T, false>();
+         : 281   assert(this->manager_ != nullptr && "Derived class failed to set manager in do_customize!");
+         : 282   }
+         :
+         : 284   void swap(raw_type_erase_base& rhs) noexcept {
+         : 285   if (this == &rhs || (!this->manager_ && !rhs.manager_)) {
+    0.00 :   11b2c:  lea    0x150(%rsp),%r15
+         : 287   >>
+         : 288   callable_wrapper& operator=(callable&& f)
+         : 289   noexcept(noexcept(std::declval<callable_wrapper&>().
+         : 290   template emplace<callable>(std::declval<callable&&>()))) {
+         : 291   callable_wrapper tmp(std::forward<callable>(f));
+         : 292   this->swap(tmp);
+    0.00 :   11b34:  lea    0x10(%rbx),%rdx
+         : 294   this->invoker_ = callable_vfns<T, sbo_enabled>::call;
+    0.00 :   11b38:  movaps %xmm7,0x150(%rsp)
+    0.00 :   11b40:  mov    %rcx,0x160(%rsp)
+    0.00 :   11b48:  cmp    %r15,%rdx
+    0.00 :   11b4b:  je     12a75 <double measure<1u, 4u>(unsigned short, unsigned long)+0x11f5>
+         : 299   alignas(align) unsigned char backup[buf_size];
+         :
+         : 301   this->manager_(backup, this->data_, type_erase_lifespan_op::move);
+         : 302   this->manager_(nullptr, this->data_, type_erase_lifespan_op::destroy);
+         :
+         : 304   rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
+    0.00 :   11b51:  lea    0x160(%rsp),%r12
+         : 306   this->manager_(backup, this->data_, type_erase_lifespan_op::move);
+    0.00 :   11b59:  mov    $0x1,%edx
+    0.00 :   11b5e:  lea    0x20(%rbx),%rsi
+    0.00 :   11b62:  lea    0x190(%rsp),%rdi
+    0.00 :   11b6a:  call   *%rax
+         : 311   this->manager_(nullptr, this->data_, type_erase_lifespan_op::destroy);
+    0.00 :   11b6c:  lea    0x20(%rbx),%rsi
+    0.00 :   11b70:  mov    $0x2,%edx
+    0.00 :   11b75:  xor    %edi,%edi
+    0.00 :   11b77:  call   *0x18(%rbx)
+         : 316   rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
+    0.00 :   11b7a:  lea    0x20(%rbx),%rdi
+    0.00 :   11b7e:  mov    $0x1,%edx
+    0.00 :   11b83:  mov    %r12,%rsi
+    0.00 :   11b86:  call   *0x158(%rsp)
+         : 321   rhs.manager_(nullptr, rhs.data_, type_erase_lifespan_op::destroy);
+    0.00 :   11b8d:  mov    $0x2,%edx
+    0.00 :   11b92:  mov    %r12,%rsi
+    0.00 :   11b95:  xor    %edi,%edi
+    0.00 :   11b97:  call   *0x158(%rsp)
+         :
+         : 327   this->manager_(rhs.data_, backup, type_erase_lifespan_op::move);
+    0.00 :   11b9e:  mov    $0x1,%edx
+    0.00 :   11ba3:  mov    %r12,%rdi
+    0.00 :   11ba6:  lea    0x190(%rsp),%rsi
+    0.00 :   11bae:  call   *0x18(%rbx)
+         : 332   this->manager_(nullptr, backup, type_erase_lifespan_op::destroy);
+    0.00 :   11bb1:  mov    $0x2,%edx
+    0.00 :   11bb6:  xor    %edi,%edi
+    0.00 :   11bb8:  lea    0x190(%rsp),%rsi
+    0.00 :   11bc0:  call   *0x18(%rbx)
+         : 337   {
+         : 338   #if __cplusplus < 201103L
+         : 339   // concept requirements
+         : 340   __glibcxx_function_requires(_SGIAssignableConcept<_Tp>)
+         : 341   #endif
+         : 342   _Tp __tmp = _GLIBCXX_MOVE(__a);
+    0.00 :   11bc3:  mov    0x10(%rbx),%rax
+         : 344   __a = _GLIBCXX_MOVE(__b);
+    0.00 :   11bc7:  mov    0x150(%rsp),%rdx
+    0.00 :   11bcf:  mov    %rdx,0x10(%rbx)
+    0.00 :   11bd3:  mov    0x158(%rsp),%rdx
+         : 348   __b = _GLIBCXX_MOVE(__tmp);
+    0.00 :   11bdb:  mov    %rax,0x150(%rsp)
+         : 350   _Tp __tmp = _GLIBCXX_MOVE(__a);
+    0.00 :   11be3:  mov    0x18(%rbx),%rax
+         : 352   __a = _GLIBCXX_MOVE(__b);
+    0.00 :   11be7:  mov    %rdx,0x18(%rbx)
+         : 354   __b = _GLIBCXX_MOVE(__tmp);
+    0.00 :   11beb:  mov    %rax,0x158(%rsp)
+         : 356   swap(this->invoker_, rhs.invoker_);
+         : 357   swap(this->manager_, rhs.manager_);
+         : 358   }
+         :
+         : 360   void clear() noexcept {
+         : 361   if (manager_) {
+    0.00 :   11bf3:  test   %rax,%rax
+    0.00 :   11bf6:  je     11c04 <double measure<1u, 4u>(unsigned short, unsigned long)+0x384>
+         : 364   manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   11bf8:  mov    $0x2,%edx
+    0.00 :   11bfd:  mov    %r12,%rsi
+    0.00 :   11c00:  xor    %edi,%edi
+    0.00 :   11c02:  call   *%rax
+         : 369   }
+         :
+         : 371   int submit_async() noexcept {
+         : 372   // can only submit once
+         : 373   auto expected = idle;
+         : 374   if (!self->status.compare_exchange_strong(expected, waiting,
+    0.00 :   11c04:  mov    0xd0(%rsp),%rbx
+         : 376   using _Vp = _Val<_Tp>;
+         : 377   _Tp* const __pval = std::__addressof(__val);
+         :
+         : 379   if constexpr (!__atomic_impl::__maybe_has_padding<_Vp>())
+         : 380   {
+         : 381   return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   11c0c:  xor    %eax,%eax
+    0.00 :   11c0e:  mov    $0x1,%edx
+    0.00 :   11c13:  lock cmpxchg %edx,(%rbx)
+    7.55 :   11c17:  jne    121d5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x955>
+         : 386   { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+    0.00 :   11c1d:  mov    0xd0(%rsp),%rax
+    0.00 :   11c25:  lock addq $0x1,0x8(%rax)
+         : 389   }
+         :
+         : 391   // Keep awaitable alive across derived::submit(); submit() may
+         : 392   // synchronously complete and drop refs via resume/cancel paths.
+         : 393   self->retain();
+         : 394   auto code = static_cast<derived*>(self)->submit();
+    7.47 :   11c2b:  mov    0xd0(%rsp),%rdi
+         : 396   bool available() const noexcept { return context != nullptr; }
+         : 397   int submit() noexcept {
+         : 398   if (!available()) return -EINVAL;
+    0.00 :   11c33:  cmpq   $0x0,0x50(%rdi)
+    0.00 :   11c38:  je     121bb <double measure<1u, 4u>(unsigned short, unsigned long)+0x93b>
+    0.00 :   11c3e:  lock addq $0x1,0x8(%rdi)
+         : 402   this->retain();
+         : 403   const int rc = context->enqueue(&on_complete, &is_canceled, this);
+    7.23 :   11c44:  mov    0x50(%rdi),%rax
+         : 405   if (closing_) return -ESHUTDOWN;
+    0.05 :   11c48:  cmpb   $0x0,0x20(%rax)
+    0.00 :   11c4c:  jne    121ae <double measure<1u, 4u>(unsigned short, unsigned long)+0x92e>
+         : 408   if (complete_) return -EAGAIN;
+    0.00 :   11c52:  cmpq   $0x0,0x8(%rax)
+    0.00 :   11c57:  jne    121ae <double measure<1u, 4u>(unsigned short, unsigned long)+0x92e>
+         : 411   complete_ = complete;
+    0.03 :   11c5d:  movdqa 0x30(%rsp),%xmm4
+         : 413   data_ = data;
+    0.00 :   11c63:  mov    %rdi,0x18(%rax)
+         : 415   complete_ = complete;
+    0.00 :   11c67:  movups %xmm4,0x8(%rax)
+         : 417   self->status.store(idle, std::memory_order_release);
+         : 418   self->release();
+         : 419   return code;
+         : 420   }
+         :
+         : 422   self->release();
+    0.32 :   11c6b:  mov    0xd0(%rsp),%rbx
+         : 424   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.03 :   11c73:  lock subq $0x1,0x8(%rbx)
+         : 426   // This releases a "Backend Reference" preventing the object from being leaked
+         : 427   void release() noexcept {
+         : 428   #if FLUX_FOUNDRY_WITH_TSAN
+         : 429   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+         : 430   #else
+         : 431   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+    7.54 :   11c79:  je     12b80 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1300>
+         : 433   : _state{either_state::second} {
+         : 434   opu::construct_at(std::addressof(_data.second), std::move(u));
+         : 435   }
+         :
+         : 437   ~raw_either_storage_base() noexcept {
+         : 438   if (_state == either_state::second) {
+    0.00 :   11c7f:  cmpl   $0x2,0xd8(%rsp)
+    0.00 :   11c87:  je     12458 <double measure<1u, 4u>(unsigned short, unsigned long)+0xbd8>
+    0.00 :   11c8d:  cmpl   $0x2,0x88(%rsp)
+    0.00 :   11c95:  je     127b0 <double measure<1u, 4u>(unsigned short, unsigned long)+0xf30>
+         : 443   state_ = runner_state::ready;
+         : 444   }
+         : 445   }
+         :
+         : 447   void consume() noexcept {
+         : 448   state_ = runner_state::consumed;
+    0.00 :   11c9b:  mov    $0x2,%r12d
+         : 450   if (!complete_) return false;
+    0.00 :   11ca1:  mov    0xf8(%rsp),%rcx
+    0.00 :   11ca9:  test   %rcx,%rcx
+    0.40 :   11cac:  je     12120 <double measure<1u, 4u>(unsigned short, unsigned long)+0x8a0>
+         : 454   const bool aborted = closing_ || canceled_(data_);
+    0.00 :   11cb2:  cmpb   $0x0,0x110(%rsp)
+         : 456   auto* data = data_;
+    0.00 :   11cba:  mov    0x108(%rsp),%rbx
+         : 458   const bool aborted = closing_ || canceled_(data_);
+    0.00 :   11cc2:  je     11ff0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x770>
+         : 460   auto batch = aborted ? batch_type{} : batch_type::receive(port_, queue_);
+    0.00 :   11cc8:  pxor   %xmm0,%xmm0
+    0.00 :   11ccc:  movaps %xmm0,0x120(%rsp)
+    0.00 :   11cd4:  lea    -0x3ffb(%rip),%rax        # dce0 <flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>::on_complete(void*, flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>&&, int)>
+         : 464   complete_ = nullptr;
+    0.00 :   11cdb:  pxor   %xmm0,%xmm0
+         : 466   data_ = nullptr;
+    0.00 :   11cdf:  movq   $0x0,0x108(%rsp)
+         : 468   complete_ = nullptr;
+    0.00 :   11ceb:  movups %xmm0,0xf8(%rsp)
+    0.00 :   11cf3:  cmp    %rax,%rcx
+    0.00 :   11cf6:  jne    12700 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe80>
+         : 472   static std::error_code make(int code) noexcept { return {code, std::generic_category()}; }
+         : 473   };
+         : 474   #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+         : 475   template <> struct io_error<std::exception_ptr> {
+         : 476   static std::exception_ptr make(int code) noexcept {
+         : 477   try { return std::make_exception_ptr(std::system_error(code, std::generic_category())); }
+    0.00 :   11cfc:  call   32a0 <std::_V2::generic_category()@plt>
+         : 479   { return category().message(value()); }
+    0.00 :   11d01:  lea    0x150(%rsp),%r15
+    0.00 :   11d09:  mov    $0x7d,%edx
+    0.00 :   11d0e:  mov    %rax,%r14
+    0.00 :   11d11:  mov    (%rax),%rax
+    0.00 :   11d14:  mov    %r15,%rdi
+    0.00 :   11d17:  mov    %r14,%rsi
+    0.00 :   11d1a:  call   *0x20(%rax)
+         : 487   _M_code(__v, __ecat) { }
+    0.00 :   11d1d:  lea    0x130(%rsp),%rdi
+    0.00 :   11d25:  mov    %r15,%rsi
+    0.00 :   11d28:  call   3100 <std::runtime_error::runtime_error(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)@plt>
+         : 491   { _M_string_length = __length; }
+         :
+         : 493   _GLIBCXX20_CONSTEXPR
+         : 494   pointer
+         : 495   _M_data() const
+         : 496   { return _M_dataplus._M_p; }
+    0.00 :   11d2d:  mov    0x150(%rsp),%rdi
+         :
+         : 499   _GLIBCXX20_CONSTEXPR
+         : 500   bool
+         : 501   _M_is_local() const
+         : 502   {
+         : 503   if (_M_data() == _M_local_data())
+    0.00 :   11d35:  lea    0x160(%rsp),%r12
+    0.00 :   11d3d:  cmp    %r12,%rdi
+    0.00 :   11d40:  je     11d53 <double measure<1u, 4u>(unsigned short, unsigned long)+0x4d3>
+         : 507   }
+         :
+         : 509   _GLIBCXX20_CONSTEXPR
+         : 510   void
+         : 511   _M_destroy(size_type __size) throw()
+         : 512   { _Alloc_traits::deallocate(_M_get_allocator(), _M_data(), __size + 1); }
+    0.00 :   11d42:  mov    0x160(%rsp),%rax
+    0.00 :   11d4a:  lea    0x1(%rax),%rsi
+         : 515   _GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n),
+         : 516   std::align_val_t(alignof(_Tp)));
+         : 517   return;
+         : 518   }
+         : 519   #endif
+         : 520   _GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+    0.00 :   11d4e:  call   3090 <operator delete(void*, unsigned long)@plt>
+    0.00 :   11d53:  lea    0x8f66(%rip),%rax        # 1acc0 <vtable for std::system_error@GLIBCXX_3.4.11+0x10>
+         : 523   #ifdef __glibcxx_constexpr_exceptions
+         : 524   if ! consteval
+         : 525   #endif
+         : 526   {
+         : 527   using _Ex2 = typename decay<_Ex>::type;
+         : 528   void* __e = __cxxabiv1::__cxa_allocate_exception(sizeof(_Ex));
+    0.00 :   11d5a:  mov    $0x20,%edi
+         : 530   : _M_value(__v), _M_cat(&__cat) { }
+    0.00 :   11d5f:  movl   $0x7d,0x140(%rsp)
+         : 532   _M_code(__v, __ecat) { }
+    0.00 :   11d6a:  mov    %rax,0x130(%rsp)
+         : 534   : _M_value(__v), _M_cat(&__cat) { }
+    0.00 :   11d72:  mov    %r14,0x148(%rsp)
+    0.00 :   11d7a:  call   3180 <__cxa_allocate_exception@plt>
+         : 537   (void) __cxxabiv1::__cxa_init_primary_exception(
+    0.00 :   11d7f:  lea    -0xbb26(%rip),%rdx        # 6260 <void std::__exception_ptr::__dest_thunk<std::system_error>(void*)>
+    0.00 :   11d86:  lea    0x8f83(%rip),%rsi        # 1ad10 <typeinfo for std::system_error@GLIBCXX_3.4.11>
+         : 540   void* __e = __cxxabiv1::__cxa_allocate_exception(sizeof(_Ex));
+    0.00 :   11d8d:  mov    %rax,%r12
+         : 542   (void) __cxxabiv1::__cxa_init_primary_exception(
+    0.00 :   11d90:  mov    %rax,%rdi
+    0.00 :   11d93:  call   31c0 <__cxa_init_primary_exception@plt>
+         : 545   system_error(int __v, const error_category& __ecat, const string& __what)
+         : 546   : runtime_error(__what + (": " + error_code(__v, __ecat).message())),
+         : 547   _M_code(__v, __ecat) { }
+         :
+         : 549   #if __cplusplus >= 201103L
+         : 550   system_error (const system_error &) = default;
+    0.00 :   11d98:  lea    0x130(%rsp),%rsi
+    0.00 :   11da0:  mov    %r12,%rdi
+    0.00 :   11da3:  call   3370 <std::runtime_error::runtime_error(std::runtime_error const&)@plt>
+    0.00 :   11da8:  lea    0x8f11(%rip),%rax        # 1acc0 <vtable for std::system_error@GLIBCXX_3.4.11+0x10>
+         : 555   __e, const_cast<std::type_info*>(&typeid(_Ex)),
+         : 556   __exception_ptr::__dest_thunk<_Ex2>);
+         : 557   __try
+         : 558   {
+         : 559   ::new (__e) _Ex2(__ex);
+         : 560   return exception_ptr(__e);
+    0.00 :   11daf:  mov    %r12,%rsi
+    0.00 :   11db2:  movdqa 0x140(%rsp),%xmm0
+    0.00 :   11dbb:  mov    %rax,(%r12)
+    0.00 :   11dbf:  lea    0x80(%rsp),%rax
+    0.00 :   11dc7:  mov    %rax,%rdi
+    0.00 :   11dca:  movups %xmm0,0x10(%r12)
+    0.00 :   11dd0:  mov    %rax,0x40(%rsp)
+    0.00 :   11dd5:  call   3420 <std::__exception_ptr::exception_ptr::exception_ptr(void*)@plt>
+    0.00 :   11dda:  lea    0x130(%rsp),%rdi
+    0.00 :   11de2:  call   3140 <std::system_error::~system_error()@plt>
+         : 571   : _M_exception_object(__o._M_exception_object)
+    0.00 :   11de7:  mov    0x80(%rsp),%rax
+         : 573   return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   11def:  mov    $0x2,%edx
+         : 575   noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   11df4:  movl   $0x2,0x140(%rsp)
+         : 577   { __o._M_exception_object = nullptr; }
+    0.00 :   11dff:  movq   $0x0,0x80(%rsp)
+         : 579   : _M_exception_object(__o._M_exception_object)
+    0.00 :   11e0b:  mov    %rax,0x130(%rsp)
+    0.00 :   11e13:  mov    $0x1,%eax
+    0.00 :   11e18:  lock cmpxchg %edx,(%rbx)
+         : 583   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   11e1c:  lea    0x8(%rbx),%r12
+         : 585   return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   11e20:  sete   %al
+    0.00 :   11e23:  movzbl %al,%eax
+         : 588   // THIS IS THE ONLY FUNCTION YOU COULD SAFELY CALL BY HAND,
+         : 589   // awaitable implementation should call resume(result_t<T, E>) after it finished the async operation,
+         : 590   // CRITICAL: CALLING RESUME MUST BE THE LAST THING YOU DO WITH (this) OF A AWAITABLE.
+         : 591   void resume(result_t<T, E>&& io_result) noexcept {
+         : 592   auto expected = waiting;
+         : 593   if (!status.compare_exchange_strong(expected, done,
+    0.00 :   11e26:  test   %eax,%eax
+    0.00 :   11e28:  je     11e48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5c8>
+         : 596   FORCE_INLINE R operator()(Args... args)
+         : 597   #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+         : 598   noexcept
+         : 599   #endif
+         : 600   {
+         : 601   return this->invoker_(this->data_, std::forward<Args>(args)...);
+    0.00 :   11e2a:  lea    0x20(%rbx),%r14
+    0.00 :   11e2e:  lea    0x130(%rsp),%rsi
+    0.00 :   11e36:  mov    %r14,%rdi
+    0.00 :   11e39:  call   *0x10(%rbx)
+         : 606   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   11e3c:  lock subq $0x1,(%r12)
+         : 608   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   11e42:  je     12c32 <double measure<1u, 4u>(unsigned short, unsigned long)+0x13b2>
+         : 610   if (_state == either_state::first) {
+    0.00 :   11e48:  mov    0x140(%rsp),%eax
+    0.00 :   11e4f:  cmp    $0x1,%eax
+    0.00 :   11e52:  je     12770 <double measure<1u, 4u>(unsigned short, unsigned long)+0xef0>
+         : 614   } else if (_state == either_state::second) {
+    0.00 :   11e58:  cmp    $0x2,%eax
+    0.00 :   11e5b:  je     12940 <double measure<1u, 4u>(unsigned short, unsigned long)+0x10c0>
+         : 617   if (_M_exception_object)
+    0.00 :   11e61:  cmpq   $0x0,0x80(%rsp)
+    0.00 :   11e6a:  je     11e76 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5f6>
+         : 620   _M_release();
+    0.00 :   11e6c:  mov    0x40(%rsp),%rdi
+    0.00 :   11e71:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+    0.00 :   11e76:  lock subq $0x1,(%r12)
+    7.15 :   11e7c:  je     129c6 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1146>
+         : 625   for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   11e82:  cmpw   $0x0,0x128(%rsp)
+    0.00 :   11e8b:  lea    0x120(%rsp),%r14
+    0.00 :   11e93:  je     11ebb <double measure<1u, 4u>(unsigned short, unsigned long)+0x63b>
+    0.00 :   11e95:  xor    %r12d,%r12d
+    0.00 :   11e98:  nopl   0x0(%rax,%rax,1)
+         : 631   static void free(packet_type* packet) noexcept { rte_pktmbuf_free(packet); }
+    0.00 :   11ea0:  mov    (%r14),%rdi
+         : 633   for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   11ea3:  add    $0x1,%r12d
+    0.00 :   11ea7:  add    $0x8,%r14
+         : 636   static void free(packet_type* packet) noexcept { rte_pktmbuf_free(packet); }
+    0.00 :   11eab:  call   4810 <rte_pktmbuf_free>
+         : 638   for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   11eb0:  cmp    0x128(%rsp),%r12w
+    0.00 :   11eb9:  jb     11ea0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x620>
+    0.00 :   11ebb:  lock subq $0x1,0x0(%rbp)
+         : 642   UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+    7.51 :   11ec1:  je     12a28 <double measure<1u, 4u>(unsigned short, unsigned long)+0x11a8>
+    0.00 :   11ec7:  add    $0x1,%r13
+    0.00 :   11ecb:  cmp    %r13,(%rsp)
+    0.00 :   11ecf:  jne    11a48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1c8>
+    0.00 :   11ed5:  mov    0x48(%rsp),%r14
+    0.00 :   11eda:  mov    0x1e0(%rsp),%rbp
+    0.00 :   11ee2:  mov    0x1e8(%rsp),%r12
+    0.00 :   11eea:  mov    0x1f0(%rsp),%r13
+    0.00 :   11ef2:  mov    0x200(%rsp),%r15
+         : 652   auto runner = make_fast_runner(shared, receiver<Size>{&seen});
+         : 653   runner(&context);
+         : 654   require(context.poll(), "fast awaitable did not receive");
+         : 655   }
+         : 656   }
+         : 657   const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   11efa:  call   33a0 <std::chrono::_V2::steady_clock::now()@plt>
+         : 659   inline void end() { if (phase() == 2) command("disable\n"); }
+    0.00 :   11eff:  cmpl   $0x2,0x119dfa(%rip)        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   11f06:  je     12c8f <double measure<1u, 4u>(unsigned short, unsigned long)+0x140f>
+         : 662   const duration<_Rep2, _Period2>& __rhs)
+         : 663   {
+         : 664   typedef duration<_Rep1, _Period1>                       __dur1;
+         : 665   typedef duration<_Rep2, _Period2>                       __dur2;
+         : 666   typedef typename common_type<__dur1,__dur2>::type       __cd;
+         : 667   return __cd(__cd(__lhs).count() - __cd(__rhs).count());
+    0.00 :   11f0c:  sub    %r14,%rax
+         : 669   return _ToDur(static_cast<__to_rep>(__d.count()));
+    0.00 :   11f0f:  pxor   %xmm1,%xmm1
+    0.00 :   11f13:  cvtsi2sd %rax,%xmm1
+    0.00 :   11f18:  mov    (%rsp),%rax
+    0.00 :   11f1c:  test   %rax,%rax
+    0.00 :   11f1f:  js     12a57 <double measure<1u, 4u>(unsigned short, unsigned long)+0x11d7>
+    0.00 :   11f25:  pxor   %xmm0,%xmm0
+    0.00 :   11f29:  cvtsi2sd %rax,%xmm0
+    0.00 :   11f2e:  divsd  %xmm0,%xmm1
+         : 678   probe_perf::end();
+         : 679   require(seen.packets == bursts * Size && seen.sum == bursts * Size * (Size + 1) / 2,
+    0.00 :   11f32:  mov    (%rsp),%rax
+    0.00 :   11f36:  xor    %edi,%edi
+    0.00 :   11f38:  cmp    %rax,0x98(%rsp)
+         : 683   const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   11f40:  movq   %xmm1,%rbx
+         : 685   require(seen.packets == bursts * Size && seen.sum == bursts * Size * (Size + 1) / 2,
+    0.00 :   11f45:  jne    11f58 <double measure<1u, 4u>(unsigned short, unsigned long)+0x6d8>
+    0.00 :   11f47:  btr    $0x3f,%rax
+    0.00 :   11f4c:  cmp    %rax,0xa0(%rsp)
+    0.00 :   11f54:  sete   %dil
+    0.00 :   11f58:  lea    0x64b1(%rip),%rsi        # 18410 <_IO_stdin_used+0x410>
+    0.00 :   11f5f:  movzbl %dil,%edi
+    0.00 :   11f63:  call   9050 <probe::require(bool, char const*)>
+         : 693   "packet count/checksum mismatch");
+         : 694   require(context.try_detach(), "context did not drain");
+    0.00 :   11f68:  xor    %edi,%edi
+         : 696   void close() noexcept { closing_ = true; }
+    0.00 :   11f6a:  movb   $0x1,0x110(%rsp)
+    0.00 :   11f72:  cmpq   $0x0,0xf8(%rsp)
+    0.00 :   11f7b:  lea    0x6356(%rip),%rsi        # 182d8 <_IO_stdin_used+0x2d8>
+    0.00 :   11f82:  sete   %dil
+    0.00 :   11f86:  call   9050 <probe::require(bool, char const*)>
+         : 702   release();
+    0.00 :   11f8b:  mov    0x8(%rsp),%rax
+    0.00 :   11f90:  lea    0xd0(%rsp),%rdi
+    0.00 :   11f98:  mov    %rax,0xd0(%rsp)
+    0.00 :   11fa0:  call   a510 <flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>::release()>
+         : 707   ~dpdk_rx_context() noexcept { if (complete_) std::terminate(); }
+    0.00 :   11fa5:  cmpq   $0x0,0xf8(%rsp)
+    0.00 :   11fae:  jne    132ef <double measure<1u, 4u>(unsigned short, unsigned long)+0x1a6f>
+         : 710   return elapsed;
+         : 711   }
+    0.00 :   11fb4:  mov    0x1c8(%rsp),%rax
+    0.00 :   11fbc:  sub    %fs:0x28,%rax
+    0.00 :   11fc5:  jne    13110 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1890>
+    0.00 :   11fcb:  movq   %rbx,%xmm0
+    0.00 :   11fd0:  mov    0x1f8(%rsp),%r14
+    0.00 :   11fd8:  mov    0x1d8(%rsp),%rbx
+    0.00 :   11fe0:  add    $0x208,%rsp
+    0.00 :   11fe7:  ret
+    0.00 :   11fe8:  nopl   0x0(%rax,%rax,1)
+         : 721   const bool aborted = closing_ || canceled_(data_);
+    0.00 :   11ff0:  mov    0x100(%rsp),%rax
+    0.00 :   11ff8:  lea    -0xbd6f(%rip),%rcx        # 6290 <flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>::is_canceled(void*)>
+    0.00 :   11fff:  cmp    %rcx,%rax
+    0.00 :   12002:  jne    125a0 <double measure<1u, 4u>(unsigned short, unsigned long)+0xd20>
+         : 726   return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12008:  movzbl 0x58(%rbx),%eax
+    0.00 :   1200c:  test   %al,%al
+    0.37 :   1200e:  je     125ad <double measure<1u, 4u>(unsigned short, unsigned long)+0xd2d>
+         : 730   auto batch = aborted ? batch_type{} : batch_type::receive(port_, queue_);
+    0.00 :   12014:  pxor   %xmm0,%xmm0
+         : 732   const auto fn = complete_;
+    0.00 :   12018:  mov    0xf8(%rsp),%rcx
+         : 734   auto batch = aborted ? batch_type{} : batch_type::receive(port_, queue_);
+    0.00 :   12020:  movaps %xmm0,0x120(%rsp)
+         : 736   auto* data = data_;
+    0.00 :   12028:  mov    0x108(%rsp),%rbx
+    0.00 :   12030:  jmp    11cd4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x454>
+    0.00 :   12035:  nopl   (%rax)
+         : 740   static pool_t pool;
+    0.00 :   12038:  movzbl 0xaa89(%rip),%eax        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   1203f:  test   %al,%al
+    0.00 :   12041:  je     127d8 <double measure<1u, 4u>(unsigned short, unsigned long)+0xf58>
+    0.00 :   12047:  mov    0x10aab2(%rip),%r12        # 11cb00 <flux_foundry::detail::get_pool()::pool+0x100000>
+         : 745   uint64_t pop_from_list(std::atomic<uint64_t>& head) noexcept {
+         : 746   uint64_t seq = 0, offset = 0;
+         : 747   uint64_t h_ = head.load(std::memory_order_acquire);
+         : 748   backoff_strategy<> backoff;
+         : 749   for (;; backoff.yield()) {
+         : 750   if (h_ == empty_tag()) {
+    0.00 :   1204e:  cmp    $0x800,%r12
+    0.00 :   12055:  je     124cd <double measure<1u, 4u>(unsigned short, unsigned long)+0xc4d>
+         : 753   backoff_strategy<> backoff;
+    0.00 :   1205b:  movq   $0x1,0xd0(%rsp)
+    0.00 :   12067:  xor    %ebx,%ebx
+    0.00 :   12069:  lea    0xaa90(%rip),%rax        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+         : 757   return tag & offset_msk();
+    0.00 :   12070:  mov    %r12,%rdx
+    0.00 :   12073:  and    $0xfff,%edx
+         : 760   __glibcxx_assert(__b != memory_order_acq_rel);
+    0.00 :   12079:  mov    %rdx,%rcx
+    0.00 :   1207c:  shl    $0x4,%rcx
+         : 763   return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12080:  mov    0x100088(%rax,%rcx,1),%rsi
+         : 765   return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12088:  mov    %r12,%rax
+    0.00 :   1208b:  lock cmpxchg %rsi,0x10aa6c(%rip)        # 11cb00 <flux_foundry::detail::get_pool()::pool+0x100000>
+    0.00 :   12094:  mov    %rax,%r14
+         : 769   }
+         :
+         : 771   seq = get_seq(h_), offset = get_offset(h_);
+         : 772   auto next = nodes[offset].next.load(std::memory_order_relaxed);
+         :
+         : 774   if (head.compare_exchange_weak(h_, next,
+    0.00 :   12097:  jne    12496 <double measure<1u, 4u>(unsigned short, unsigned long)+0xc16>
+    0.00 :   1209d:  lea    0xaa5c(%rip),%rsi        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   120a4:  shl    $0x4,%rdx
+    0.00 :   120a8:  mov    0x100080(%rdx,%rsi,1),%rbx
+         : 779   __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   120b0:  lea    0x100088(%rsi,%rcx,1),%r14
+         : 781   return make_seq(seq, offset);
+         : 782   }
+         :
+         : 784   uint64_t append_to_list(std::atomic<uint64_t>& head, uint64_t fptr) noexcept {
+         : 785   uint64_t h_ = head.load(std::memory_order_acquire);;
+         : 786   backoff_strategy<> backoff;
+    0.00 :   120b8:  xor    %edx,%edx
+         : 788   return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   120ba:  mov    0x10aa7f(%rip),%rax        # 11cb40 <flux_foundry::detail::get_pool()::pool+0x100040>
+    0.00 :   120c1:  movq   $0x1,0xd0(%rsp)
+         : 791   __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   120cd:  mov    %rax,(%r14)
+         : 793   return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   120d0:  lock cmpxchg %r12,0x10aa67(%rip)        # 11cb40 <flux_foundry::detail::get_pool()::pool+0x100040>
+         : 795   for (;; backoff.yield()) {
+         : 796   nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
+         : 797   if (head.compare_exchange_weak(h_, fptr,
+    0.00 :   120d9:  jne    130a9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1829>
+         : 799   return p;
+         : 800   }
+         :
+         : 802   LIKELY_IF((p = detail::get_pool().allocate(sz))) {
+    0.00 :   120df:  test   %rbx,%rbx
+    0.00 :   120e2:  jne    11abb <double measure<1u, 4u>(unsigned short, unsigned long)+0x23b>
+         : 805   return p;
+         : 806   }
+         :
+         : 808   return malloc(sz);
+    0.00 :   120e8:  mov    $0x60,%edi
+    0.00 :   120ed:  call   3360 <malloc@plt>
+    0.00 :   120f2:  mov    %rax,%rbx
+         : 812   }
+         :
+         : 814   static void* operator new (std::size_t n) {
+         : 815   static_assert(std::is_final<element_t>::value, "the derived struct(class) must be tagged as final!");
+         : 816   void* p = operator new(n, std::nothrow);
+         : 817   UNLIKELY_IF(!p) {
+    0.00 :   120f5:  test   %rax,%rax
+    0.00 :   120f8:  jne    11abb <double measure<1u, 4u>(unsigned short, unsigned long)+0x23b>
+    0.00 :   120fe:  mov    0x1c8(%rsp),%rax
+    0.00 :   12106:  sub    %fs:0x28,%rax
+    0.00 :   1210f:  jne    13130 <double measure<1u, 4u>(unsigned short, unsigned long)+0x18b0>
+    0.00 :   12115:  call   3501 <flux_foundry::pooling_base<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>, 256ul>::operator new(unsigned long) [clone .part.0]>
+    0.00 :   1211a:  nopw   0x0(%rax,%rax,1)
+         : 825   #include <sched.h>
+         :
+         : 827   namespace probe {
+         : 828   using clock = std::chrono::steady_clock;
+         : 829   inline void require(bool ok, const char* message) {
+         : 830   if (!ok) { std::fprintf(stderr, "%s\n", message); std::abort(); }
+    0.00 :   12120:  mov    0x9139(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   12127:  lea    0x632a(%rip),%rdx        # 18458 <_IO_stdin_used+0x458>
+    0.00 :   1212e:  xor    %eax,%eax
+    0.00 :   12130:  lea    0x5ee1(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   12137:  call   30d0 <fprintf@plt>
+    0.00 :   1213c:  call   3280 <abort@plt>
+    0.00 :   12141:  nopl   0x0(%rax)
+         : 838   lite_ptr(lite_ptr&& rhs) noexcept : cb{rhs.cb} {
+    0.00 :   12148:  mov    0x8(%rsp),%rax
+         : 840   this->invoker_ = callable_vfns<T, sbo_enabled>::call;
+    0.00 :   1214d:  movdqa 0x20(%rsp),%xmm2
+    6.62 :   12153:  movaps %xmm2,0x10(%rbx)
+    0.00 :   12157:  mov    %rax,0x20(%rbx)
+    0.00 :   1215b:  lea    0x90(%rsp),%rax
+    0.10 :   12163:  mov    %rax,0x28(%rbx)
+         : 846   void release() noexcept {
+    0.00 :   12167:  jmp    11c0c <double measure<1u, 4u>(unsigned short, unsigned long)+0x38c>
+    0.00 :   1216c:  nopl   0x0(%rax)
+         : 849   static thread_local cache_stack c;
+    0.00 :   12170:  mov    %fs:0x0,%rax
+    0.00 :   12179:  lea    0x90b0(%rip),%rdx        # 1b230 <__dso_handle>
+         : 852   struct cache_stack {
+    0.00 :   12180:  movq   $0x0,%fs:0xfffffffffffffff8
+         : 854   static thread_local cache_stack c;
+    0.00 :   1218d:  movb   $0x1,%fs:0xffffffffffffeff0
+    0.00 :   12196:  lea    -0xa31d(%rip),%rdi        # 7e80 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::cache_stack::~cache_stack()>
+    0.00 :   1219d:  lea    -0x1008(%rax),%rsi
+    0.00 :   121a4:  call   3150 <__cxa_thread_atexit@plt>
+    0.00 :   121a9:  jmp    11a8a <double measure<1u, 4u>(unsigned short, unsigned long)+0x20a>
+         : 860   if (rc) this->release();
+    0.00 :   121ae:  call   d130 <flux_foundry::awaitable_base<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>, flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>::release()>
+         : 862   self->status.store(idle, std::memory_order_release);
+    0.00 :   121b3:  mov    0xd0(%rsp),%rdi
+         : 864   #endif
+         :
+         : 866   void
+         : 867   store(_Tp __i, memory_order __m = memory_order_seq_cst) noexcept
+         : 868   {
+         : 869   __atomic_store(std::__addressof(_M_i),
+    0.00 :   121bb:  movl   $0x0,(%rdi)
+         : 871   self->release();
+    0.00 :   121c1:  mov    0xd0(%rsp),%rbx
+         : 873   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   121c9:  lock subq $0x1,0x8(%rbx)
+         : 875   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   121cf:  je     12dd4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1554>
+         : 877   self->release();
+    0.00 :   121d5:  mov    0xd0(%rsp),%rdi
+         : 879   #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+         : 880   template <>
+         : 881   struct async_submission_failed_error<std::exception_ptr> {
+         : 882   static std::exception_ptr make() noexcept {
+         : 883   try {
+         : 884   return std::make_exception_ptr(std::logic_error("failed to submit async operation"));
+    0.00 :   121dd:  lea    0x150(%rsp),%r15
+    0.00 :   121e5:  call   d130 <flux_foundry::awaitable_base<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>, flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>::release()>
+    0.00 :   121ea:  lea    0x623f(%rip),%rsi        # 18430 <_IO_stdin_used+0x430>
+    0.00 :   121f1:  mov    %r15,%rdi
+    0.00 :   121f4:  call   3320 <std::logic_error::logic_error(char const*)@plt>
+         : 890   return exception_ptr(__e);
+    0.00 :   121f9:  lea    0x68(%rsp),%r12
+         : 892   void* __e = __cxxabiv1::__cxa_allocate_exception(sizeof(_Ex));
+    0.00 :   121fe:  mov    $0x10,%edi
+    0.00 :   12203:  call   3180 <__cxa_allocate_exception@plt>
+         : 895   (void) __cxxabiv1::__cxa_init_primary_exception(
+    0.00 :   12208:  lea    -0xbfbf(%rip),%rdx        # 6250 <void std::__exception_ptr::__dest_thunk<std::logic_error>(void*)>
+    0.00 :   1220f:  lea    0x8ae2(%rip),%rsi        # 1acf8 <typeinfo for std::logic_error@GLIBCXX_3.4>
+         : 898   void* __e = __cxxabiv1::__cxa_allocate_exception(sizeof(_Ex));
+    0.00 :   12216:  mov    %rax,%rbx
+         : 900   (void) __cxxabiv1::__cxa_init_primary_exception(
+    0.00 :   12219:  mov    %rax,%rdi
+    0.00 :   1221c:  call   31c0 <__cxa_init_primary_exception@plt>
+         : 903   ::new (__e) _Ex2(__ex);
+    0.00 :   12221:  mov    %r15,%rsi
+    0.00 :   12224:  mov    %rbx,%rdi
+    0.00 :   12227:  call   3030 <std::logic_error::logic_error(std::logic_error const&)@plt>
+         : 907   return exception_ptr(__e);
+    0.00 :   1222c:  mov    %r12,%rdi
+    0.00 :   1222f:  mov    %rbx,%rsi
+    0.00 :   12232:  call   3420 <std::__exception_ptr::exception_ptr::exception_ptr(void*)@plt>
+    0.00 :   12237:  mov    %r15,%rdi
+    0.00 :   1223a:  call   3400 <std::logic_error::~logic_error()@plt>
+         : 913   : _M_exception_object(__o._M_exception_object)
+    0.00 :   1223f:  mov    0x68(%rsp),%rax
+         : 915   require(out.has_value(), "DPDK awaitable failed");
+    0.00 :   12244:  xor    %edi,%edi
+         : 917   noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   12246:  movl   $0x2,0x140(%rsp)
+         : 919   { __o._M_exception_object = nullptr; }
+    0.00 :   12251:  movq   $0x0,0x68(%rsp)
+    0.00 :   1225a:  lea    0x5de6(%rip),%rsi        # 18047 <_IO_stdin_used+0x47>
+    0.00 :   12261:  movq   $0x0,0x130(%rsp)
+         : 923   if (rhs.has_first()) {
+         : 924   opt::construct_at(std::addressof(this->_data.first), std::move(rhs).get_first());
+         : 925   } else {
+         : 926   opu::construct_at(std::addressof(this->_data.second), std::move(rhs).get_second());
+         : 927   }
+         : 928   this->_state = rhs._state;
+    0.00 :   1226d:  movl   $0x2,0x160(%rsp)
+         : 930   : _M_exception_object(__o._M_exception_object)
+    0.00 :   12278:  mov    %rax,0x150(%rsp)
+    0.00 :   12280:  call   9050 <probe::require(bool, char const*)>
+         : 933   std::uint16_t size() const noexcept { return count_; }
+    0.00 :   12285:  movzwl 0x158(%rsp),%ebx
+         : 935   for (std::uint16_t i = 0; i < count; ++i) record(batch[i]);
+    0.00 :   1228d:  test   %bx,%bx
+    0.00 :   12290:  je     1297d <double measure<1u, 4u>(unsigned short, unsigned long)+0x10fd>
+    0.00 :   12296:  movzwl %bx,%eax
+         : 939   ++packets;
+    0.00 :   12299:  mov    $0x1,%ecx
+    0.00 :   1229e:  mov    %r15,%r10
+    0.00 :   122a1:  movdqu 0x98(%rsp),%xmm0
+    0.00 :   122aa:  lea    (%r15,%rax,8),%rsi
+    0.00 :   122ae:  movq   %rcx,%xmm2
+         : 945   for (std::uint16_t i = 0; i < count; ++i) record(batch[i]);
+    0.00 :   122b3:  mov    %r15,%rax
+    0.00 :   122b6:  cs nopw 0x0(%rax,%rax,1)
+         : 948   packet_type* operator[](std::uint16_t i) const noexcept { return packets_[i]; }
+    0.00 :   122c0:  mov    (%rax),%rdx
+    0.00 :   122c3:  cmpl   $0x40,0x24(%rdx)
+    0.00 :   122c7:  jne    13150 <double measure<1u, 4u>(unsigned short, unsigned long)+0x18d0>
+         : 952   sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.00 :   122cd:  movzwl 0x10(%rdx),%ecx
+         : 954   ++packets;
+    0.00 :   122d1:  movdqa %xmm2,%xmm1
+         : 956   for (std::uint16_t i = 0; i < count; ++i) record(batch[i]);
+    0.00 :   122d5:  add    $0x8,%rax
+         : 958   sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.00 :   122d9:  mov    (%rdx),%rdx
+    0.00 :   122dc:  movzbl (%rdx,%rcx,1),%edx
+         : 961   ++packets;
+    0.00 :   122e0:  pinsrq $0x1,%rdx,%xmm1
+    0.00 :   122e7:  paddq  %xmm1,%xmm0
+    0.00 :   122eb:  movups %xmm0,0x98(%rsp)
+         : 965   for (std::uint16_t i = 0; i < count; ++i) record(batch[i]);
+    0.00 :   122f3:  cmp    %rax,%rsi
+    0.00 :   122f6:  jne    122c0 <double measure<1u, 4u>(unsigned short, unsigned long)+0xa40>
+         : 968   return 0;
+         : 969   }
+         : 970   #endif
+         :
+         : 972   /* fetch pointer to queue data */
+         : 973   p = &rte_eth_fp_ops[port_id];
+    0.00 :   122f8:  movzwl 0x90(%rsp),%r14d
+         : 975   qd = p->txq.data[queue_id];
+    0.00 :   12301:  lea    0x8f78(%rip),%r11        # 1b280 <rte_eth_fp_ops@DPDK_26>
+    0.00 :   12308:  mov    %r14,%rax
+         : 978   p = &rte_eth_fp_ops[port_id];
+    0.00 :   1230b:  mov    %r14,%rdi
+         : 980   qd = p->txq.data[queue_id];
+    0.00 :   1230e:  shl    $0x7,%rax
+    0.00 :   12312:  add    %r11,%rax
+    0.00 :   12315:  mov    0x40(%rax),%rdx
+         : 984   * call back was inserted into the list.
+         : 985   * Since there is a clear dependency between loading
+         : 986   * cb and cb->fn/cb->next, rte_memory_order_acquire memory order is
+         : 987   * not required.
+         : 988   */
+         : 989   cb = rte_atomic_load_explicit(&p->txq.clbk[queue_id],
+    0.00 :   12319:  mov    0x48(%rax),%rax
+         : 991   qd = p->txq.data[queue_id];
+    0.00 :   1231d:  mov    (%rdx),%r9
+         : 993   cb = rte_atomic_load_explicit(&p->txq.clbk[queue_id],
+    0.00 :   12320:  mov    (%rax),%r8
+         : 995   rte_memory_order_relaxed);
+         : 996   if (unlikely(cb != NULL))
+    0.00 :   12323:  mov    %ebx,%eax
+    0.00 :   12325:  test   %r8,%r8
+    0.00 :   12328:  jne    12f97 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1717>
+         : 1000  #endif
+         :
+         : 1002  uint16_t requested_pkts = nb_pkts;
+         : 1003  rte_mbuf_history_mark_bulk(tx_pkts, nb_pkts, RTE_MBUF_HISTORY_OP_TX);
+         :
+         : 1005  nb_pkts = p->tx_pkt_burst(qd, tx_pkts, nb_pkts);
+    0.00 :   1232e:  shl    $0x7,%r14
+    0.00 :   12332:  mov    %r15,%rsi
+    0.00 :   12335:  mov    %r10,0x40(%rsp)
+    0.00 :   1233a:  movzwl %ax,%edx
+    0.00 :   1233d:  mov    %r9,%rdi
+    0.00 :   12340:  call   *0x50(%r11,%r14,1)
+         : 1012  for (std::uint16_t i = sent; i < count_; ++i) packets_[i - sent] = packets_[i];
+    0.00 :   12345:  movzwl 0x158(%rsp),%esi
+    0.00 :   1234d:  cmp    %si,%ax
+    0.00 :   12350:  jae    12961 <double measure<1u, 4u>(unsigned short, unsigned long)+0x10e1>
+    0.00 :   12356:  mov    %eax,%edi
+    0.00 :   12358:  mov    %esi,%r9d
+    0.00 :   1235b:  mov    0x40(%rsp),%r10
+    0.00 :   12360:  sub    %edi,%r9d
+    0.00 :   12363:  lea    -0x1(%r9),%eax
+    0.00 :   12367:  cmp    $0x3,%ax
+    0.00 :   1236b:  jbe    12f6a <double measure<1u, 4u>(unsigned short, unsigned long)+0x16ea>
+    0.00 :   12371:  mov    %r9d,%r8d
+    0.00 :   12374:  movzwl %di,%eax
+    0.00 :   12377:  lea    (%r15,%rax,8),%rax
+    0.00 :   1237b:  shr    $1,%r8w
+    0.00 :   1237f:  movzwl %r8w,%ecx
+    0.00 :   12383:  shl    $0x4,%rcx
+    0.00 :   12387:  lea    (%r15,%rcx,1),%rdx
+    0.00 :   1238b:  cs nopw 0x0(%rax,%rax,1)
+    0.00 :   12395:  data16 cs nopw 0x0(%rax,%rax,1)
+    0.00 :   123a0:  movdqu (%rax),%xmm0
+    0.00 :   123a4:  add    $0x10,%r10
+    0.00 :   123a8:  add    $0x10,%rax
+    0.00 :   123ac:  movaps %xmm0,-0x10(%r10)
+    0.00 :   123b1:  cmp    %rdx,%r10
+    0.00 :   123b4:  jne    123a0 <double measure<1u, 4u>(unsigned short, unsigned long)+0xb20>
+    0.00 :   123b6:  add    %r8d,%r8d
+    0.00 :   123b9:  cmp    %r8w,%r9w
+    0.00 :   123bd:  je     123e1 <double measure<1u, 4u>(unsigned short, unsigned long)+0xb61>
+    0.00 :   123bf:  add    %edi,%r8d
+    0.00 :   123c2:  movzwl %di,%ecx
+    0.00 :   123c5:  movzwl %r8w,%eax
+    0.00 :   123c9:  mov    0x150(%rsp,%rax,8),%rdx
+    0.00 :   123d1:  movzwl %r8w,%eax
+    0.00 :   123d5:  sub    %ecx,%eax
+    0.00 :   123d7:  cltq
+    0.00 :   123d9:  mov    %rdx,0x150(%rsp,%rax,8)
+         : 1049  count_ -= sent;
+    0.00 :   123e1:  sub    %edi,%esi
+    0.00 :   123e3:  mov    %si,0x158(%rsp)
+    0.00 :   123eb:  mov    0x8e6e(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   123f2:  lea    0x5c3a(%rip),%rdx        # 18033 <_IO_stdin_used+0x33>
+    0.00 :   123f9:  xor    %eax,%eax
+    0.00 :   123fb:  lea    0x5c16(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   12402:  call   30d0 <fprintf@plt>
+    0.00 :   12407:  call   3280 <abort@plt>
+         : 1058  static pool_t pool;
+    0.00 :   1240c:  movzbl 0xa6b5(%rip),%eax        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   12413:  test   %al,%al
+    0.00 :   12415:  je     13060 <double measure<1u, 4u>(unsigned short, unsigned long)+0x17e0>
+         : 1062  }
+         :
+         : 1064  ptrdiff_t calc_line(const void* ptr) noexcept {
+         : 1065  auto base = reinterpret_cast<const uint8_t*>(buff);
+         : 1066  auto cur = reinterpret_cast<const uint8_t*>(ptr);
+         : 1067  if (cur < base  || cur >= base + sizeof(buff)) {
+    0.00 :   1241b:  lea    0xa6de(%rip),%r15        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   12422:  cmp    %r15,%rbx
+    0.00 :   12425:  jb     131dc <double measure<1u, 4u>(unsigned short, unsigned long)+0x195c>
+    0.00 :   1242b:  lea    0x100000(%r15),%rax
+    0.00 :   12432:  cmp    %rax,%rbx
+    0.00 :   12435:  jae    131dc <double measure<1u, 4u>(unsigned short, unsigned long)+0x195c>
+         : 1074  pool.deallocate(p);
+    0.00 :   1243b:  mov    %rbx,%rsi
+    0.00 :   1243e:  mov    %r15,%rdi
+    0.00 :   12441:  call   c8c0 <flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)>
+         : 1078  if (_state == either_state::second) {
+    0.00 :   12446:  cmpl   $0x2,0xd8(%rsp)
+    0.00 :   1244e:  jne    11c8d <double measure<1u, 4u>(unsigned short, unsigned long)+0x40d>
+    0.00 :   12454:  nopl   0x0(%rax)
+         : 1082  if (_M_exception_object)
+    0.00 :   12458:  cmpq   $0x0,0xd0(%rsp)
+    0.00 :   12461:  mov    $0x2,%ebx
+    0.00 :   12466:  je     128f8 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1078>
+         : 1086  _M_release();
+    0.00 :   1246c:  lea    0xd0(%rsp),%rdi
+    0.00 :   12474:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+    0.00 :   12479:  cmpl   $0x2,0x88(%rsp)
+    0.00 :   12481:  je     1290b <double measure<1u, 4u>(unsigned short, unsigned long)+0x108b>
+         : 1091  if (state_ == runner_state::running) {
+    0.00 :   12487:  cmp    $0x1,%bl
+    0.00 :   1248a:  setne  %r12b
+    0.00 :   1248e:  add    %r12d,%r12d
+    0.00 :   12491:  jmp    11ca1 <double measure<1u, 4u>(unsigned short, unsigned long)+0x421>
+    0.00 :   12496:  mov    %rax,%r12
+         : 1097  count = 1;
+         : 1098  steps = 0;
+         : 1099  }
+         :
+         : 1101  void yield() noexcept {
+         : 1102  if (steps < spin_limit) {
+    0.00 :   12499:  cmp    $0xf,%rbx
+    0.00 :   1249d:  ja     13135 <double measure<1u, 4u>(unsigned short, unsigned long)+0x18b5>
+         : 1105  for (size_t i = 0; i < count; ++i) {
+    0.00 :   124a3:  lea    0xd0(%rsp),%rdi
+    0.00 :   124ab:  mov    %rbx,0xd8(%rsp)
+    0.00 :   124b3:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   124b8:  mov    0xd8(%rsp),%rbx
+         : 1110  if (h_ == empty_tag()) {
+    0.00 :   124c0:  cmp    $0x800,%r14
+    0.00 :   124c7:  jne    12069 <double measure<1u, 4u>(unsigned short, unsigned long)+0x7e9>
+         : 1113  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   124cd:  mov    0x1126ac(%rip),%r12        # 124b80 <flux_foundry::detail::get_pool()::pool+0x108080>
+    0.00 :   124d4:  cmp    $0x400,%r12
+    0.00 :   124db:  je     1282d <double measure<1u, 4u>(unsigned short, unsigned long)+0xfad>
+         : 1117  backoff_strategy<> backoff;
+    0.00 :   124e1:  movq   $0x1,0xd0(%rsp)
+    0.00 :   124ed:  xor    %ebx,%ebx
+    0.00 :   124ef:  lea    0xa60a(%rip),%rax        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+         : 1121  return tag & offset_msk();
+    0.00 :   124f6:  mov    %r12,%rdx
+    0.00 :   124f9:  and    $0x7ff,%edx
+         : 1124  __glibcxx_assert(__b != memory_order_acq_rel);
+    0.00 :   124ff:  mov    %rdx,%rcx
+    0.00 :   12502:  shl    $0x4,%rcx
+         : 1127  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12506:  mov    0x108108(%rax,%rcx,1),%rsi
+         : 1129  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   1250e:  mov    %r12,%rax
+    0.00 :   12511:  lock cmpxchg %rsi,0x112666(%rip)        # 124b80 <flux_foundry::detail::get_pool()::pool+0x108080>
+    0.00 :   1251a:  mov    %rax,%r14
+         : 1133  if (head.compare_exchange_weak(h_, next,
+    0.00 :   1251d:  jne    127f6 <double measure<1u, 4u>(unsigned short, unsigned long)+0xf76>
+    0.00 :   12523:  lea    0xa5d6(%rip),%rax        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   1252a:  shl    $0x4,%rdx
+    0.00 :   1252e:  mov    0x108100(%rdx,%rax,1),%rbx
+         : 1138  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   12536:  lea    0x108108(%rax,%rcx,1),%r15
+         : 1140  backoff_strategy<> backoff;
+    0.00 :   1253e:  xor    %edx,%edx
+         : 1142  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12540:  mov    0x112679(%rip),%r14        # 124bc0 <flux_foundry::detail::get_pool()::pool+0x1080c0>
+    0.00 :   12547:  movq   $0x1,0xd0(%rsp)
+    0.00 :   12553:  mov    %r14,%rax
+         : 1146  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   12556:  mov    %rax,(%r15)
+         : 1148  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12559:  lock cmpxchg %r12,0x11265e(%rip)        # 124bc0 <flux_foundry::detail::get_pool()::pool+0x1080c0>
+         : 1150  if (head.compare_exchange_weak(h_, fptr,
+    0.00 :   12562:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+         : 1152  if (steps < spin_limit) {
+    0.00 :   12568:  cmp    $0xf,%rdx
+    0.00 :   1256c:  ja     13219 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1999>
+    0.00 :   12572:  lea    0xd0(%rsp),%rdi
+    0.00 :   1257a:  mov    %rax,0x40(%rsp)
+         : 1157  for (size_t i = 0; i < count; ++i) {
+    0.00 :   1257f:  mov    %rdx,0xd8(%rsp)
+    0.00 :   12587:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   1258c:  mov    0xd8(%rsp),%rdx
+         : 1161  nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
+    0.00 :   12594:  mov    0x40(%rsp),%rax
+    0.00 :   12599:  jmp    12556 <double measure<1u, 4u>(unsigned short, unsigned long)+0xcd6>
+    0.00 :   1259b:  nopl   0x0(%rax,%rax,1)
+         : 1165  const bool aborted = closing_ || canceled_(data_);
+    0.00 :   125a0:  mov    %rbx,%rdi
+    0.00 :   125a3:  call   *%rax
+    0.00 :   125a5:  test   %al,%al
+    0.00 :   125a7:  jne    12014 <double measure<1u, 4u>(unsigned short, unsigned long)+0x794>
+         : 1170  p = &rte_eth_fp_ops[port_id];
+    0.00 :   125ad:  movzwl 0xf0(%rsp),%ecx
+         : 1172  nb_rx = p->rx_pkt_burst(qd, rx_pkts, nb_pkts);
+    0.00 :   125b5:  mov    $0x1,%edx
+         : 1174  dpdk_packet_batch batch;
+    0.00 :   125ba:  pxor   %xmm0,%xmm0
+    0.05 :   125be:  movaps %xmm0,0x120(%rsp)
+         : 1177  auto batch = aborted ? batch_type{} : batch_type::receive(port_, queue_);
+    0.00 :   125c6:  movzwl 0xf2(%rsp),%r15d
+    0.00 :   125cf:  lea    0x120(%rsp),%r14
+    0.00 :   125d7:  mov    %r14,%rsi
+         : 1181  qd = p->rxq.data[queue_id];
+    0.00 :   125da:  mov    %ecx,%eax
+         : 1183  p = &rte_eth_fp_ops[port_id];
+    0.42 :   125dc:  mov    %ecx,0x50(%rsp)
+         : 1185  qd = p->rxq.data[queue_id];
+    0.00 :   125e0:  shl    $0x7,%rax
+    0.00 :   125e4:  mov    %r15w,0x40(%rsp)
+    0.00 :   125ea:  lea    0x8c8f(%rip),%rcx        # 1b280 <rte_eth_fp_ops@DPDK_26>
+    0.00 :   125f1:  lea    (%rcx,%rax,1),%rbx
+    0.00 :   125f5:  mov    (%rbx),%rax
+         : 1191  nb_rx = p->rx_pkt_burst(qd, rx_pkts, nb_pkts);
+    0.00 :   125f8:  mov    (%rax,%r15,8),%rdi
+    0.00 :   125fc:  call   *0x10(%rbx)
+         : 1194  cb = rte_atomic_load_explicit(&p->rxq.clbk[queue_id],
+    0.00 :   125ff:  mov    0x8(%rbx),%rdx
+    0.00 :   12603:  mov    (%rdx,%r15,8),%r9
+         : 1197  if (unlikely(cb != NULL))
+    0.03 :   12607:  test   %r9,%r9
+    0.00 :   1260a:  jne    12e50 <double measure<1u, 4u>(unsigned short, unsigned long)+0x15d0>
+         : 1200  batch.count_ = Api::rx(port, queue, batch.packets_.data(), static_cast<std::uint16_t>(Capacity));
+    0.00 :   12610:  mov    %ax,0x128(%rsp)
+         : 1202  if (!aborted && !batch.size()) return false;
+    0.40 :   12618:  test   %ax,%ax
+    0.00 :   1261b:  je     12120 <double measure<1u, 4u>(unsigned short, unsigned long)+0x8a0>
+         : 1205  const auto fn = complete_;
+    0.00 :   12621:  mov    0xf8(%rsp),%rcx
+    0.00 :   12629:  lea    -0x4950(%rip),%rsi        # dce0 <flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api>::on_complete(void*, flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>&&, int)>
+         : 1208  complete_ = nullptr;
+    0.00 :   12630:  pxor   %xmm0,%xmm0
+         : 1210  fn(data, std::move(batch), aborted ? ECANCELED : 0);
+    0.00 :   12634:  xor    %edx,%edx
+         : 1212  auto* data = data_;
+    0.00 :   12636:  mov    0x108(%rsp),%rbx
+         : 1214  complete_ = nullptr;
+    0.00 :   1263e:  movups %xmm0,0xf8(%rsp)
+         : 1216  data_ = nullptr;
+    0.45 :   12646:  movq   $0x0,0x108(%rsp)
+    0.00 :   12652:  cmp    %rsi,%rcx
+    0.00 :   12655:  jne    1270d <double measure<1u, 4u>(unsigned short, unsigned long)+0xe8d>
+         : 1220  packets_ = other.packets_;
+    0.00 :   1265b:  mov    0x120(%rsp),%rdx
+         : 1222  count_ = other.count_;
+    0.00 :   12663:  mov    %ax,0x138(%rsp)
+         : 1224  return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   1266b:  mov    $0x1,%eax
+         : 1226  : _state{either_state::first} {
+    0.03 :   12670:  movl   $0x1,0x140(%rsp)
+         : 1228  packets_ = other.packets_;
+    0.00 :   1267b:  mov    %rdx,0x130(%rsp)
+         : 1230  other.count_ = 0;
+    0.00 :   12683:  xor    %edx,%edx
+    0.37 :   12685:  mov    %dx,0x128(%rsp)
+    0.00 :   1268d:  mov    $0x2,%edx
+    0.00 :   12692:  lock cmpxchg %edx,(%rbx)
+         : 1235  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    9.29 :   12696:  lea    0x8(%rbx),%r12
+         : 1237  return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   1269a:  sete   %al
+    0.00 :   1269d:  movzbl %al,%eax
+         : 1240  if (!status.compare_exchange_strong(expected, done,
+    0.40 :   126a0:  test   %eax,%eax
+    0.05 :   126a2:  je     126c2 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe42>
+         : 1243  return this->invoker_(this->data_, std::forward<Args>(args)...);
+    0.00 :   126a4:  lea    0x20(%rbx),%r14
+    0.00 :   126a8:  lea    0x130(%rsp),%rsi
+    0.00 :   126b0:  mov    %r14,%rdi
+    0.00 :   126b3:  call   *0x10(%rbx)
+         : 1248  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   126b6:  lock subq $0x1,(%r12)
+         : 1250  UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+    8.56 :   126bc:  je     12bd5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1355>
+         : 1252  if (_state == either_state::first) {
+    0.00 :   126c2:  mov    0x140(%rsp),%eax
+    0.00 :   126c9:  cmp    $0x1,%eax
+    0.00 :   126cc:  je     12730 <double measure<1u, 4u>(unsigned short, unsigned long)+0xeb0>
+         : 1256  } else if (_state == either_state::second) {
+    0.00 :   126ce:  cmp    $0x2,%eax
+    0.00 :   126d1:  jne    11e76 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5f6>
+         : 1259  if (_M_exception_object)
+    0.00 :   126d7:  cmpq   $0x0,0x130(%rsp)
+    0.00 :   126e0:  je     11e76 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5f6>
+         : 1262  _M_release();
+    0.00 :   126e6:  lea    0x130(%rsp),%rdi
+    0.00 :   126ee:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 1265  ~storage() noexcept {}
+    0.00 :   126f3:  jmp    11e76 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5f6>
+    0.00 :   126f8:  nopl   0x0(%rax,%rax,1)
+    0.00 :   12700:  lea    0x120(%rsp),%r14
+         : 1269  data_ = nullptr;
+    0.00 :   12708:  mov    $0x7d,%edx
+         : 1271  fn(data, std::move(batch), aborted ? ECANCELED : 0);
+    0.00 :   1270d:  mov    %r14,%rsi
+    0.00 :   12710:  mov    %rbx,%rdi
+    0.00 :   12713:  call   *%rcx
+         : 1275  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   12715:  cmpw   $0x0,0x128(%rsp)
+    0.00 :   1271e:  jne    11e95 <double measure<1u, 4u>(unsigned short, unsigned long)+0x615>
+    0.00 :   12724:  jmp    11ebb <double measure<1u, 4u>(unsigned short, unsigned long)+0x63b>
+    0.00 :   12729:  nopl   0x0(%rax)
+    0.00 :   12730:  cmpw   $0x0,0x138(%rsp)
+    0.00 :   12739:  je     11e76 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5f6>
+    0.00 :   1273f:  lea    0x130(%rsp),%r15
+    0.00 :   12747:  xor    %r14d,%r14d
+    0.00 :   1274a:  nopw   0x0(%rax,%rax,1)
+         : 1285  static void free(packet_type* packet) noexcept { rte_pktmbuf_free(packet); }
+    0.00 :   12750:  mov    (%r15),%rdi
+         : 1287  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   12753:  add    $0x1,%r14d
+    0.00 :   12757:  add    $0x8,%r15
+         : 1290  static void free(packet_type* packet) noexcept { rte_pktmbuf_free(packet); }
+    0.00 :   1275b:  call   4810 <rte_pktmbuf_free>
+         : 1292  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   12760:  cmp    0x138(%rsp),%r14w
+    0.00 :   12769:  jb     12750 <double measure<1u, 4u>(unsigned short, unsigned long)+0xed0>
+    0.00 :   1276b:  jmp    11e76 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5f6>
+    0.00 :   12770:  cmpw   $0x0,0x138(%rsp)
+    0.00 :   12779:  je     11e61 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5e1>
+    0.00 :   1277f:  lea    0x130(%rsp),%r14
+    0.00 :   12787:  xor    %r15d,%r15d
+    0.00 :   1278a:  nopw   0x0(%rax,%rax,1)
+         : 1301  static void free(packet_type* packet) noexcept { rte_pktmbuf_free(packet); }
+    0.00 :   12790:  mov    (%r14),%rdi
+         : 1303  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   12793:  add    $0x1,%r15d
+    0.00 :   12797:  add    $0x8,%r14
+         : 1306  static void free(packet_type* packet) noexcept { rte_pktmbuf_free(packet); }
+    0.00 :   1279b:  call   4810 <rte_pktmbuf_free>
+         : 1308  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   127a0:  cmp    0x138(%rsp),%r15w
+    0.00 :   127a9:  jb     12790 <double measure<1u, 4u>(unsigned short, unsigned long)+0xf10>
+    0.00 :   127ab:  jmp    11e61 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5e1>
+         : 1312  if (_M_exception_object)
+    0.00 :   127b0:  cmpq   $0x0,0x80(%rsp)
+    0.00 :   127b9:  je     11c9b <double measure<1u, 4u>(unsigned short, unsigned long)+0x41b>
+         : 1315  _M_release();
+    0.00 :   127bf:  lea    0x80(%rsp),%rdi
+    0.00 :   127c7:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 1318  void finish_run() noexcept {
+    0.00 :   127cc:  jmp    11c9b <double measure<1u, 4u>(unsigned short, unsigned long)+0x41b>
+    0.00 :   127d1:  nopl   0x0(%rax)
+         : 1321  static pool_t pool;
+    0.00 :   127d8:  lea    0xa2e9(%rip),%rdi        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   127df:  call   3160 <__cxa_guard_acquire@plt>
+    0.00 :   127e4:  test   %eax,%eax
+    0.00 :   127e6:  je     12047 <double measure<1u, 4u>(unsigned short, unsigned long)+0x7c7>
+    0.00 :   127ec:  call   4d50 <flux_foundry::detail::get_pool() [clone .part.0]>
+    0.00 :   127f1:  jmp    12047 <double measure<1u, 4u>(unsigned short, unsigned long)+0x7c7>
+    0.00 :   127f6:  mov    %rax,%r12
+         : 1329  if (steps < spin_limit) {
+    0.00 :   127f9:  cmp    $0xf,%rbx
+    0.00 :   127fd:  ja     1323b <double measure<1u, 4u>(unsigned short, unsigned long)+0x19bb>
+         : 1332  for (size_t i = 0; i < count; ++i) {
+    0.00 :   12803:  lea    0xd0(%rsp),%rdi
+    0.00 :   1280b:  mov    %rbx,0xd8(%rsp)
+    0.00 :   12813:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   12818:  mov    0xd8(%rsp),%rbx
+         : 1337  if (h_ == empty_tag()) {
+    0.00 :   12820:  cmp    $0x400,%r14
+    0.00 :   12827:  jne    124ef <double measure<1u, 4u>(unsigned short, unsigned long)+0xc6f>
+         : 1340  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   1282d:  mov    0x1163cc(%rip),%r12        # 128c00 <flux_foundry::detail::get_pool()::pool+0x10c100>
+    0.00 :   12834:  cmp    $0x200,%r12
+    0.00 :   1283b:  je     12ac0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1240>
+         : 1344  backoff_strategy<> backoff;
+    0.00 :   12841:  movq   $0x1,0xd0(%rsp)
+    0.00 :   1284d:  lea    0xa2ac(%rip),%r15        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   12854:  xor    %ebx,%ebx
+         : 1348  return tag & offset_msk();
+    0.00 :   12856:  mov    %r12,%rdx
+         : 1350  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12859:  mov    %r12,%rax
+    0.00 :   1285c:  and    $0x3ff,%edx
+         : 1353  __glibcxx_assert(__b != memory_order_acq_rel);
+    0.00 :   12862:  mov    %rdx,%rcx
+    0.00 :   12865:  shl    $0x4,%rcx
+         : 1356  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12869:  mov    0x10c188(%r15,%rcx,1),%rsi
+         : 1358  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12871:  lock cmpxchg %rsi,0x116386(%rip)        # 128c00 <flux_foundry::detail::get_pool()::pool+0x10c100>
+    0.00 :   1287a:  mov    %rax,%r14
+         : 1361  if (head.compare_exchange_weak(h_, next,
+    0.00 :   1287d:  jne    12a89 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1209>
+    0.00 :   12883:  shl    $0x4,%rdx
+    0.00 :   12887:  mov    0x10c180(%rdx,%r15,1),%rbx
+         : 1365  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   1288f:  lea    0x10c188(%r15,%rcx,1),%r15
+         : 1367  backoff_strategy<> backoff;
+    0.00 :   12897:  xor    %edx,%edx
+         : 1369  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12899:  mov    0x1163a0(%rip),%r14        # 128c40 <flux_foundry::detail::get_pool()::pool+0x10c140>
+    0.00 :   128a0:  movq   $0x1,0xd0(%rsp)
+    0.00 :   128ac:  mov    %r14,%rax
+         : 1373  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   128af:  mov    %rax,(%r15)
+         : 1375  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   128b2:  lock cmpxchg %r12,0x116385(%rip)        # 128c40 <flux_foundry::detail::get_pool()::pool+0x10c140>
+         : 1377  if (head.compare_exchange_weak(h_, fptr,
+    0.00 :   128bb:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+         : 1379  if (steps < spin_limit) {
+    0.00 :   128c1:  cmp    $0xf,%rdx
+    0.00 :   128c5:  ja     13245 <double measure<1u, 4u>(unsigned short, unsigned long)+0x19c5>
+    0.00 :   128cb:  lea    0xd0(%rsp),%rdi
+    0.00 :   128d3:  mov    %rax,0x40(%rsp)
+         : 1384  for (size_t i = 0; i < count; ++i) {
+    0.00 :   128d8:  mov    %rdx,0xd8(%rsp)
+    0.00 :   128e0:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   128e5:  mov    0xd8(%rsp),%rdx
+         : 1388  nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
+    0.00 :   128ed:  mov    0x40(%rsp),%rax
+    0.00 :   128f2:  jmp    128af <double measure<1u, 4u>(unsigned short, unsigned long)+0x102f>
+    0.00 :   128f4:  nopl   0x0(%rax)
+         : 1392  if (_state == either_state::second) {
+    0.00 :   128f8:  cmpl   $0x2,0x88(%rsp)
+         : 1394  state_ = runner_state::consumed;
+    0.00 :   12900:  mov    $0x2,%ebx
+    0.00 :   12905:  jne    11c9b <double measure<1u, 4u>(unsigned short, unsigned long)+0x41b>
+         : 1397  if (_M_exception_object)
+    0.00 :   1290b:  cmpq   $0x0,0x80(%rsp)
+    0.00 :   12914:  je     12487 <double measure<1u, 4u>(unsigned short, unsigned long)+0xc07>
+         : 1400  _M_release();
+    0.00 :   1291a:  lea    0x80(%rsp),%rdi
+    0.00 :   12922:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 1403  if (state_ == runner_state::running) {
+    0.00 :   12927:  cmp    $0x1,%bl
+    0.00 :   1292a:  setne  %r12b
+    0.00 :   1292e:  add    %r12d,%r12d
+    0.00 :   12931:  jmp    11ca1 <double measure<1u, 4u>(unsigned short, unsigned long)+0x421>
+    0.00 :   12936:  cs nopw 0x0(%rax,%rax,1)
+         : 1409  if (_M_exception_object)
+    0.00 :   12940:  cmpq   $0x0,0x130(%rsp)
+    0.00 :   12949:  je     11e61 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5e1>
+         : 1412  _M_release();
+    0.00 :   1294f:  lea    0x130(%rsp),%rdi
+    0.00 :   12957:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+    0.00 :   1295c:  jmp    11e61 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5e1>
+         : 1416  count_ -= sent;
+    0.00 :   12961:  sub    %eax,%esi
+    0.00 :   12963:  mov    %si,0x158(%rsp)
+         : 1419  require(batch.transmit(port, 0) == count && !batch.size(), "partial loopback TX");
+    0.00 :   1296b:  cmp    %ax,%bx
+    0.00 :   1296e:  jne    123eb <double measure<1u, 4u>(unsigned short, unsigned long)+0xb6b>
+    0.00 :   12974:  test   %si,%si
+    0.00 :   12977:  jne    123eb <double measure<1u, 4u>(unsigned short, unsigned long)+0xb6b>
+         : 1424  struct TS_EMPTY_BASES  either_storage_base : raw_either_storage_base<T, U> {
+    0.00 :   1297d:  mov    %r15,%rdi
+    0.00 :   12980:  call   a450 <flux_foundry::raw_either_storage_base<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, flux_foundry::error_t<std::__exception_ptr::exception_ptr>, false, false>::~raw_either_storage_base()>
+    0.00 :   12985:  lea    0x130(%rsp),%rdi
+    0.00 :   1298d:  call   a450 <flux_foundry::raw_either_storage_base<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, flux_foundry::error_t<std::__exception_ptr::exception_ptr>, false, false>::~raw_either_storage_base()>
+         : 1429  if (_M_exception_object)
+    0.00 :   12992:  cmpq   $0x0,0x68(%rsp)
+    0.00 :   12998:  je     129a2 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1122>
+         : 1432  _M_release();
+    0.00 :   1299a:  mov    %r12,%rdi
+    0.00 :   1299d:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 1435  if (_state == either_state::second) {
+    0.00 :   129a2:  cmpl   $0x2,0xd8(%rsp)
+    0.00 :   129aa:  je     12e29 <double measure<1u, 4u>(unsigned short, unsigned long)+0x15a9>
+    0.00 :   129b0:  cmpl   $0x2,0x88(%rsp)
+    0.00 :   129b8:  je     12cbb <double measure<1u, 4u>(unsigned short, unsigned long)+0x143b>
+         : 1440  state_ = runner_state::ready;
+    0.00 :   129be:  xor    %r12d,%r12d
+    0.00 :   129c1:  jmp    11ca1 <double measure<1u, 4u>(unsigned short, unsigned long)+0x421>
+         : 1443  if (manager_) {
+    0.00 :   129c6:  mov    0x18(%rbx),%rax
+    0.00 :   129ca:  test   %rax,%rax
+    0.00 :   129cd:  je     129dc <double measure<1u, 4u>(unsigned short, unsigned long)+0x115c>
+         : 1447  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   129cf:  lea    0x20(%rbx),%rsi
+    0.00 :   129d3:  mov    $0x2,%edx
+    0.00 :   129d8:  xor    %edi,%edi
+    0.00 :   129da:  call   *%rax
+         : 1452  UNLIKELY_IF(!p) {
+    0.37 :   129dc:  test   %rbx,%rbx
+    0.00 :   129df:  je     11e82 <double measure<1u, 4u>(unsigned short, unsigned long)+0x602>
+         : 1455  static thread_local cache_stack c;
+    0.00 :   129e5:  cmpb   $0x0,%fs:0xffffffffffffeff0
+    0.03 :   129ee:  je     12d96 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1516>
+         : 1458  LIKELY_IF(top < cache_cap) {
+    0.00 :   129f4:  mov    %fs:0xfffffffffffffff8,%rax
+    0.00 :   129fd:  cmp    $0x1ff,%rax
+    0.00 :   12a03:  ja     12eed <double measure<1u, 4u>(unsigned short, unsigned long)+0x166d>
+         : 1462  ptrs[top++] = p;
+    0.00 :   12a09:  mov    %rbx,%fs:-0x1008(,%rax,8)
+    0.00 :   12a12:  lea    0x1(%rax),%rdx
+    0.00 :   12a16:  mov    %rdx,%fs:0xfffffffffffffff8
+    0.18 :   12a1f:  jmp    11e82 <double measure<1u, 4u>(unsigned short, unsigned long)+0x602>
+    0.00 :   12a24:  nopl   0x0(%rax)
+         : 1468  for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   12a28:  add    $0x1,%r13
+         : 1470  inline void aligned_free(void* p) noexcept {
+         : 1471  UNLIKELY_IF (!p) {
+         : 1472  return;
+         : 1473  }
+         : 1474  #ifndef _WIN32
+         : 1475  free(p);
+    0.00 :   12a2c:  mov    0x8(%rsp),%rdi
+    0.00 :   12a31:  call   30c0 <free@plt>
+    0.00 :   12a36:  cmp    %r13,(%rsp)
+    0.00 :   12a3a:  jne    11a48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1c8>
+    0.00 :   12a40:  jmp    11ed5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x655>
+    0.00 :   12a45:  nopl   (%rax)
+    0.00 :   12a48:  mov    0x8(%rsp),%rdi
+    0.00 :   12a4d:  call   30c0 <free@plt>
+    0.00 :   12a52:  jmp    11a60 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1e0>
+    0.00 :   12a57:  mov    %rax,%rcx
+         : 1486  const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   12a5a:  shr    $1,%rax
+    0.00 :   12a5d:  pxor   %xmm0,%xmm0
+    0.00 :   12a61:  and    $0x1,%ecx
+    0.00 :   12a64:  or     %rcx,%rax
+    0.00 :   12a67:  cvtsi2sd %rax,%xmm0
+    0.00 :   12a6c:  addsd  %xmm0,%xmm0
+    0.00 :   12a70:  jmp    11f2e <double measure<1u, 4u>(unsigned short, unsigned long)+0x6ae>
+         : 1494  if (manager_) {
+    0.00 :   12a75:  lea    -0xb3fc(%rip),%rax        # 7680 <flux_foundry::life_span_manager<flux_foundry::flow_fast_runner<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator> >, receiver<1u> >::ipc<1ul>::make_async_next_step<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator> >, receiver<1u> >, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity>(flux_foundry::compressed_pair<flux_foundry::fast_runner_impl::bp_storage<flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator> >, receiver<1u> > const&, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*> const&, flux_foundry::flow_impl::identity const&, std::integral_constant<bool, true>)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}, true>::manage(void*, void const*, flux_foundry::type_erase_lifespan_op)>
+    0.00 :   12a7c:  lea    0x160(%rsp),%r12
+    0.00 :   12a84:  jmp    11bf8 <double measure<1u, 4u>(unsigned short, unsigned long)+0x378>
+    0.00 :   12a89:  mov    %rax,%r12
+         : 1499  if (steps < spin_limit) {
+    0.00 :   12a8c:  cmp    $0xf,%rbx
+    0.00 :   12a90:  ja     1313f <double measure<1u, 4u>(unsigned short, unsigned long)+0x18bf>
+         : 1502  for (size_t i = 0; i < count; ++i) {
+    0.00 :   12a96:  lea    0xd0(%rsp),%rdi
+    0.00 :   12a9e:  mov    %rbx,0xd8(%rsp)
+    0.00 :   12aa6:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   12aab:  mov    0xd8(%rsp),%rbx
+         : 1507  if (h_ == empty_tag()) {
+    0.00 :   12ab3:  cmp    $0x200,%r14
+    0.00 :   12aba:  jne    12856 <double measure<1u, 4u>(unsigned short, unsigned long)+0xfd6>
+         : 1510  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12ac0:  mov    0x1181b9(%rip),%r12        # 12ac80 <flux_foundry::detail::get_pool()::pool+0x10e180>
+    0.00 :   12ac7:  cmp    $0x100,%r12
+    0.00 :   12ace:  je     120e8 <double measure<1u, 4u>(unsigned short, unsigned long)+0x868>
+         : 1514  backoff_strategy<> backoff;
+    0.00 :   12ad4:  movq   $0x1,0xd0(%rsp)
+    0.00 :   12ae0:  lea    0xa019(%rip),%r15        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   12ae7:  xor    %ebx,%ebx
+         : 1518  return tag & offset_msk();
+    0.00 :   12ae9:  mov    %r12,%rdx
+         : 1520  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12aec:  mov    %r12,%rax
+    0.00 :   12aef:  and    $0x1ff,%edx
+         : 1523  __glibcxx_assert(__b != memory_order_acq_rel);
+    0.00 :   12af5:  mov    %rdx,%rcx
+    0.00 :   12af8:  shl    $0x4,%rcx
+         : 1526  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12afc:  mov    0x10e208(%r15,%rcx,1),%rsi
+         : 1528  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12b04:  lock cmpxchg %rsi,0x118173(%rip)        # 12ac80 <flux_foundry::detail::get_pool()::pool+0x10e180>
+    0.00 :   12b0d:  mov    %rax,%r14
+         : 1531  if (head.compare_exchange_weak(h_, next,
+    0.00 :   12b10:  jne    13171 <double measure<1u, 4u>(unsigned short, unsigned long)+0x18f1>
+    0.00 :   12b16:  shl    $0x4,%rdx
+    0.00 :   12b1a:  mov    0x10e200(%rdx,%r15,1),%rbx
+         : 1535  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   12b22:  lea    0x10e208(%r15,%rcx,1),%r15
+         : 1537  backoff_strategy<> backoff;
+    0.00 :   12b2a:  xor    %edx,%edx
+         : 1539  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   12b2c:  mov    0x11818d(%rip),%r14        # 12acc0 <flux_foundry::detail::get_pool()::pool+0x10e1c0>
+    0.00 :   12b33:  movq   $0x1,0xd0(%rsp)
+         : 1542  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   12b3f:  mov    %r14,(%r15)
+         : 1544  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   12b42:  mov    %r14,%rax
+    0.00 :   12b45:  lock cmpxchg %r12,0x118172(%rip)        # 12acc0 <flux_foundry::detail::get_pool()::pool+0x10e1c0>
+    0.00 :   12b4e:  mov    %rax,%r14
+         : 1548  if (head.compare_exchange_weak(h_, fptr,
+    0.00 :   12b51:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+         : 1550  if (steps < spin_limit) {
+    0.00 :   12b57:  cmp    $0xf,%rdx
+    0.00 :   12b5b:  ja     131b6 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1936>
+         : 1553  for (size_t i = 0; i < count; ++i) {
+    0.00 :   12b61:  lea    0xd0(%rsp),%rdi
+    0.00 :   12b69:  mov    %rdx,0xd8(%rsp)
+    0.00 :   12b71:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   12b76:  mov    0xd8(%rsp),%rdx
+         : 1558  nodes[get_offset(fptr)].next.store(h_, std::memory_order_relaxed);
+    0.00 :   12b7e:  jmp    12b3f <double measure<1u, 4u>(unsigned short, unsigned long)+0x12bf>
+    0.00 :   12b80:  mov    0x18(%rbx),%rax
+    0.00 :   12b84:  test   %rax,%rax
+    0.00 :   12b87:  je     12b96 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1316>
+         : 1563  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   12b89:  lea    0x20(%rbx),%rsi
+    0.00 :   12b8d:  mov    $0x2,%edx
+    0.00 :   12b92:  xor    %edi,%edi
+    0.00 :   12b94:  call   *%rax
+         : 1568  static thread_local cache_stack c;
+    0.00 :   12b96:  cmpb   $0x0,%fs:0xffffffffffffeff0
+    0.00 :   12b9f:  je     12cdc <double measure<1u, 4u>(unsigned short, unsigned long)+0x145c>
+         : 1571  LIKELY_IF(top < cache_cap) {
+    0.00 :   12ba5:  mov    %fs:0xfffffffffffffff8,%rax
+    0.00 :   12bae:  cmp    $0x1ff,%rax
+    0.00 :   12bb4:  ja     1240c <double measure<1u, 4u>(unsigned short, unsigned long)+0xb8c>
+         : 1575  ptrs[top++] = p;
+    0.00 :   12bba:  mov    %rbx,%fs:-0x1008(,%rax,8)
+    0.00 :   12bc3:  lea    0x1(%rax),%rdx
+    0.00 :   12bc7:  mov    %rdx,%fs:0xfffffffffffffff8
+    0.00 :   12bd0:  jmp    11c7f <double measure<1u, 4u>(unsigned short, unsigned long)+0x3ff>
+         : 1580  if (manager_) {
+    0.00 :   12bd5:  mov    0x18(%rbx),%rax
+    0.00 :   12bd9:  test   %rax,%rax
+    0.00 :   12bdc:  je     12bea <double measure<1u, 4u>(unsigned short, unsigned long)+0x136a>
+         : 1584  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   12bde:  mov    $0x2,%edx
+    0.00 :   12be3:  mov    %r14,%rsi
+    0.00 :   12be6:  xor    %edi,%edi
+    0.00 :   12be8:  call   *%rax
+         : 1589  UNLIKELY_IF(!p) {
+    0.00 :   12bea:  test   %rbx,%rbx
+    0.00 :   12bed:  je     126c2 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe42>
+         : 1592  static thread_local cache_stack c;
+    0.00 :   12bf3:  cmpb   $0x0,%fs:0xffffffffffffeff0
+    0.00 :   12bfc:  je     12d58 <double measure<1u, 4u>(unsigned short, unsigned long)+0x14d8>
+         : 1595  LIKELY_IF(top < cache_cap) {
+    0.00 :   12c02:  mov    %fs:0xfffffffffffffff8,%rax
+    0.00 :   12c0b:  cmp    $0x1ff,%rax
+    0.00 :   12c11:  ja     12eae <double measure<1u, 4u>(unsigned short, unsigned long)+0x162e>
+         : 1599  ptrs[top++] = p;
+    0.00 :   12c17:  mov    %rbx,%fs:-0x1008(,%rax,8)
+    0.00 :   12c20:  lea    0x1(%rax),%rdx
+    0.00 :   12c24:  mov    %rdx,%fs:0xfffffffffffffff8
+         : 1603  return;
+    0.00 :   12c2d:  jmp    126c2 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe42>
+         : 1605  if (manager_) {
+    0.00 :   12c32:  mov    0x18(%rbx),%rax
+    0.00 :   12c36:  test   %rax,%rax
+    0.00 :   12c39:  je     12c47 <double measure<1u, 4u>(unsigned short, unsigned long)+0x13c7>
+         : 1609  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   12c3b:  mov    $0x2,%edx
+    0.00 :   12c40:  mov    %r14,%rsi
+    0.00 :   12c43:  xor    %edi,%edi
+    0.00 :   12c45:  call   *%rax
+         : 1614  UNLIKELY_IF(!p) {
+    0.00 :   12c47:  test   %rbx,%rbx
+    0.00 :   12c4a:  je     11e48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5c8>
+         : 1617  static thread_local cache_stack c;
+    0.00 :   12c50:  cmpb   $0x0,%fs:0xffffffffffffeff0
+    0.00 :   12c59:  je     12d1a <double measure<1u, 4u>(unsigned short, unsigned long)+0x149a>
+         : 1620  LIKELY_IF(top < cache_cap) {
+    0.00 :   12c5f:  mov    %fs:0xfffffffffffffff8,%rax
+    0.00 :   12c68:  cmp    $0x1ff,%rax
+    0.00 :   12c6e:  ja     12e6f <double measure<1u, 4u>(unsigned short, unsigned long)+0x15ef>
+         : 1624  ptrs[top++] = p;
+    0.00 :   12c74:  mov    %rbx,%fs:-0x1008(,%rax,8)
+    0.00 :   12c7d:  lea    0x1(%rax),%rdx
+    0.00 :   12c81:  mov    %rdx,%fs:0xfffffffffffffff8
+         : 1628  return;
+    0.00 :   12c8a:  jmp    11e48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5c8>
+    0.00 :   12c8f:  lea    0x55cb(%rip),%rdi        # 18261 <_IO_stdin_used+0x261>
+    0.00 :   12c96:  mov    %rax,0x10(%rsp)
+    0.00 :   12c9b:  call   8f80 <probe_perf::command(char const*)>
+    0.00 :   12ca0:  mov    0x10(%rsp),%rax
+    0.00 :   12ca5:  jmp    11f0c <double measure<1u, 4u>(unsigned short, unsigned long)+0x68c>
+         : 1635  inline void begin() { if (++phase() == 2) command("enable\n"); }
+    0.00 :   12caa:  lea    0x558f(%rip),%rdi        # 18240 <_IO_stdin_used+0x240>
+    0.00 :   12cb1:  call   8f80 <probe_perf::command(char const*)>
+    0.00 :   12cb6:  jmp    119b8 <double measure<1u, 4u>(unsigned short, unsigned long)+0x138>
+         : 1639  if (_M_exception_object)
+    0.00 :   12cbb:  cmpq   $0x0,0x80(%rsp)
+    0.00 :   12cc4:  je     129be <double measure<1u, 4u>(unsigned short, unsigned long)+0x113e>
+         : 1642  _M_release();
+    0.00 :   12cca:  lea    0x80(%rsp),%rdi
+    0.00 :   12cd2:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 1645  void finish_run() noexcept {
+    0.00 :   12cd7:  jmp    129be <double measure<1u, 4u>(unsigned short, unsigned long)+0x113e>
+         : 1647  static thread_local cache_stack c;
+    0.00 :   12cdc:  mov    %fs:0x0,%rax
+    0.00 :   12ce5:  lea    0x8544(%rip),%rdx        # 1b230 <__dso_handle>
+         : 1650  struct cache_stack {
+    0.00 :   12cec:  movq   $0x0,%fs:0xfffffffffffffff8
+         : 1652  static thread_local cache_stack c;
+    0.00 :   12cf9:  movb   $0x1,%fs:0xffffffffffffeff0
+    0.00 :   12d02:  lea    -0xae89(%rip),%rdi        # 7e80 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::cache_stack::~cache_stack()>
+    0.00 :   12d09:  lea    -0x1008(%rax),%rsi
+    0.00 :   12d10:  call   3150 <__cxa_thread_atexit@plt>
+    0.00 :   12d15:  jmp    12ba5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1325>
+    0.00 :   12d1a:  mov    %fs:0x0,%rax
+    0.00 :   12d23:  lea    0x8506(%rip),%rdx        # 1b230 <__dso_handle>
+         : 1660  struct cache_stack {
+    0.00 :   12d2a:  movq   $0x0,%fs:0xfffffffffffffff8
+         : 1662  static thread_local cache_stack c;
+    0.00 :   12d37:  movb   $0x1,%fs:0xffffffffffffeff0
+    0.00 :   12d40:  lea    -0xaec7(%rip),%rdi        # 7e80 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::cache_stack::~cache_stack()>
+    0.00 :   12d47:  lea    -0x1008(%rax),%rsi
+    0.00 :   12d4e:  call   3150 <__cxa_thread_atexit@plt>
+    0.00 :   12d53:  jmp    12c5f <double measure<1u, 4u>(unsigned short, unsigned long)+0x13df>
+    0.00 :   12d58:  mov    %fs:0x0,%rax
+    0.00 :   12d61:  lea    0x84c8(%rip),%rdx        # 1b230 <__dso_handle>
+         : 1670  struct cache_stack {
+    0.00 :   12d68:  movq   $0x0,%fs:0xfffffffffffffff8
+         : 1672  static thread_local cache_stack c;
+    0.00 :   12d75:  movb   $0x1,%fs:0xffffffffffffeff0
+    0.00 :   12d7e:  lea    -0xaf05(%rip),%rdi        # 7e80 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::cache_stack::~cache_stack()>
+    0.00 :   12d85:  lea    -0x1008(%rax),%rsi
+    0.00 :   12d8c:  call   3150 <__cxa_thread_atexit@plt>
+    0.00 :   12d91:  jmp    12c02 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1382>
+    0.00 :   12d96:  mov    %fs:0x0,%rax
+    0.00 :   12d9f:  lea    0x848a(%rip),%rdx        # 1b230 <__dso_handle>
+         : 1680  struct cache_stack {
+    0.00 :   12da6:  movq   $0x0,%fs:0xfffffffffffffff8
+         : 1682  static thread_local cache_stack c;
+    0.00 :   12db3:  movb   $0x1,%fs:0xffffffffffffeff0
+    0.00 :   12dbc:  lea    -0xaf43(%rip),%rdi        # 7e80 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::cache_stack::~cache_stack()>
+    0.00 :   12dc3:  lea    -0x1008(%rax),%rsi
+    0.00 :   12dca:  call   3150 <__cxa_thread_atexit@plt>
+    0.00 :   12dcf:  jmp    129f4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1174>
+         : 1688  if (manager_) {
+    0.00 :   12dd4:  mov    0x18(%rbx),%rax
+    0.00 :   12dd8:  test   %rax,%rax
+    0.00 :   12ddb:  je     12dea <double measure<1u, 4u>(unsigned short, unsigned long)+0x156a>
+         : 1692  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   12ddd:  lea    0x20(%rbx),%rsi
+    0.00 :   12de1:  mov    $0x2,%edx
+    0.00 :   12de6:  xor    %edi,%edi
+    0.00 :   12de8:  call   *%rax
+    0.00 :   12dea:  cmpb   $0x0,%fs:0xffffffffffffeff0
+    0.00 :   12df3:  je     12f2c <double measure<1u, 4u>(unsigned short, unsigned long)+0x16ac>
+         : 1699  LIKELY_IF(top < cache_cap) {
+    0.00 :   12df9:  mov    %fs:0xfffffffffffffff8,%rax
+    0.00 :   12e02:  cmp    $0x1ff,%rax
+    0.00 :   12e08:  ja     12fe5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1765>
+         : 1703  ptrs[top++] = p;
+    0.00 :   12e0e:  mov    %rbx,%fs:-0x1008(,%rax,8)
+    0.00 :   12e17:  lea    0x1(%rax),%rdx
+    0.00 :   12e1b:  mov    %rdx,%fs:0xfffffffffffffff8
+    0.00 :   12e24:  jmp    121d5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x955>
+         : 1708  if (_M_exception_object)
+    0.00 :   12e29:  cmpq   $0x0,0xd0(%rsp)
+         : 1710  }
+         :
+         : 1712  void restore_running_after_failed_submit() noexcept {
+         : 1713  state_ = runner_state::running;
+    0.00 :   12e32:  mov    $0x1,%ebx
+    0.00 :   12e37:  jne    1246c <double measure<1u, 4u>(unsigned short, unsigned long)+0xbec>
+    0.00 :   12e3d:  cmpl   $0x2,0x88(%rsp)
+    0.00 :   12e45:  jne    129be <double measure<1u, 4u>(unsigned short, unsigned long)+0x113e>
+    0.00 :   12e4b:  jmp    1290b <double measure<1u, 4u>(unsigned short, unsigned long)+0x108b>
+         : 1719  nb_rx = rte_eth_call_rx_callbacks(port_id, queue_id,
+    0.00 :   12e50:  mov    0x50(%rsp),%edi
+    0.00 :   12e54:  movzwl %ax,%ecx
+    0.00 :   12e57:  mov    $0x1,%r8d
+    0.00 :   12e5d:  mov    %r14,%rdx
+    0.00 :   12e60:  movzwl 0x40(%rsp),%esi
+    0.00 :   12e65:  call   3350 <rte_eth_call_rx_callbacks@plt>
+    0.00 :   12e6a:  jmp    12610 <double measure<1u, 4u>(unsigned short, unsigned long)+0xd90>
+         : 1727  static pool_t pool;
+    0.00 :   12e6f:  movzbl 0x9c52(%rip),%eax        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   12e76:  test   %al,%al
+    0.00 :   12e78:  je     13024 <double measure<1u, 4u>(unsigned short, unsigned long)+0x17a4>
+    0.00 :   12e7e:  lea    0x109c7b(%rip),%rax        # 11cb00 <flux_foundry::detail::get_pool()::pool+0x100000>
+    0.00 :   12e85:  cmp    %rax,%rbx
+    0.00 :   12e88:  jae    131a9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1929>
+    0.00 :   12e8e:  lea    -0x100000(%rax),%r15
+    0.00 :   12e95:  cmp    %r15,%rbx
+    0.00 :   12e98:  jb     131a9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1929>
+         : 1737  pool.deallocate(p);
+    0.00 :   12e9e:  mov    %rbx,%rsi
+    0.00 :   12ea1:  mov    %r15,%rdi
+    0.00 :   12ea4:  call   c8c0 <flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)>
+    0.00 :   12ea9:  jmp    11e48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5c8>
+         : 1742  static pool_t pool;
+    0.00 :   12eae:  movzbl 0x9c13(%rip),%eax        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   12eb5:  test   %al,%al
+    0.00 :   12eb7:  je     13042 <double measure<1u, 4u>(unsigned short, unsigned long)+0x17c2>
+    0.00 :   12ebd:  lea    0x9c3c(%rip),%r15        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   12ec4:  cmp    %r15,%rbx
+    0.00 :   12ec7:  jb     130df <double measure<1u, 4u>(unsigned short, unsigned long)+0x185f>
+    0.00 :   12ecd:  lea    0x100000(%r15),%rax
+    0.00 :   12ed4:  cmp    %rax,%rbx
+    0.00 :   12ed7:  jae    130df <double measure<1u, 4u>(unsigned short, unsigned long)+0x185f>
+         : 1752  pool.deallocate(p);
+    0.00 :   12edd:  mov    %rbx,%rsi
+    0.00 :   12ee0:  mov    %r15,%rdi
+    0.00 :   12ee3:  call   c8c0 <flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)>
+    0.00 :   12ee8:  jmp    126c2 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe42>
+         : 1757  static pool_t pool;
+    0.00 :   12eed:  movzbl 0x9bd4(%rip),%eax        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   12ef4:  test   %al,%al
+    0.00 :   12ef6:  je     12fc7 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1747>
+    0.00 :   12efc:  lea    0x109bfd(%rip),%rax        # 11cb00 <flux_foundry::detail::get_pool()::pool+0x100000>
+    0.00 :   12f03:  cmp    %rax,%rbx
+    0.00 :   12f06:  jae    130ec <double measure<1u, 4u>(unsigned short, unsigned long)+0x186c>
+    0.00 :   12f0c:  lea    -0x100000(%rax),%r15
+    0.00 :   12f13:  cmp    %r15,%rbx
+    0.00 :   12f16:  jb     130ec <double measure<1u, 4u>(unsigned short, unsigned long)+0x186c>
+         : 1767  pool.deallocate(p);
+    0.00 :   12f1c:  mov    %rbx,%rsi
+    0.00 :   12f1f:  mov    %r15,%rdi
+    0.00 :   12f22:  call   c8c0 <flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)>
+         : 1771  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   12f27:  jmp    11e82 <double measure<1u, 4u>(unsigned short, unsigned long)+0x602>
+         : 1773  static thread_local cache_stack c;
+    0.00 :   12f2c:  mov    %fs:0x0,%rax
+    0.00 :   12f35:  lea    0x82f4(%rip),%rdx        # 1b230 <__dso_handle>
+         : 1776  struct cache_stack {
+    0.00 :   12f3c:  movq   $0x0,%fs:0xfffffffffffffff8
+         : 1778  static thread_local cache_stack c;
+    0.00 :   12f49:  movb   $0x1,%fs:0xffffffffffffeff0
+    0.00 :   12f52:  lea    -0xb0d9(%rip),%rdi        # 7e80 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::cache_stack::~cache_stack()>
+    0.00 :   12f59:  lea    -0x1008(%rax),%rsi
+    0.00 :   12f60:  call   3150 <__cxa_thread_atexit@plt>
+    0.00 :   12f65:  jmp    12df9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1579>
+    0.00 :   12f6a:  lea    -0x1(%rsi),%eax
+    0.00 :   12f6d:  movzwl %di,%ecx
+    0.00 :   12f70:  lea    0x8(%r15),%rdx
+    0.00 :   12f74:  sub    %edi,%eax
+    0.00 :   12f76:  movzwl %ax,%eax
+    0.00 :   12f79:  lea    (%rdx,%rax,8),%r8
+    0.00 :   12f7d:  jmp    12f83 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1703>
+    0.00 :   12f7f:  add    $0x8,%rdx
+         : 1792  for (std::uint16_t i = sent; i < count_; ++i) packets_[i - sent] = packets_[i];
+    0.00 :   12f83:  mov    (%r10,%rcx,8),%rax
+    0.00 :   12f87:  mov    %rax,(%r10)
+    0.00 :   12f8a:  mov    %rdx,%r10
+    0.00 :   12f8d:  cmp    %rdx,%r8
+    0.00 :   12f90:  jne    12f7f <double measure<1u, 4u>(unsigned short, unsigned long)+0x16ff>
+    0.00 :   12f92:  jmp    123e1 <double measure<1u, 4u>(unsigned short, unsigned long)+0xb61>
+         : 1799  nb_pkts = rte_eth_call_tx_callbacks(port_id, queue_id,
+    0.00 :   12f97:  movzwl %bx,%ecx
+    0.00 :   12f9a:  mov    %r15,%rdx
+    0.00 :   12f9d:  xor    %esi,%esi
+    0.00 :   12f9f:  mov    %r10,0x58(%rsp)
+    0.00 :   12fa4:  mov    %r11,0x50(%rsp)
+    0.00 :   12fa9:  mov    %r9,0x40(%rsp)
+    0.00 :   12fae:  call   31d0 <rte_eth_call_tx_callbacks@plt>
+    0.00 :   12fb3:  mov    0x58(%rsp),%r10
+    0.00 :   12fb8:  mov    0x50(%rsp),%r11
+    0.00 :   12fbd:  mov    0x40(%rsp),%r9
+    0.00 :   12fc2:  jmp    1232e <double measure<1u, 4u>(unsigned short, unsigned long)+0xaae>
+         : 1811  static pool_t pool;
+    0.00 :   12fc7:  lea    0x9afa(%rip),%rdi        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   12fce:  call   3160 <__cxa_guard_acquire@plt>
+    0.00 :   12fd3:  test   %eax,%eax
+    0.00 :   12fd5:  je     12efc <double measure<1u, 4u>(unsigned short, unsigned long)+0x167c>
+    0.00 :   12fdb:  call   4d50 <flux_foundry::detail::get_pool() [clone .part.0]>
+    0.00 :   12fe0:  jmp    12efc <double measure<1u, 4u>(unsigned short, unsigned long)+0x167c>
+    0.00 :   12fe5:  movzbl 0x9adc(%rip),%eax        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   12fec:  test   %al,%al
+    0.00 :   12fee:  je     1307e <double measure<1u, 4u>(unsigned short, unsigned long)+0x17fe>
+    0.00 :   12ff4:  lea    0x9b05(%rip),%r15        # 1cb00 <flux_foundry::detail::get_pool()::pool>
+    0.00 :   12ffb:  cmp    %r15,%rbx
+    0.00 :   12ffe:  jb     1309c <double measure<1u, 4u>(unsigned short, unsigned long)+0x181c>
+    0.00 :   13004:  lea    0x100000(%r15),%rax
+    0.00 :   1300b:  cmp    %rax,%rbx
+    0.00 :   1300e:  jae    1309c <double measure<1u, 4u>(unsigned short, unsigned long)+0x181c>
+         : 1827  pool.deallocate(p);
+    0.00 :   13014:  mov    %rbx,%rsi
+    0.00 :   13017:  mov    %r15,%rdi
+    0.00 :   1301a:  call   c8c0 <flux_foundry::static_mem_pool<256ul, 1024ul>::deallocate(void*)>
+    0.00 :   1301f:  jmp    121d5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x955>
+         : 1832  static pool_t pool;
+    0.00 :   13024:  lea    0x9a9d(%rip),%rdi        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   1302b:  call   3160 <__cxa_guard_acquire@plt>
+    0.00 :   13030:  test   %eax,%eax
+    0.00 :   13032:  je     12e7e <double measure<1u, 4u>(unsigned short, unsigned long)+0x15fe>
+    0.00 :   13038:  call   4d50 <flux_foundry::detail::get_pool() [clone .part.0]>
+    0.00 :   1303d:  jmp    12e7e <double measure<1u, 4u>(unsigned short, unsigned long)+0x15fe>
+    0.00 :   13042:  lea    0x9a7f(%rip),%rdi        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   13049:  call   3160 <__cxa_guard_acquire@plt>
+    0.00 :   1304e:  test   %eax,%eax
+    0.00 :   13050:  je     12ebd <double measure<1u, 4u>(unsigned short, unsigned long)+0x163d>
+    0.00 :   13056:  call   4d50 <flux_foundry::detail::get_pool() [clone .part.0]>
+    0.00 :   1305b:  jmp    12ebd <double measure<1u, 4u>(unsigned short, unsigned long)+0x163d>
+    0.00 :   13060:  lea    0x9a61(%rip),%rdi        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   13067:  call   3160 <__cxa_guard_acquire@plt>
+    0.00 :   1306c:  test   %eax,%eax
+    0.00 :   1306e:  je     1241b <double measure<1u, 4u>(unsigned short, unsigned long)+0xb9b>
+    0.00 :   13074:  call   4d50 <flux_foundry::detail::get_pool() [clone .part.0]>
+    0.00 :   13079:  jmp    1241b <double measure<1u, 4u>(unsigned short, unsigned long)+0xb9b>
+    0.00 :   1307e:  lea    0x9a43(%rip),%rdi        # 1cac8 <guard variable for flux_foundry::detail::get_pool()::pool>
+    0.00 :   13085:  call   3160 <__cxa_guard_acquire@plt>
+    0.00 :   1308a:  test   %eax,%eax
+    0.00 :   1308c:  je     12ff4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1774>
+    0.00 :   13092:  call   4d50 <flux_foundry::detail::get_pool() [clone .part.0]>
+    0.00 :   13097:  jmp    12ff4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1774>
+         : 1857  free(p);
+    0.00 :   1309c:  mov    %rbx,%rdi
+    0.00 :   1309f:  call   30c0 <free@plt>
+    0.00 :   130a4:  jmp    121d5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x955>
+         : 1861  if (steps < spin_limit) {
+    0.00 :   130a9:  cmp    $0xf,%rdx
+    0.00 :   130ad:  ja     131f7 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1977>
+    0.00 :   130b3:  lea    0xd0(%rsp),%rdi
+    0.00 :   130bb:  mov    %rax,0x40(%rsp)
+         : 1866  for (size_t i = 0; i < count; ++i) {
+    0.00 :   130c0:  mov    %rdx,0xd8(%rsp)
+    0.00 :   130c8:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   130cd:  mov    0xd8(%rsp),%rdx
+    0.00 :   130d5:  mov    0x40(%rsp),%rax
+    0.00 :   130da:  jmp    120cd <double measure<1u, 4u>(unsigned short, unsigned long)+0x84d>
+    0.00 :   130df:  mov    %rbx,%rdi
+    0.00 :   130e2:  call   30c0 <free@plt>
+    0.00 :   130e7:  jmp    126c2 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe42>
+    0.00 :   130ec:  mov    %rbx,%rdi
+    0.00 :   130ef:  call   30c0 <free@plt>
+         : 1877  for (std::uint16_t i = 0; i < count_; ++i) Api::free(packets_[i]);
+    0.00 :   130f4:  jmp    11e82 <double measure<1u, 4u>(unsigned short, unsigned long)+0x602>
+    0.00 :   130f9:  mov    0x1c8(%rsp),%rax
+    0.00 :   13101:  sub    %fs:0x28,%rax
+    0.00 :   1310a:  je     13695 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1e15>
+    0.00 :   13110:  mov    %rbp,0x1e0(%rsp)
+    0.00 :   13118:  mov    %r12,0x1e8(%rsp)
+    0.00 :   13120:  mov    %r13,0x1f0(%rsp)
+    0.00 :   13128:  mov    %r15,0x200(%rsp)
+         : 1886  }
+    0.00 :   13130:  call   3120 <__stack_chk_fail@plt>
+         : 1888  }
+         :
+         : 1890  __GTHREAD_INLINE int
+         : 1891  __gthread_yield (void)
+         : 1892  {
+         : 1893  return __gthrw_(sched_yield) ();
+    0.00 :   13135:  call   3460 <sched_yield@plt>
+    0.00 :   1313a:  jmp    124c0 <double measure<1u, 4u>(unsigned short, unsigned long)+0xc40>
+    0.00 :   1313f:  call   3460 <sched_yield@plt>
+    0.00 :   13144:  jmp    12ab3 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1233>
+    0.00 :   13149:  nopl   0x0(%rax)
+    0.00 :   13150:  mov    0x8109(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   13157:  lea    0x4ebe(%rip),%rdx        # 1801c <_IO_stdin_used+0x1c>
+    0.00 :   1315e:  xor    %eax,%eax
+    0.00 :   13160:  lea    0x4eb1(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   13167:  call   30d0 <fprintf@plt>
+    0.00 :   1316c:  call   3280 <abort@plt>
+    0.00 :   13171:  mov    %rax,%r12
+         : 1906  if (steps < spin_limit) {
+    0.00 :   13174:  cmp    $0xf,%rbx
+    0.00 :   13178:  ja     131d5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1955>
+         : 1909  for (size_t i = 0; i < count; ++i) {
+    0.00 :   1317a:  lea    0xd0(%rsp),%rdi
+    0.00 :   13182:  mov    %rbx,0xd8(%rsp)
+    0.00 :   1318a:  call   47c0 <flux_foundry::backoff_strategy<16ul, 1024ul>::yield() [clone .part.0]>
+    0.00 :   1318f:  mov    0xd8(%rsp),%rbx
+         : 1914  if (h_ == empty_tag()) {
+    0.00 :   13197:  cmp    $0x100,%r14
+    0.00 :   1319e:  jne    12ae9 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1269>
+    0.00 :   131a4:  jmp    120e8 <double measure<1u, 4u>(unsigned short, unsigned long)+0x868>
+    0.00 :   131a9:  mov    %rbx,%rdi
+    0.00 :   131ac:  call   30c0 <free@plt>
+    0.00 :   131b1:  jmp    11e48 <double measure<1u, 4u>(unsigned short, unsigned long)+0x5c8>
+    0.00 :   131b6:  call   3460 <sched_yield@plt>
+    0.00 :   131bb:  mov    %r14,%rax
+         : 1923  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   131be:  mov    %r14,(%r15)
+         : 1925  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   131c1:  lock cmpxchg %r12,0x117af6(%rip)        # 12acc0 <flux_foundry::detail::get_pool()::pool+0x10e1c0>
+    0.00 :   131ca:  mov    %rax,%r14
+         : 1928  if (head.compare_exchange_weak(h_, fptr,
+    0.00 :   131cd:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+    0.00 :   131d3:  jmp    131b6 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1936>
+    0.00 :   131d5:  call   3460 <sched_yield@plt>
+    0.00 :   131da:  jmp    13197 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1917>
+    0.00 :   131dc:  mov    %rbx,%rdi
+    0.00 :   131df:  call   30c0 <free@plt>
+    0.00 :   131e4:  cmpl   $0x2,0xd8(%rsp)
+    0.00 :   131ec:  jne    11c8d <double measure<1u, 4u>(unsigned short, unsigned long)+0x40d>
+    0.00 :   131f2:  jmp    12458 <double measure<1u, 4u>(unsigned short, unsigned long)+0xbd8>
+    0.00 :   131f7:  mov    %rax,%r15
+    0.00 :   131fa:  call   3460 <sched_yield@plt>
+    0.00 :   131ff:  mov    %r15,%rax
+         : 1941  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   13202:  mov    %r15,(%r14)
+         : 1943  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   13205:  lock cmpxchg %r12,0x109932(%rip)        # 11cb40 <flux_foundry::detail::get_pool()::pool+0x100040>
+    0.00 :   1320e:  mov    %rax,%r15
+    0.00 :   13211:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+    0.00 :   13217:  jmp    131fa <double measure<1u, 4u>(unsigned short, unsigned long)+0x197a>
+    0.00 :   13219:  mov    %rax,%r14
+    0.00 :   1321c:  call   3460 <sched_yield@plt>
+    0.00 :   13221:  mov    %r14,%rax
+         : 1951  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   13224:  mov    %r14,(%r15)
+         : 1953  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   13227:  lock cmpxchg %r12,0x111990(%rip)        # 124bc0 <flux_foundry::detail::get_pool()::pool+0x1080c0>
+    0.00 :   13230:  mov    %rax,%r14
+    0.00 :   13233:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+    0.00 :   13239:  jmp    1321c <double measure<1u, 4u>(unsigned short, unsigned long)+0x199c>
+    0.00 :   1323b:  call   3460 <sched_yield@plt>
+    0.00 :   13240:  jmp    12820 <double measure<1u, 4u>(unsigned short, unsigned long)+0xfa0>
+    0.00 :   13245:  mov    %rax,%r14
+    0.00 :   13248:  call   3460 <sched_yield@plt>
+    0.00 :   1324d:  mov    %r14,%rax
+         : 1963  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   13250:  mov    %r14,(%r15)
+         : 1965  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   13253:  lock cmpxchg %r12,0x1159e4(%rip)        # 128c40 <flux_foundry::detail::get_pool()::pool+0x10c140>
+    0.00 :   1325c:  mov    %rax,%r14
+    0.00 :   1325f:  je     120df <double measure<1u, 4u>(unsigned short, unsigned long)+0x85f>
+    0.00 :   13265:  jmp    13248 <double measure<1u, 4u>(unsigned short, unsigned long)+0x19c8>
+         : 1970  release();
+    0.00 :   13267:  mov    %rax,%rbx
+    0.00 :   1326a:  jmp    132c3 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1a43>
+    0.00 :   1326c:  jmp    13314 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1a94>
+    0.00 :   13271:  movq   0x8(%rsp),%xmm0
+    0.00 :   13277:  lea    0x90(%rsp),%rax
+    0.00 :   1327f:  mov    %r12b,0xe0(%rsp)
+    0.00 :   13287:  lea    0xd0(%rsp),%rdi
+    0.00 :   1328f:  pinsrq $0x1,%rax,%xmm0
+    0.00 :   13296:  movaps %xmm0,0xd0(%rsp)
+    0.00 :   1329e:  call   a510 <flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>::release()>
+    0.00 :   132a3:  mov    0x1e0(%rsp),%rbp
+    0.00 :   132ab:  mov    0x1e8(%rsp),%r12
+    0.00 :   132b3:  mov    0x1f0(%rsp),%r13
+    0.00 :   132bb:  mov    0x200(%rsp),%r15
+    0.00 :   132c3:  mov    0x8(%rsp),%rax
+    0.00 :   132c8:  lea    0xd0(%rsp),%rdi
+    0.00 :   132d0:  mov    %rax,0xd0(%rsp)
+    0.00 :   132d8:  call   a510 <flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<1ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<1ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>::release()>
+    0.00 :   132dd:  mov    %rbx,%rdi
+         : 1990  ~dpdk_rx_context() noexcept { if (complete_) std::terminate(); }
+    0.00 :   132e0:  cmpq   $0x0,0xf8(%rsp)
+    0.00 :   132e9:  je     13381 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1b01>
+    0.00 :   132ef:  mov    %rbp,0x1e0(%rsp)
+    0.00 :   132f7:  mov    %r12,0x1e8(%rsp)
+    0.00 :   132ff:  mov    %r13,0x1f0(%rsp)
+    0.00 :   13307:  mov    %r15,0x200(%rsp)
+    0.00 :   1330f:  call   3430 <std::terminate()@plt>
+         : 1998  } catch (...) {
+    0.00 :   13314:  mov    %rax,%rdi
+    0.00 :   13317:  call   3050 <__cxa_begin_catch@plt>
+         : 2001  this->next_step(result_t<T, E>(error_tag, std::current_exception()));
+    0.00 :   1331c:  lea    0xd0(%rsp),%rdi
+    0.00 :   13324:  call   3170 <std::current_exception()@plt>
+         : 2004  { __o._M_exception_object = nullptr; }
+    0.00 :   13329:  xor    %ecx,%ecx
+    0.00 :   1332b:  mov    %r15,%rsi
+    0.00 :   1332e:  mov    %r14,%rdi
+         : 2008  : _M_exception_object(__o._M_exception_object)
+    0.00 :   13331:  mov    0xd0(%rsp),%rax
+         : 2010  noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   13339:  movl   $0x2,0x160(%rsp)
+         : 2012  { __o._M_exception_object = nullptr; }
+    0.00 :   13344:  mov    %rcx,0xd0(%rsp)
+         : 2014  : _M_exception_object(__o._M_exception_object)
+    0.00 :   1334c:  mov    %rax,0x150(%rsp)
+    0.00 :   13354:  call   *0x10(%rbx)
+         : 2017  struct TS_EMPTY_BASES  either_storage_base : raw_either_storage_base<T, U> {
+    0.00 :   13357:  mov    %r15,%rdi
+    0.00 :   1335a:  call   a450 <flux_foundry::raw_either_storage_base<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, flux_foundry::error_t<std::__exception_ptr::exception_ptr>, false, false>::~raw_either_storage_base()>
+         : 2020  if (_M_exception_object)
+    0.00 :   1335f:  cmpq   $0x0,0xd0(%rsp)
+    0.00 :   13368:  je     13377 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1af7>
+         : 2023  _M_release();
+    0.00 :   1336a:  lea    0xd0(%rsp),%rdi
+    0.00 :   13372:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 2026  } catch (...) {
+    0.00 :   13377:  call   32d0 <__cxa_end_catch@plt>
+    0.00 :   1337c:  jmp    11e3c <double measure<1u, 4u>(unsigned short, unsigned long)+0x5bc>
+    0.00 :   13381:  mov    0x1c8(%rsp),%rax
+    0.00 :   13389:  sub    %fs:0x28,%rax
+    0.00 :   13392:  mov    %rbp,0x1e0(%rsp)
+    0.00 :   1339a:  mov    %r12,0x1e8(%rsp)
+    0.00 :   133a2:  mov    %r13,0x1f0(%rsp)
+    0.00 :   133aa:  mov    %r15,0x200(%rsp)
+    0.00 :   133b2:  jne    13130 <double measure<1u, 4u>(unsigned short, unsigned long)+0x18b0>
+    0.00 :   133b8:  call   3250 <_Unwind_Resume@plt>
+         : 2037  /**
+         : 2038  *  @brief  Destroy the string instance.
+         : 2039  */
+         : 2040  _GLIBCXX20_CONSTEXPR
+         : 2041  ~basic_string()
+         : 2042  { _M_dispose(); }
+    0.00 :   133bd:  mov    %rax,%r12
+    0.00 :   133c0:  jmp    135ef <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d6f>
+    0.00 :   133c5:  jmp    1361e <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d9e>
+    0.00 :   133ca:  mov    %rax,%rbx
+    0.00 :   133cd:  jmp    13271 <double measure<1u, 4u>(unsigned short, unsigned long)+0x19f1>
+         : 2048  catch (...) { return std::current_exception(); }
+    0.00 :   133d2:  mov    %rax,%rdi
+    0.00 :   133d5:  jmp    135fa <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d7a>
+         : 2051  } catch (...) {
+         : 2052  return std::current_exception();
+    0.00 :   133da:  lea    0x68(%rsp),%r12
+         : 2054  } catch (...) {
+    0.00 :   133df:  mov    %rax,%rdi
+    0.00 :   133e2:  call   3050 <__cxa_begin_catch@plt>
+         : 2057  return std::current_exception();
+    0.00 :   133e7:  mov    %r12,%rdi
+    0.00 :   133ea:  call   3170 <std::current_exception()@plt>
+         : 2060  }
+    0.00 :   133ef:  call   32d0 <__cxa_end_catch@plt>
+    0.00 :   133f4:  jmp    1223f <double measure<1u, 4u>(unsigned short, unsigned long)+0x9bf>
+         : 2063  result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {
+         : 2064  #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+         : 2065  try {
+         : 2066  auto aw = new awaitable(std::forward<Args>(param)...);
+         : 2067  return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
+         : 2068  } catch (...) {
+    0.00 :   133f9:  mov    %rax,%rdi
+    0.00 :   133fc:  call   3050 <__cxa_begin_catch@plt>
+         : 2071  return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, std::current_exception());
+    0.00 :   13401:  lea    0x68(%rsp),%rdi
+    0.00 :   13406:  call   3170 <std::current_exception()@plt>
+         : 2074  : _M_exception_object(__o._M_exception_object)
+    0.00 :   1340b:  mov    0x68(%rsp),%rax
+         : 2076  noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   13410:  movl   $0x2,0xd8(%rsp)
+    0.00 :   1341b:  mov    %rax,0xd0(%rsp)
+         : 2079  } catch (...) {
+    0.00 :   13423:  call   32d0 <__cxa_end_catch@plt>
+         :
+         : 2082  auto awaitable_or_err = factory(std::forward<param_t>(in));
+         : 2083  using is_inline_executor_t = std::integral_constant<bool, flow_impl::is_inline_dispatcher_v<typename node_t::D_t>>;
+         :
+         : 2085  using node_output_t = typename node_t::O_t;
+         : 2086  UNLIKELY_IF (!awaitable_or_err.has_value()) {
+    0.00 :   13428:  cmpl   $0x1,0xd8(%rsp)
+    0.00 :   13430:  je     11af6 <double measure<1u, 4u>(unsigned short, unsigned long)+0x276>
+    0.00 :   13436:  mov    0xd0(%rsp),%rax
+         : 2090  { __o._M_exception_object = nullptr; }
+    0.00 :   1343e:  xor    %esi,%esi
+    0.00 :   13440:  xor    %edi,%edi
+         : 2093  noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   13442:  movl   $0x2,0x140(%rsp)
+    0.00 :   1344d:  mov    %rsi,0xd0(%rsp)
+         : 2096  require(out.has_value(), "DPDK awaitable failed");
+    0.00 :   13455:  lea    0x4beb(%rip),%rsi        # 18047 <_IO_stdin_used+0x47>
+    0.00 :   1345c:  mov    %rdi,0x130(%rsp)
+    0.00 :   13464:  xor    %edi,%edi
+         : 2100  this->_state = rhs._state;
+    0.00 :   13466:  movl   $0x2,0x160(%rsp)
+    0.00 :   13471:  lea    0x150(%rsp),%r15
+         : 2103  : _M_exception_object(__o._M_exception_object)
+    0.00 :   13479:  mov    %rax,0x150(%rsp)
+    0.00 :   13481:  call   9050 <probe::require(bool, char const*)>
+         : 2106  std::uint16_t size() const noexcept { return count_; }
+    0.00 :   13486:  movzwl 0x158(%rsp),%r14d
+         : 2108  for (std::uint16_t i = 0; i < count; ++i) record(batch[i]);
+    0.00 :   1348f:  test   %r14w,%r14w
+    0.00 :   13493:  je     136b7 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1e37>
+    0.00 :   13499:  mov    0x98(%rsp),%rax
+    0.00 :   134a1:  lea    0x150(%rsp),%r15
+    0.00 :   134a9:  movzwl %r14w,%edx
+    0.00 :   134ad:  mov    0xa0(%rsp),%rcx
+    0.00 :   134b5:  mov    %r15,%rbx
+    0.00 :   134b8:  mov    %rax,%rsi
+    0.00 :   134bb:  add    %rax,%rdx
+    0.00 :   134be:  neg    %rsi
+    0.00 :   134c1:  lea    (%r15,%rsi,8),%rdi
+         : 2120  packet_type* operator[](std::uint16_t i) const noexcept { return packets_[i]; }
+    0.00 :   134c5:  mov    (%rdi,%rax,8),%rsi
+    0.00 :   134c9:  cmpl   $0x40,0x24(%rsi)
+    0.00 :   134cd:  jne    13703 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1e83>
+         : 2124  sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.00 :   134d3:  movzwl 0x10(%rsi),%r8d
+         : 2126  ++packets;
+    0.00 :   134d8:  add    $0x1,%rax
+         : 2128  sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.00 :   134dc:  mov    (%rsi),%rsi
+         : 2130  ++packets;
+    0.00 :   134df:  movq   %rax,%xmm0
+         : 2132  sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.00 :   134e4:  movzbl (%rsi,%r8,1),%esi
+    0.00 :   134e9:  add    %rsi,%rcx
+         : 2135  ++packets;
+    0.00 :   134ec:  pinsrq $0x1,%rcx,%xmm0
+    0.00 :   134f3:  movups %xmm0,0x98(%rsp)
+         : 2138  for (std::uint16_t i = 0; i < count; ++i) record(batch[i]);
+    0.00 :   134fb:  cmp    %rax,%rdx
+    0.00 :   134fe:  jne    134c5 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1c45>
+         : 2141  p = &rte_eth_fp_ops[port_id];
+    0.00 :   13500:  movzwl 0x90(%rsp),%r9d
+         : 2143  qd = p->txq.data[queue_id];
+    0.00 :   13509:  lea    0x7d70(%rip),%r11        # 1b280 <rte_eth_fp_ops@DPDK_26>
+    0.00 :   13510:  mov    %r9,%rax
+         : 2146  p = &rte_eth_fp_ops[port_id];
+    0.00 :   13513:  mov    %r9,%rdi
+         : 2148  qd = p->txq.data[queue_id];
+    0.00 :   13516:  shl    $0x7,%rax
+    0.00 :   1351a:  mov    0x40(%r11,%rax,1),%rdx
+         : 2151  cb = rte_atomic_load_explicit(&p->txq.clbk[queue_id],
+    0.00 :   1351f:  mov    0x48(%r11,%rax,1),%rax
+         : 2153  qd = p->txq.data[queue_id];
+    0.00 :   13524:  mov    (%rdx),%r12
+         : 2155  cb = rte_atomic_load_explicit(&p->txq.clbk[queue_id],
+    0.00 :   13527:  mov    (%rax),%r8
+         : 2157  if (unlikely(cb != NULL))
+    0.00 :   1352a:  mov    %r14d,%eax
+    0.00 :   1352d:  test   %r8,%r8
+    0.00 :   13530:  jne    13724 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1ea4>
+         : 2161  nb_pkts = p->tx_pkt_burst(qd, tx_pkts, nb_pkts);
+    0.00 :   13536:  shl    $0x7,%r9
+    0.00 :   1353a:  movzwl %ax,%edx
+    0.00 :   1353d:  mov    %r15,%rsi
+    0.00 :   13540:  mov    %r12,%rdi
+    0.00 :   13543:  call   *0x50(%r11,%r9,1)
+         : 2167  for (std::uint16_t i = sent; i < count_; ++i) packets_[i - sent] = packets_[i];
+    0.00 :   13548:  movzwl 0x158(%rsp),%ecx
+    0.00 :   13550:  cmp    %cx,%ax
+    0.00 :   13553:  jae    1369a <double measure<1u, 4u>(unsigned short, unsigned long)+0x1e1a>
+    0.00 :   13559:  mov    %eax,%esi
+    0.00 :   1355b:  mov    %ecx,%r8d
+    0.00 :   1355e:  sub    %esi,%r8d
+    0.00 :   13561:  lea    -0x1(%r8),%eax
+    0.00 :   13565:  cmp    $0x3,%ax
+    0.00 :   13569:  jbe    1374b <double measure<1u, 4u>(unsigned short, unsigned long)+0x1ecb>
+    0.00 :   1356f:  mov    %r8d,%eax
+    0.00 :   13572:  movzwl %si,%edi
+    0.00 :   13575:  lea    (%r15,%rdi,8),%r10
+    0.00 :   13579:  shr    $1,%ax
+    0.00 :   1357c:  movzwl %ax,%edi
+    0.00 :   1357f:  shl    $0x4,%rdi
+    0.00 :   13583:  lea    (%r15,%rdi,1),%rdx
+    0.00 :   13587:  movdqu (%r10),%xmm0
+    0.00 :   1358c:  add    $0x10,%rbx
+    0.00 :   13590:  add    $0x10,%r10
+    0.00 :   13594:  movaps %xmm0,-0x10(%rbx)
+    0.00 :   13598:  cmp    %rbx,%rdx
+    0.00 :   1359b:  jne    13587 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d07>
+    0.00 :   1359d:  add    %eax,%eax
+    0.00 :   1359f:  cmp    %r8w,%ax
+    0.00 :   135a3:  je     135c4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d44>
+    0.00 :   135a5:  add    %esi,%eax
+    0.00 :   135a7:  movzwl %si,%edi
+    0.00 :   135aa:  movzwl %ax,%edx
+    0.00 :   135ad:  movzwl %ax,%eax
+    0.00 :   135b0:  mov    0x150(%rsp,%rdx,8),%rdx
+    0.00 :   135b8:  sub    %edi,%eax
+    0.00 :   135ba:  cltq
+    0.00 :   135bc:  mov    %rdx,0x150(%rsp,%rax,8)
+         : 2201  count_ -= sent;
+    0.00 :   135c4:  sub    %esi,%ecx
+    0.00 :   135c6:  mov    %cx,0x158(%rsp)
+    0.00 :   135ce:  mov    0x7c8b(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   135d5:  lea    0x4a57(%rip),%rdx        # 18033 <_IO_stdin_used+0x33>
+    0.00 :   135dc:  xor    %eax,%eax
+    0.00 :   135de:  lea    0x4a33(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   135e5:  call   30d0 <fprintf@plt>
+    0.00 :   135ea:  call   3280 <abort@plt>
+    0.00 :   135ef:  mov    %r15,%rdi
+    0.00 :   135f2:  call   3300 <std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()@plt>
+         : 2212  ~__new_allocator() _GLIBCXX_USE_NOEXCEPT { }
+    0.00 :   135f7:  mov    %r12,%rdi
+    0.00 :   135fa:  call   3050 <__cxa_begin_catch@plt>
+    0.00 :   135ff:  lea    0x80(%rsp),%rax
+    0.00 :   13607:  mov    %rax,%rdi
+    0.00 :   1360a:  mov    %rax,0x40(%rsp)
+    0.00 :   1360f:  call   3170 <std::current_exception()@plt>
+    0.00 :   13614:  call   32d0 <__cxa_end_catch@plt>
+    0.00 :   13619:  jmp    11de7 <double measure<1u, 4u>(unsigned short, unsigned long)+0x567>
+         : 2221  } catch (...) {
+    0.00 :   1361e:  mov    %rax,%rdi
+    0.00 :   13621:  call   3050 <__cxa_begin_catch@plt>
+         : 2224  this->next_step(result_t<T, E>(error_tag, std::current_exception()));
+    0.00 :   13626:  lea    0xd0(%rsp),%rdi
+    0.00 :   1362e:  call   3170 <std::current_exception()@plt>
+    0.00 :   13633:  mov    0xd0(%rsp),%rax
+    0.00 :   1363b:  lea    0x150(%rsp),%rsi
+    0.00 :   13643:  mov    %r14,%rdi
+         : 2230  noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   13646:  movl   $0x2,0x160(%rsp)
+    0.00 :   13651:  mov    %rax,0x150(%rsp)
+         : 2233  { __o._M_exception_object = nullptr; }
+    0.00 :   13659:  xor    %eax,%eax
+    0.00 :   1365b:  mov    %rax,0xd0(%rsp)
+    0.00 :   13663:  call   *0x10(%rbx)
+         : 2237  struct TS_EMPTY_BASES  either_storage_base : raw_either_storage_base<T, U> {
+    0.00 :   13666:  lea    0x150(%rsp),%rdi
+    0.00 :   1366e:  call   a450 <flux_foundry::raw_either_storage_base<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, flux_foundry::error_t<std::__exception_ptr::exception_ptr>, false, false>::~raw_either_storage_base()>
+         : 2240  if (_M_exception_object)
+    0.00 :   13673:  cmpq   $0x0,0xd0(%rsp)
+    0.00 :   1367c:  je     1368b <double measure<1u, 4u>(unsigned short, unsigned long)+0x1e0b>
+         : 2243  _M_release();
+    0.00 :   1367e:  lea    0xd0(%rsp),%rdi
+    0.00 :   13686:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 2246  } catch (...) {
+    0.00 :   1368b:  call   32d0 <__cxa_end_catch@plt>
+    0.00 :   13690:  jmp    126b6 <double measure<1u, 4u>(unsigned short, unsigned long)+0xe36>
+    0.00 :   13695:  call   34d6 <void flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator>::emplace_with_allocator<flux_foundry::aligned_malloc_allocator, flux_foundry::default_deleter<flux_foundry::flow_controller>>(flux_foundry::aligned_malloc_allocator&&, flux_foundry::default_deleter<flux_foundry::flow_controller>&&) [clone .part.0]>
+    0.00 :   1369a:  sub    %eax,%ecx
+    0.00 :   1369c:  mov    %cx,0x158(%rsp)
+         : 2252  require(batch.transmit(port, 0) == count && !batch.size(), "partial loopback TX");
+    0.00 :   136a4:  cmp    %ax,%r14w
+    0.00 :   136a8:  jne    135ce <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d4e>
+    0.00 :   136ae:  test   %cx,%cx
+    0.00 :   136b1:  jne    135ce <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d4e>
+    0.00 :   136b7:  mov    %r15,%rdi
+    0.00 :   136ba:  call   a450 <flux_foundry::raw_either_storage_base<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, flux_foundry::error_t<std::__exception_ptr::exception_ptr>, false, false>::~raw_either_storage_base()>
+    0.00 :   136bf:  lea    0x130(%rsp),%rdi
+    0.00 :   136c7:  call   a450 <flux_foundry::raw_either_storage_base<flux_foundry::extension::dpdk_packet_batch<1ul, flux_foundry::extension::dpdk_api>, flux_foundry::error_t<std::__exception_ptr::exception_ptr>, false, false>::~raw_either_storage_base()>
+         : 2261  if (_state == either_state::second) {
+    0.00 :   136cc:  cmpl   $0x2,0xd8(%rsp)
+    0.00 :   136d4:  jne    129b0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1130>
+         : 2264  if (_M_exception_object)
+    0.00 :   136da:  cmpq   $0x0,0xd0(%rsp)
+    0.00 :   136e3:  je     129b0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1130>
+         : 2267  _M_release();
+    0.00 :   136e9:  lea    0xd0(%rsp),%rdi
+    0.00 :   136f1:  call   30e0 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+    0.00 :   136f6:  jmp    129b0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1130>
+         : 2271  ~dpdk_rx_context() noexcept { if (complete_) std::terminate(); }
+    0.00 :   136fb:  mov    %rax,%rdi
+    0.00 :   136fe:  jmp    132e0 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1a60>
+    0.00 :   13703:  mov    0x7b56(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   1370a:  lea    0x490b(%rip),%rdx        # 1801c <_IO_stdin_used+0x1c>
+    0.00 :   13711:  xor    %eax,%eax
+    0.00 :   13713:  lea    0x48fe(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   1371a:  call   30d0 <fprintf@plt>
+    0.00 :   1371f:  call   3280 <abort@plt>
+         : 2280  nb_pkts = rte_eth_call_tx_callbacks(port_id, queue_id,
+    0.00 :   13724:  movzwl %r14w,%ecx
+    0.00 :   13728:  mov    %r15,%rdx
+    0.00 :   1372b:  xor    %esi,%esi
+    0.00 :   1372d:  mov    %r9,0x50(%rsp)
+    0.00 :   13732:  mov    %r11,0x40(%rsp)
+    0.00 :   13737:  call   31d0 <rte_eth_call_tx_callbacks@plt>
+    0.00 :   1373c:  mov    0x50(%rsp),%r9
+    0.00 :   13741:  mov    0x40(%rsp),%r11
+    0.00 :   13746:  jmp    13536 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1cb6>
+    0.00 :   1374b:  lea    -0x1(%rcx),%eax
+    0.00 :   1374e:  lea    0x8(%r15),%rdx
+    0.00 :   13752:  sub    %esi,%eax
+    0.00 :   13754:  movzwl %ax,%eax
+    0.00 :   13757:  lea    (%rdx,%rax,8),%rdi
+    0.00 :   1375b:  movzwl %si,%eax
+         : 2296  for (std::uint16_t i = sent; i < count_; ++i) packets_[i - sent] = packets_[i];
+    0.00 :   1375e:  mov    (%rbx,%rax,8),%r8
+    0.00 :   13762:  mov    %r8,(%rbx)
+    0.00 :   13765:  mov    %rdx,%rbx
+    0.00 :   13768:  cmp    %rdx,%rdi
+    0.00 :   1376b:  je     135c4 <double measure<1u, 4u>(unsigned short, unsigned long)+0x1d44>
+    0.00 :   13771:  add    $0x8,%rdx
+    0.00 :   13775:  jmp    1375e <double measure<1u, 4u>(unsigned short, unsigned long)+0x1ede>

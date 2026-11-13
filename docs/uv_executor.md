@@ -64,12 +64,12 @@ recursively. `loop()` returns the borrowed pointer until close is requested,
 then null. A pointer returned before concurrent close is not an admission token.
 
 `try_dispatch(task&&)` returns false without consuming the task for a full queue,
-closed admission, or empty task. The bounded ring is allocated at construction;
+closed admission, or empty task. The bounded MPSC ring is allocated at construction;
 dispatch does not allocate queue storage. On true, the task runs
 exactly once. Tasks must be `noexcept`. Submission from the owner with an empty
 queue executes inline and may recurse. Submission with an existing queue joins
 its tail; full-queue rejection applies to the owner too, avoiding a wait for its
-own progress. The capacity bounds queued tasks, excluding the task executing on
+own progress. The capacity bounds queued tasks and unpublished reservations, excluding the task executing on
 the owner and any inline recursion. The callback drains at most the configured
 budget of queued tasks; recursive inline work is not covered by that budget.
 
@@ -88,25 +88,71 @@ keeps the handle alive until `uv_close` completes. The caller must still drive
 the loop through that callback. Destroying the public C++ object concurrently
 with its member calls is invalid, as with other C++ objects.
 
-Compared with the original adapter, this version bounds the queue, adds explicit
-rejection, synchronizes close/send, retains handle state independently, drains
-without allocating during dispatch or drain, checks wake errors, and exposes completed
-closure. Queue state uses mutex synchronization, including with libuv versions
-where repeated async notifications coalesce; no one-notification-per-task
-assumption is made.
+`try_dispatch` borrows the internal state pointer instead of copying its
+`shared_ptr` on every submission. Concurrent producers must keep the public
+object alive throughout their calls. An owner-inline task may destroy that
+object: the native handle's independent owner retains the state until its close
+callback, and recursive `uv_run` is prohibited. The admission ticket still
+covers the complete native send. This removes a shared reference-count update
+pair without changing queue publication or the close protocol.
 
-Producers notify on an empty-to-nonempty queue transition under the same mutex
-used for admission and close. A callback rearms notifications when its task
-budget leaves queued work. This avoids repeated sends for an already queued
-batch without changing capacity, inline behavior, or the callback budget.
+The close protocol follows `simple_executor`'s combined shutdown-bit/pending-ticket
+state. `utility/close_gate.h` implements that admission rule with CAS. Setting
+the stop bit and acquiring a ticket are ordered by the same atomic; a request
+either enters before close or is rejected without consuming its task. The gate
+requires always-lock-free `std::atomic<size_t>`. A C++14 `static_assert` selects
+the standard `ATOMIC_*_LOCK_FREE` macro for `size_t`'s actual unsigned type and
+rejects targets without that compile-time guarantee. Queue task move construction,
+move assignment and destruction are also statically required to be nonthrowing.
+
+There are two conditions for native handle closure: the queue is empty **and**
+all admitted senders have returned their tickets. A producer keeps its ticket
+through `uv_async_send`, even when the loop has already consumed its task. The
+winning closer atomically sets stop and acquires its own notification ticket,
+sends once, then releases it. Later close calls do not send again. Only the loop
+calls `uv_close`, after both conditions hold. `closed()` becomes true in the
+native close callback, not at the admission stop transition.
+
+An async callback may run before its sender releases that ticket. During close,
+the loop rearms a notification while senders remain; the last producer never
+tries to send after releasing its ticket. This avoids both a missed final wake
+and a send racing handle reclamation. Draining remains asynchronous: a paused
+producer or long-running task can delay completed shutdown. The owner does not
+spin waiting inside a callback, but may run repeated close-drain callbacks.
+
+The MPSC ring reserves bounded occupancy before assigning a slot. Occupancy
+includes producers that have not published their task yet. Each slot has an
+atomic ready flag; release/acquire publishes the task and publishes slot reuse.
+The tail CAS also uses acquire/release: a producer can reserve capacity before
+its eventual slot is freed, so later reservations must pass that consumer-release
+ordering through the tail to the producer that finally claims the slot.
+The single consumer stops at an unpublished head rather than overtaking it or
+blocking the loop. Its publisher will wake the loop after publication. All
+positive runtime capacities remain supported, including 1 and non-powers of two.
+Indices wrap within the ring, so there is no lifetime limit from sequence overflow.
+
+Each successful queued publication sends a notification; libuv coalesces these.
+The callback rearms when its budget leaves a ready head or closing senders remain.
+A full fence precedes native sends for older libuv coalescing behavior; the queue
+has its own publication synchronization. See the
+[libuv async memory-ordering notes](https://docs.libuv.org/en/v1.x/async.html).
+These changes remove FF's mutex from queue/admission/close, but do not claim
+lock-free execution of user callbacks, allocation, or native libuv internals.
 
 `uv_executor_contract` tests owner affinity/inline nesting, full-queue retained
 rejection, dispatch under allocation failure, checked initialization failure,
 coalesced notification/budget rearm,
 accepted-task drain, concurrent producers/close, destruction before and during a
-callback, and normal/fast FF runner continuations. A standalone-header target
+callback, normal/fast FF runner continuations, and destruction inside a direct
+or nested owner-inline dispatch. A standalone-header target
 checks that including this header does not require preceding FF headers.
 Repeated four-producer waves cover draining to empty and rearming at budgets
 1, 3, 16 and 64, with retained tasks retried after bounded rejection.
+Additional waves exercise capacities 1, 2, 3 and 7. Deterministic barriers pause
+an unpublished head, a producer after native send, and the closer after native
+send. These verify that empty queue alone cannot authorize handle closure, and
+that admitted work is not lost or reordered behind a paused publisher.
 `uv_executor_contract_noexc` runs these contracts with exceptions disabled;
 the legacy throwing-constructor assertion is specific to the exception build.
+TSan builds omit only the global new/delete fault-injection replacement, which
+conflicts with TSan's allocator interceptors; regular and UBSan builds exercise it.

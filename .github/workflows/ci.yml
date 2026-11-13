@@ -168,6 +168,41 @@ jobs:
           cmake --build build/consumer --parallel 2
           ctest --test-dir build/consumer --output-on-failure
 
+  linux-io-attachments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install I/O development files
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libuv1-dev liburing-dev libdpdk-dev pkg-config
+      - name: Configure attachment contracts with sanitizers
+        run: >-
+          cmake -S . -B build-io
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_STANDARD=14
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DFLUX_FOUNDRY_WARNINGS_AS_ERRORS=ON
+          -DFLUX_FOUNDRY_ENABLE_IO_URING=ON
+          -DFLUX_FOUNDRY_ENABLE_DPDK=ON
+          -DFLUX_FOUNDRY_ENABLE_UV_EXECUTOR=ON
+      - name: Build exception and no-exception adapters
+        run: >-
+          cmake --build build-io --parallel 2 --target
+          flux_foundry_io_uring_attachment_contract flux_foundry_io_uring_attachment_contract_noexc
+          flux_foundry_dpdk_awaitable_contract flux_foundry_dpdk_awaitable_contract_noexc
+          flux_foundry_header_io_uring_standalone flux_foundry_header_dpdk_standalone
+          flux_foundry_uv_executor_contract flux_foundry_uv_executor_contract_noexc
+      - name: Run contracts and available io_uring runtime
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: ctest --test-dir build-io -L 'io_uring|dpdk|uv' --output-on-failure
+      - name: Test installed I/O components
+        run: |
+          cmake --install build-io --prefix build-io/install
+          cmake -S test/package_consumer -B build-io/consumer -DCMAKE_PREFIX_PATH="$PWD/build-io/install" -DFLUX_FOUNDRY_TEST_IO_URING=ON -DFLUX_FOUNDRY_TEST_DPDK=ON
+          cmake --build build-io/consumer --parallel 2
+          ctest --test-dir build-io/consumer --output-on-failure
+
   cuda-compile:
     name: CUDA typed demos / compile coverage
     runs-on: ubuntu-24.04

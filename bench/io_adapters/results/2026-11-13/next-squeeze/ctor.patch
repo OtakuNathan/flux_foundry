@@ -1,0 +1,11 @@
+--- a/extension/dpdk_awaitable.h
++++ b/extension/dpdk_awaitable.h
+@@ -90,7 +90,7 @@
+         "DPDK API requirement: provide static uint16_t tx(uint16_t, uint16_t, packet_type**, uint16_t) noexcept.");
+ public:
+     using packet_type = detail::dpdk_packet_t<Api>;
+-    dpdk_packet_batch() noexcept = default;
++    dpdk_packet_batch() noexcept {}
+     dpdk_packet_batch(const dpdk_packet_batch&) = delete;
+     dpdk_packet_batch& operator=(const dpdk_packet_batch&) = delete;
+     dpdk_packet_batch(dpdk_packet_batch&& other) noexcept : count_(other.count_) {

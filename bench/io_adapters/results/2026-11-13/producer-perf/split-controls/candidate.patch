@@ -1,0 +1,86 @@
+--- a/memory/pooling.h
++++ b/memory/pooling.h
+@@ -65,36 +65,55 @@
+         }
+ 
+         void* alloc() noexcept {
++            if (auto p = cache().pop()) return p;
++            return refill();
++        }
++
++        void dealloc(void* p) noexcept {
++            UNLIKELY_IF(!p) return;
++            LIKELY_IF(cache().push(p)) return;
++            spill(p);
++        }
++
++    private:
++        // Keep shared-pool transfers out of the common TLS-only path.
++#if defined(__GNUC__) || defined(__clang__)
++        __attribute__((noinline))
++#elif defined(_MSC_VER)
++        __declspec(noinline)
++#endif
++        static void* refill() noexcept {
+             constexpr size_t sz = detail::alloc_size(size, align);
+-
+-            void* p = nullptr;
+-            if ((p = cache().pop())) {
+-                return p;
+-            }
+-
+-            LIKELY_IF((p = detail::get_pool().allocate(sz))) {
+-                return p;
+-            }
+-
+-            return malloc(sz);
+-        }
+-
+-        void dealloc(void* p) noexcept {
+-            UNLIKELY_IF(!p) {
+-                return;
+-            }
+-
+-            LIKELY_IF (cache().push(p)) {
+-                return;
+-            }
+-
+             auto& pool = detail::get_pool();
+-            LIKELY_IF (pool.belong_to(p)) {
+-                pool.deallocate(p);
+-            } else {
+-                free(p);
+-            }
+-        }
++            auto p = pool.allocate(sz);
++            if (!p) return malloc(sz);
++            constexpr size_t transfer = cache_cap < 4 ? cache_cap : 4;
++            for (size_t i = 1; i < transfer; ++i) {
++                auto extra = pool.allocate(sz);
++                if (!extra) break;
++                cache().push(extra);
++            }
++            return p;
++        }
++
++#if defined(__GNUC__) || defined(__clang__)
++        __attribute__((noinline))
++#elif defined(_MSC_VER)
++        __declspec(noinline)
++#endif
++        static void spill(void* p) noexcept {
++            auto& pool = detail::get_pool();
++            constexpr size_t transfer = cache_cap < 4 ? cache_cap : 4;
++            for (size_t i = 0; i < transfer; ++i) {
++                auto old = cache().pop();
++                if (pool.belong_to(old)) pool.deallocate(old);
++                else free(old);
++            }
++            if (cache().push(p)) return;
++            if (pool.belong_to(p)) pool.deallocate(p);
++            else free(p);
++        }
++
+     };
+ 
+     template <size_t size, size_t align, size_t cache_cap>

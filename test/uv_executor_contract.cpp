@@ -1,4 +1,11 @@
+#include <uv.h>
+#include <atomic>
+static int observed_async_send(uv_async_t*) noexcept;
+// Test seam around the native send: pause AFTER it wakes the loop but BEFORE
+// the adapter may drop its ticket. Production headers need no test hooks.
+#define uv_async_send observed_async_send
 #include "executor/uv_executor.h"
+#undef uv_async_send
 #include "base/traits.h"
 #include "flow/flow_def.h"
 #include <system_error>
@@ -21,6 +28,9 @@ using error_type=std::exception_ptr;
 #include <thread>
 #include <vector>
 
+#if !FLUX_FOUNDRY_WITH_TSAN
+// TSan supplies strong new/delete interceptors. Fault injection is exercised
+// by the regular and UBSan builds; the TSan build focuses on synchronization.
 static std::atomic<bool> fail_allocations{false};
 #if defined(__GNUC__) || defined(__clang__)
 #define FF_TEST_NOINLINE __attribute__((noinline))
@@ -49,9 +59,76 @@ void* operator new(std::size_t size) {
 }
 FF_TEST_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
 FF_TEST_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
+#endif
 
 using namespace flux_foundry;
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #x); std::abort(); } } while (false)
+
+static std::atomic<bool> pause_send{false}, send_entered{false}, release_send{false};
+static int observed_async_send(uv_async_t* handle) noexcept {
+    const int rc = uv_async_send(handle);
+    if (pause_send.exchange(false, std::memory_order_acq_rel)) {
+        send_entered.store(true, std::memory_order_release);
+        while (!release_send.load(std::memory_order_acquire)) std::this_thread::yield();
+    }
+    return rc;
+}
+
+void outstanding_send(bool closer) {
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    uv_executor ex(&loop, 1, 1);
+    int calls = 0;
+    send_entered = false; release_send = false; pause_send = true;
+    std::thread sender([&] {
+        if (closer) ex.close();
+        else CHECK(ex.try_dispatch(task_wrapper_sbo([&]() noexcept { ++calls; })));
+    });
+    while (!send_entered.load(std::memory_order_acquire)) std::this_thread::yield();
+    ex.close(); // Idempotent; cannot bypass the paused sender's ticket.
+    for (int i = 0; i < 4; ++i) uv_run(&loop, UV_RUN_NOWAIT);
+    CHECK(calls == (closer ? 0 : 1) && !ex.closed());
+    // The task is already drained, but native send has not returned to FF.
+    release_send.store(true, std::memory_order_release);
+    sender.join();
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0 && ex.closed());
+    CHECK(uv_loop_close(&loop) == 0);
+}
+
+struct publication_barrier {
+    std::atomic<bool> pause{false}, entered{false}, release{false};
+    int calls = 0;
+};
+struct delayed_move {
+    publication_barrier* barrier;
+    explicit delayed_move(publication_barrier* p) noexcept : barrier(p) {}
+    delayed_move(delayed_move&& other) noexcept : barrier(other.barrier) {
+        if (barrier->pause.exchange(false, std::memory_order_acq_rel)) {
+            barrier->entered.store(true, std::memory_order_release);
+            while (!barrier->release.load(std::memory_order_acquire)) std::this_thread::yield();
+        }
+    }
+    void operator()() noexcept { CHECK(barrier->calls == 0); ++barrier->calls; }
+};
+void unpublished_reservation() {
+    static_assert(sizeof(delayed_move) <= task_wrapper_sbo::sbo_size, "must move inside queue publication");
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    uv_executor ex(&loop, 3, 1); // Arbitrary capacities, including non-powers of two.
+    publication_barrier barrier;
+    std::thread producer([&] {
+        task_wrapper_sbo task(delayed_move{&barrier});
+        barrier.pause = true;
+        CHECK(ex.try_dispatch(std::move(task)));
+    });
+    while (!barrier.entered.load(std::memory_order_acquire)) std::this_thread::yield();
+    CHECK(ex.try_dispatch(task_wrapper_sbo([&]() noexcept { CHECK(barrier.calls == 1); ++barrier.calls; })));
+    ex.close();
+    for (int i = 0; i < 4; ++i) uv_run(&loop, UV_RUN_NOWAIT);
+    CHECK(!ex.closed() && !barrier.calls); // Neither bypass nor discard the hole.
+    barrier.release.store(true, std::memory_order_release);
+    producer.join();
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0 && ex.closed() && barrier.calls == 2);
+    CHECK(uv_loop_close(&loop) == 0);
+}
 
 void bounded_drain(std::size_t budget) {
     uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
@@ -112,7 +189,29 @@ void independent_lifetime(bool inside_callback) {
     CHECK(!ex && calls == 2 && uv_loop_close(&loop) == 0);
 }
 
+void inline_lifetime(bool nested) {
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    std::unique_ptr<uv_executor> ex(new uv_executor(&loop, 8, 1));
+    int calls = 0;
+    // Destroy the public object while try_dispatch still owns an admission
+    // ticket. A nested inline submission leaves two active dispatch frames.
+    ex->dispatch(task_wrapper_sbo([&]() noexcept {
+        ++calls;
+        if (nested) {
+            ex->dispatch(task_wrapper_sbo([&]() noexcept { ++calls; ex.reset(); }));
+        } else {
+            ex.reset();
+        }
+    }));
+    CHECK(!ex && calls == (nested ? 2 : 1));
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0);
+    CHECK(uv_loop_close(&loop) == 0);
+}
+
 void allocation_failure() {
+#if FLUX_FOUNDRY_WITH_TSAN
+    std::puts("SKIP: allocation replacement under TSan (covered by regular build)");
+#else
     uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
     uv_executor ex(&loop, 1024, 3);
     int accepted = 0, executed = 0;
@@ -130,6 +229,7 @@ void allocation_failure() {
     producer.join();
     CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0);
     CHECK(executed == accepted && uv_loop_close(&loop) == 0);
+#endif
 }
 
 void race_close() {
@@ -163,9 +263,9 @@ void race_close() {
     }
 }
 
-void concurrent_waves(std::size_t budget) {
+void concurrent_waves(std::size_t budget, std::size_t capacity = 64) {
     uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
-    uv_executor ex(&loop, 64, budget);
+    uv_executor ex(&loop, capacity, budget);
     constexpr int producers = 4, waves = 100, per_wave = 31;
     std::atomic<int> delivered{0};
     int expected[producers]{};
@@ -232,7 +332,10 @@ int main() {
     for (auto budget : {1u, 3u, 16u, 64u}) bounded_drain(budget);
     owner_backpressure();
     independent_lifetime(false); independent_lifetime(true);
+    inline_lifetime(false); inline_lifetime(true);
     allocation_failure(); race_close(); runners();
+    outstanding_send(false); outstanding_send(true); unpublished_reservation();
     for (auto budget : {1u, 3u, 16u, 64u}) concurrent_waves(budget);
+    for (auto capacity : {1u, 2u, 3u, 7u}) concurrent_waves(3, capacity);
     std::puts("PASS: libuv bounds, retained rejection, owner affinity/inline, coalesced wakeups, budget rearm, close drain/races, independent handle lifetime, normal/fast runners");
 }

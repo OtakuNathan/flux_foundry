@@ -1,0 +1,75 @@
+[OK] RX uses borrowed queue identifiers
+[OK] empty RX keeps awaitable pending
+[OK] RX uses borrowed queue identifiers
+[OK] RX burst moves mbuf ownership into flow
+[OK] delivered mbufs stay owned; no waiter means no RX poll
+[OK] zero TX acceptance retains entire burst
+[OK] partial TX transfers only accepted prefix
+[OK] moving batch transfers ownership
+[OK] unsent tail freed exactly once
+[OK] drained RX attachment detaches
+[OK] RX uses borrowed queue identifiers
+[OK] empty RX keeps awaitable pending
+[OK] RX uses borrowed queue identifiers
+[OK] RX burst moves mbuf ownership into flow
+[OK] delivered mbufs stay owned; no waiter means no RX poll
+[OK] zero TX acceptance retains entire burst
+[OK] partial TX transfers only accepted prefix
+[OK] moving batch transfers ownership
+[OK] unsent tail freed exactly once
+[OK] drained RX attachment detaches
+[OK] logical cancel keeps backend waiter alive
+[OK] poll drains cancellation exactly once
+[OK] packets arriving during cancellation are freed
+[OK] idle cancellation and close require no NIC traffic
+[OK] RX uses borrowed queue identifiers
+[OK] poll drains cancellation exactly once
+[OK] packets arriving during cancellation are freed
+[OK] idle cancellation and close require no NIC traffic
+[OK] detach refuses pending RX waiter
+[OK] poll drains cancellation exactly once
+[OK] packets arriving during cancellation are freed
+[OK] idle cancellation and close require no NIC traffic
+[OK] second waiter is rejected without replacing first
+[OK] close drains first waiter
+[OK] closed attachment rejects admission
+[OK] RX uses borrowed queue identifiers
+[OK] RX uses borrowed queue identifiers
+[OK] move assignment releases old ownership and transfers empty/partial/full burst
+[OK] self-move preserves packet ownership
+[OK] move construction transfers active prefix
+[OK] move after partial TX retains only the unsent packets
+[OK] empty/partial/full move chains release each packet exactly once
+[OK] RX uses borrowed queue identifiers
+[OK] RX uses borrowed queue identifiers
+[OK] move assignment releases old ownership and transfers empty/partial/full burst
+[OK] moved burst preserves valid packet order
+[OK] self-move preserves packet ownership
+[OK] move construction transfers active prefix
+[OK] move after partial TX retains only the unsent packets
+[OK] empty/partial/full move chains release each packet exactly once
+[OK] RX uses borrowed queue identifiers
+[OK] RX uses borrowed queue identifiers
+[OK] move assignment releases old ownership and transfers empty/partial/full burst
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] self-move preserves packet ownership
+[OK] move construction transfers active prefix
+[OK] move after partial TX retains only the unsent packets
+[OK] empty/partial/full move chains release each packet exactly once
+[OK] RX uses borrowed queue identifiers
+[OK] RX uses borrowed queue identifiers
+[OK] move assignment releases old ownership and transfers empty/partial/full burst
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] moved burst preserves valid packet order
+[OK] self-move preserves packet ownership
+[OK] move construction transfers active prefix
+[OK] move after partial TX retains only the unsent packets
+[OK] empty/partial/full move chains release each packet exactly once

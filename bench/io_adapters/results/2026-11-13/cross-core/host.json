@@ -1,0 +1,30 @@
+{
+  "uname": {
+    "system": "Linux",
+    "node": "Nathan-PC",
+    "release": "7.3.3-1-cachyos",
+    "version": "#1 SMP PREEMPT_DYNAMIC Sat, 07 Nov 2026 13:54:44 +0000",
+    "machine": "x86_64",
+    "processor": ""
+  },
+  "topology": "CPU CORE SOCKET NODE L1d:L1i:L2:L3 ONLINE\n  0    0      0    0 0:0:0:0          yes\n  1    1      0    0 1:1:1:0          yes\n  2    2      0    0 2:2:2:0          yes\n  3    3      0    0 3:3:3:0          yes\n  4    4      0    0 4:4:4:1          yes\n  5    5      0    0 5:5:5:1          yes\n  6    6      0    0 6:6:6:1          yes\n  7    7      0    0 7:7:7:1          yes\n  8    0      0    0 0:0:0:0          yes\n  9    1      0    0 1:1:1:0          yes\n 10    2      0    0 2:2:2:0          yes\n 11    3      0    0 3:3:3:0          yes\n 12    4      0    0 4:4:4:1          yes\n 13    5      0    0 5:5:5:1          yes\n 14    6      0    0 6:6:6:1          yes\n 15    7      0    0 7:7:7:1          yes\n",
+  "libuv": "1.53.0",
+  "compilers": {
+    "clang++": "clang version 23.1.4",
+    "c++": "c++ (GCC) 16.2.1 20260810"
+  },
+  "files": {
+    "executor/uv_executor.h": "32372b16685108e799f32008867d9dfbaeb6e00783cb8e36642dd85cf95acd7f",
+    "bench/io_adapters/uv.cpp": "df6aa96d1ce0320a5bb80b346bac66a9c397e0406d26033bc96fe01d56803dbb",
+    "bench/io_adapters/uv_handoff.cpp": "60da4b271f3ab43572fba9ed8b0c6b805b0f91b76bf01f40a9821e502ae5f787",
+    "bench/load_probe.h": "a36999ea211729a987332dc1a6a569b67876ef531f5a9f1c4a08d6f557395429",
+    "test/uv_executor_contract.cpp": "1351924167dd7d12f8a3ce8ccec9cf8d90d82ae9e6a36004913b3e8d4a1c6717",
+    "flow/flow_awaitable.h": "f8db60a9b933ede2091a67becc0dc63a61c3342df73789bfb2fe4b7fd1ecd51a",
+    "memory/pooling.h": "0be2b58a90ccc93d90176dea3533b70b55789d382471f889f32be8a25cdb124c",
+    "utility/close_gate.h": "68b7ae18818af25fee4afc1b63ca77134e78bb2bb330bc04e2d00b4372ac7187",
+    "after-flow_runner.h": "17a2d8dd98ea8bfb37126ce558dc9eb998f79328b268f082c55516c22a035220",
+    "before-uv_executor.h": "32372b16685108e799f32008867d9dfbaeb6e00783cb8e36642dd85cf95acd7f",
+    "after-uv_executor.h": "db36d4e7eee405b4b118ace7c50fef1c8dd96590a5fb759b0347132a03106c2c"
+  },
+  "note": "Root executor header is the earlier scratch copy; benchmark overlays use before-/after-uv_executor.h. Flow overlay uses after-flow_runner.h."
+}

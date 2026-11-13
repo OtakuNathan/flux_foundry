@@ -1,0 +1,12 @@
+==6477==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x56449a8988f1 in std::__exception_ptr::exception_ptr::~exception_ptr() /usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/16/../../../../include/c++/16/bits/exception_ptr.h:256:11
+    #1 0x56449a8988f1 in main /tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-exception-minimal.cpp:6:1
+    #2 0x7f1dacc27d0d  (/usr/lib/libc.so.6+0x27d0d) (BuildId: e363db7c8fcc7c06c6f0d2839b2a8ad875b75406)
+    #3 0x7f1dacc27e4a in __libc_start_main (/usr/lib/libc.so.6+0x27e4a) (BuildId: e363db7c8fcc7c06c6f0d2839b2a8ad875b75406)
+    #4 0x56449a7f7174 in _start (/tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-exception-minimal+0x33174) (BuildId: 5fc091f1f9b312d7e81ad7c6f214ec16fc95d10a)
+
+  Uninitialized value was created by an allocation of 'error' in the stack frame
+    #0 0x56449a89882a in main /tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-exception-minimal.cpp:4:5
+
+SUMMARY: MemorySanitizer: use-of-uninitialized-value /tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-exception-minimal.cpp:6:1 in main
+Exiting

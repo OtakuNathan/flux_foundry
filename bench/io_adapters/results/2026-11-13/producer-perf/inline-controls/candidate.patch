@@ -1,0 +1,45 @@
+--- a/memory/pooling.h
++++ b/memory/pooling.h
+@@ -73,13 +73,20 @@
+             }
+ 
+             LIKELY_IF((p = detail::get_pool().allocate(sz))) {
++                // Refill only from the bounded shared pool, never malloc.
++                constexpr size_t transfer = cache_cap < 4 ? cache_cap : 4;
++                for (size_t i = 1; i < transfer; ++i) {
++                    auto extra = detail::get_pool().allocate(sz);
++                    if (!extra) break;
++                    cache().push(extra);
++                }
+                 return p;
+             }
+ 
+             return malloc(sz);
+         }
+ 
+-        void dealloc(void* p) noexcept {
++        FORCE_INLINE void dealloc(void* p) noexcept {
+             UNLIKELY_IF(!p) {
+                 return;
+             }
+@@ -89,11 +96,15 @@
+             }
+ 
+             auto& pool = detail::get_pool();
+-            LIKELY_IF (pool.belong_to(p)) {
+-                pool.deallocate(p);
+-            } else {
+-                free(p);
+-            }
++            constexpr size_t transfer = cache_cap < 4 ? cache_cap : 4;
++            for (size_t i = 0; i < transfer; ++i) {
++                auto old = cache().pop();
++                if (pool.belong_to(old)) pool.deallocate(old);
++                else free(old);
++            }
++            if (cache().push(p)) return;
++            if (pool.belong_to(p)) pool.deallocate(p);
++            else free(p);
+         }
+     };
+ 

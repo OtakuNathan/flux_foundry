@@ -1,0 +1,133 @@
+ Percent |	Source code & Disassembly of uring-terminal_view for cycles:u (270 samples, percent: local period)
+------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3    Disassembly of section .text:
+         :
+         : 5    0000000000009880 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)>:
+         : 6    private:
+         : 7    using next_step_t = callable_wrapper<void(result_t<T, E>&&)>;
+         : 8    std::atomic<size_t> refcount;
+         : 9    next_step_t next_step;
+         :
+         : 11   void do_resume(result_t<T, E>&& result) noexcept {
+    3.70 :   9880:   push   %r14
+    0.74 :   9882:   push   %rbx
+    0.00 :   9883:   sub    $0x28,%rsp
+    0.00 :   9887:   mov    %rdi,%rbx
+    0.00 :   988a:   mov    %fs:0x28,%rax
+    0.00 :   9893:   mov    %rax,0x20(%rsp)
+         : 18   FORCE_INLINE R operator()(Args... args)
+         : 19   #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+         : 20   noexcept
+         : 21   #endif
+         : 22   {
+         : 23   return this->invoker_(this->data_, std::forward<Args>(args)...);
+    3.69 :   9898:   lea    0x20(%rdi),%r14
+    0.00 :   989c:   mov    %r14,%rdi
+    1.48 :   989f:   call   *0x10(%rbx)
+         : 27   { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+         :
+         : 29   _GLIBCXX_ALWAYS_INLINE __int_type
+         : 30   fetch_sub(__int_type __i,
+         : 31   memory_order __m = memory_order_seq_cst) noexcept
+         : 32   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   98a2:   lock decq (%rbx)
+         :
+         : 35   void release() noexcept {
+         : 36   #if FLUX_FOUNDRY_WITH_TSAN
+         : 37   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+         : 38   #else
+         : 39   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+   81.55 :   98a6:   je     98c0 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0x40>
+         : 41   }
+    0.00 :   98a8:   mov    %fs:0x28,%rax
+    0.00 :   98b1:   cmp    0x20(%rsp),%rax
+    0.00 :   98b6:   jne    98ed <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0x6d>
+    0.00 :   98b8:   add    $0x28,%rsp
+    3.69 :   98bc:   pop    %rbx
+    0.00 :   98bd:   pop    %r14
+    2.95 :   98bf:   ret
+         : 49   swap(this->invoker_, rhs.invoker_);
+         : 50   swap(this->manager_, rhs.manager_);
+         : 51   }
+         :
+         : 53   void clear() noexcept {
+         : 54   if (manager_) {
+    2.21 :   98c0:   mov    0x18(%rbx),%rax
+    0.00 :   98c4:   test   %rax,%rax
+    0.00 :   98c7:   je     98d5 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0x55>
+         : 58   manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   98c9:   xor    %edi,%edi
+    0.00 :   98cb:   mov    %r14,%rsi
+    0.00 :   98ce:   mov    $0x2,%edx
+    0.00 :   98d3:   call   *%rax
+         : 63   std::atomic_thread_fence(std::memory_order_acquire);
+         : 64   #endif
+         : 65   delete static_cast<derived*>(this);
+    0.00 :   98d5:   mov    %rbx,%rdi
+    0.00 :   98d8:   call   9970 <flux_foundry::pooling_base<probe::uring_terminal<operation>, 256ul>::operator delete(void*)>
+         : 68   }
+    0.00 :   98dd:   mov    %fs:0x28,%rax
+    0.00 :   98e6:   cmp    0x20(%rsp),%rax
+    0.00 :   98eb:   je     98b8 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0x38>
+    0.00 :   98ed:   call   21d0 <__stack_chk_fail@plt>
+    0.00 :   98f2:   mov    %rax,%rdi
+    0.00 :   98f5:   call   2f70 <__clang_call_terminate>
+         : 75   } catch (...) {
+    0.00 :   98fa:   mov    %rax,%rdi
+    0.00 :   98fd:   call   2070 <__cxa_begin_catch@plt>
+    0.00 :   9902:   mov    %rsp,%rdi
+         : 79   this->next_step(result_t<T, E>(error_tag, std::current_exception()));
+    0.00 :   9905:   call   21b0 <std::current_exception()@plt>
+         : 81   #else
+         : 82   typename = std::enable_if_t<std::is_nothrow_constructible<U_, Args &&...>::value>
+         : 83   #endif
+         : 84   >
+         : 85   explicit raw_either_storage_base(second_t, Args &&... args)
+         : 86   noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   990a:   movl   $0x2,0x18(%rsp)
+         : 88   _GLIBCXX26_CONSTEXPR exception_ptr(nullptr_t) noexcept
+         : 89   : _M_exception_object(nullptr)
+         : 90   { }
+         :
+         : 92   _GLIBCXX26_CONSTEXPR exception_ptr(exception_ptr&& __o) noexcept
+         : 93   : _M_exception_object(__o._M_exception_object)
+    0.00 :   9912:   mov    (%rsp),%rax
+    0.00 :   9916:   mov    %rax,0x8(%rsp)
+         : 96   { __o._M_exception_object = nullptr; }
+    0.00 :   991b:   movq   $0x0,(%rsp)
+    0.00 :   9923:   lea    0x8(%rsp),%rsi
+    0.00 :   9928:   mov    %r14,%rdi
+    0.00 :   992b:   call   *0x10(%rbx)
+         : 101  : _state{either_state::second} {
+         : 102  opu::construct_at(std::addressof(_data.second), std::move(u));
+         : 103  }
+         :
+         : 105  ~raw_either_storage_base() noexcept {
+         : 106  if (_state == either_state::second) {
+    0.00 :   992e:   cmpl   $0x2,0x18(%rsp)
+    0.00 :   9933:   jne    9947 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0xc7>
+    0.00 :   9935:   cmpq   $0x0,0x8(%rsp)
+    0.00 :   993b:   je     9947 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0xc7>
+    0.00 :   993d:   lea    0x8(%rsp),%rdi
+         : 112  if consteval {
+         : 113  __builtin_eh_ptr_adjust_ref(_M_exception_object, -1);
+         : 114  return;
+         : 115  }
+         : 116  #endif
+         : 117  _M_release();
+    0.00 :   9942:   call   2130 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 119  if (_M_exception_object)
+    0.00 :   9947:   cmpq   $0x0,(%rsp)
+    0.00 :   994c:   je     9956 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0xd6>
+    0.00 :   994e:   mov    %rsp,%rdi
+         : 123  _M_release();
+    0.00 :   9951:   call   2130 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 125  }
+    0.00 :   9956:   call   22f0 <__cxa_end_catch@plt>
+    0.00 :   995b:   jmp    98a2 <flux_foundry::fast_awaitable_base<probe::uring_terminal<operation>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)+0x22>
+         : 128  this->next_step(result_t<T, E>(error_tag, std::current_exception()));
+    0.00 :   9960:   mov    %rax,%rdi
+    0.00 :   9963:   call   2f70 <__clang_call_terminate>

@@ -1,0 +1,7 @@
+[pooling allocator stress]
+rounds=200 threads=8 ops_per_round=64 collect_latency=0
+[align8_path] alloc_ops=102400 dealloc_ops=102400 alloc_fail=0 align_fail=0 tag_fail=0
+[align8_path] latency: disabled
+[align64_path] alloc_ops=102400 dealloc_ops=102400 alloc_fail=0 align_fail=0 tag_fail=0
+[align64_path] latency: disabled
+[PASS] pooling allocator stress passed

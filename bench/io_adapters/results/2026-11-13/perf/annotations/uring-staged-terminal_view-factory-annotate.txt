@@ -1,0 +1,125 @@
+ Percent |	Source code & Disassembly of uring-terminal_view for cycles:u (417 samples, percent: local period)
+------------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3    Disassembly of section .text:
+         :
+         : 5    0000000000006fc0 <_ZN12flux_foundry17awaitable_factoryIN5probe14uring_terminalI9operationEEEclIS4_JNS_8result_tINS_9extension16io_uring_requestIS3_EENSt15__exception_ptr13exception_ptrEEEETnPNSt9enable_ifIXsr3std16is_constructibleIT_DpOT0_EE5valueEvE4typeELPv0EEENS7_INS_19fast_awaitable_baseIS4_NS8_15io_uring_resultIS3_EESC_E15access_delegateESC_EESI_>:
+         : 6    std::enable_if_t<std::is_constructible<A, Args&&...>::value>* = nullptr
+         : 7    #else
+         : 8    std::enable_if_t<std::is_nothrow_constructible<A, Args&&...>::value>* = nullptr
+         : 9    #endif
+         : 10   >
+         : 11   result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {
+    0.00 :   6fc0:   push   %r14
+    0.96 :   6fc2:   push   %rbx
+    0.00 :   6fc3:   sub    $0x18,%rsp
+    0.00 :   6fc7:   mov    %rdx,%r14
+    0.00 :   6fca:   mov    %rdi,%rbx
+    2.88 :   6fcd:   mov    %fs:0x28,%rax
+    0.00 :   6fd6:   mov    %rax,0x10(%rsp)
+    0.00 :   6fdb:   lea    0x8(%rsp),%rdi
+         : 20   }
+         :
+         : 22   static void* operator new(std::size_t n, const std::nothrow_t&) noexcept {
+         : 23   static_assert(std::is_final<element_t>::value, "the derived struct(class) must be tagged as final!");
+         : 24   UNLIKELY_IF(n != sizeof(element_t)) return nullptr;
+         : 25   return flux_foundry_allocator<sizeof(element_t), alignof(element_t)>().alloc();
+    1.44 :   6fe0:   call   71b0 <flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::alloc()>
+         : 27   UNLIKELY_IF(!p) {
+    0.00 :   6fe5:   test   %rax,%rax
+    0.96 :   6fe8:   je     7031 <_ZN12flux_foundry17awaitable_factoryIN5probe14uring_terminalI9operationEEEclIS4_JNS_8result_tINS_9extension16io_uring_requestIS3_EENSt15__exception_ptr13exception_ptrEEEETnPNSt9enable_ifIXsr3std16is_constructibleIT_DpOT0_EE5valueEvE4typeELPv0EEENS7_INS_19fast_awaitable_baseIS4_NS8_15io_uring_resultIS3_EESC_E15access_delegateESC_EESI_+0x71>
+         : 30   ~__atomic_base() noexcept = default;
+         : 31   __atomic_base(const __atomic_base&) = delete;
+         : 32   __atomic_base& operator=(const __atomic_base&) = delete;
+         : 33   __atomic_base& operator=(const __atomic_base&) volatile = delete;
+         :
+         : 35   constexpr __atomic_base(__int_type __i) noexcept : _M_i (__i) { }
+    0.00 :   6fea:   movq   $0x1,(%rax)
+         : 37   alignas(align) unsigned char data_[size];
+         :
+         : 39   static constexpr size_t buf_size = size;
+         :
+         : 41   raw_type_erase_base() noexcept
+         : 42   : invoker_{ derived::stub }, manager_ { nullptr } {
+    0.00 :   6ff1:   lea    0x2358(%rip),%rcx        # 9350 <flux_foundry::callable_wrapper<void (flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)>::stub(void*, flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)>
+    0.00 :   6ff8:   mov    %rcx,0x10(%rax)
+    0.00 :   6ffc:   movq   $0x0,0x18(%rax)
+         : 46   using async_result_type = flux_foundry::result_t<flux_foundry::extension::io_uring_result<Operation>, E>;
+         : 47   static_assert(std::is_nothrow_move_constructible<Operation>::value
+         : 48   && std::is_nothrow_destructible<Operation>::value, "diagnostic operation must move/destroy without throwing");
+         : 49   request_type request;
+         : 50   explicit uring_terminal(flux_foundry::result_t<request_type, E>&& in) noexcept
+         : 51   : request(std::move(in).value()) {}
+    0.00 :   7004:   movups (%r14),%xmm0
+   77.90 :   7008:   movaps %xmm0,0x50(%rax)
+         : 54   typename = std::enable_if_t<std::is_nothrow_move_constructible<T_>::value>
+         : 55   #endif
+         : 56   >
+         : 57   explicit raw_either_storage_base(first_t, T &&t)
+         : 58   noexcept(std::is_nothrow_move_constructible<T>::value)
+         : 59   : _state{either_state::first} {
+   11.79 :   700c:   movl   $0x1,0x8(%rbx)
+         : 61   noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
+         : 62   #if !FLUX_FOUNDRY_HAS_EXCEPTIONS
+         : 63   static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
+         : 64   "T must be nothrow constructible with Args...");
+         : 65   #endif
+         : 66   return ::new (addr) T(std::forward<Args>(args)...);
+    0.00 :   7013:   mov    %rax,(%rbx)
+         : 68   return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, awaitable_creating_error<node_error_t>::make());
+         : 69   }
+         :
+         : 71   return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
+         : 72   #endif
+         : 73   }
+    0.00 :   7016:   mov    %fs:0x28,%rax
+    0.00 :   701f:   cmp    0x10(%rsp),%rax
+    0.00 :   7024:   jne    706f <_ZN12flux_foundry17awaitable_factoryIN5probe14uring_terminalI9operationEEEclIS4_JNS_8result_tINS_9extension16io_uring_requestIS3_EENSt15__exception_ptr13exception_ptrEEEETnPNSt9enable_ifIXsr3std16is_constructibleIT_DpOT0_EE5valueEvE4typeELPv0EEENS7_INS_19fast_awaitable_baseIS4_NS8_15io_uring_resultIS3_EESC_E15access_delegateESC_EESI_+0xaf>
+    0.00 :   7026:   mov    %rbx,%rax
+    0.00 :   7029:   add    $0x18,%rsp
+    0.00 :   702d:   pop    %rbx
+    4.08 :   702e:   pop    %r14
+    0.00 :   7030:   ret
+         : 82   throw std::bad_alloc();
+    0.00 :   7031:   mov    $0x8,%edi
+    0.00 :   7036:   call   2090 <__cxa_allocate_exception@plt>
+         : 85   *  @c bad_alloc (or classes derived from it) is used to report allocation
+         : 86   *  errors from the throwing forms of @c new.  */
+         : 87   class bad_alloc : public exception
+         : 88   {
+         : 89   public:
+         : 90   _GLIBCXX26_CONSTEXPR bad_alloc() throw() { }
+    0.00 :   703b:   mov    0x5f3e(%rip),%rcx        # cf80 <vtable for std::bad_alloc@GLIBCXX_3.4>
+    0.00 :   7042:   add    $0x10,%rcx
+    0.00 :   7046:   mov    %rcx,(%rax)
+    0.00 :   7049:   mov    %fs:0x28,%rcx
+    0.00 :   7052:   cmp    0x10(%rsp),%rcx
+    0.00 :   7057:   jne    706f <_ZN12flux_foundry17awaitable_factoryIN5probe14uring_terminalI9operationEEEclIS4_JNS_8result_tINS_9extension16io_uring_requestIS3_EENSt15__exception_ptr13exception_ptrEEEETnPNSt9enable_ifIXsr3std16is_constructibleIT_DpOT0_EE5valueEvE4typeELPv0EEENS7_INS_19fast_awaitable_baseIS4_NS8_15io_uring_resultIS3_EESC_E15access_delegateESC_EESI_+0xaf>
+    0.00 :   7059:   mov    0x5f28(%rip),%rsi        # cf88 <typeinfo for std::bad_alloc@GLIBCXX_3.4>
+    0.00 :   7060:   mov    0x5f09(%rip),%rdx        # cf70 <std::bad_alloc::~bad_alloc()@GLIBCXX_3.4>
+    0.00 :   7067:   mov    %rax,%rdi
+    0.00 :   706a:   call   2320 <__cxa_throw@plt>
+    0.00 :   706f:   call   21d0 <__stack_chk_fail@plt>
+         : 102  } catch (...) {
+    0.00 :   7074:   mov    %rax,%rdi
+    0.00 :   7077:   call   2070 <__cxa_begin_catch@plt>
+    0.00 :   707c:   lea    0x8(%rsp),%rdi
+         : 106  return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, std::current_exception());
+    0.00 :   7081:   call   21b0 <std::current_exception()@plt>
+         : 108  noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   7086:   movl   $0x2,0x8(%rbx)
+         : 110  _GLIBCXX26_CONSTEXPR exception_ptr(nullptr_t) noexcept
+         : 111  : _M_exception_object(nullptr)
+         : 112  { }
+         :
+         : 114  _GLIBCXX26_CONSTEXPR exception_ptr(exception_ptr&& __o) noexcept
+         : 115  : _M_exception_object(__o._M_exception_object)
+    0.00 :   708d:   mov    0x8(%rsp),%rax
+    0.00 :   7092:   mov    %rax,(%rbx)
+         : 118  }
+    0.00 :   7095:   call   22f0 <__cxa_end_catch@plt>
+    0.00 :   709a:   jmp    7016 <_ZN12flux_foundry17awaitable_factoryIN5probe14uring_terminalI9operationEEEclIS4_JNS_8result_tINS_9extension16io_uring_requestIS3_EENSt15__exception_ptr13exception_ptrEEEETnPNSt9enable_ifIXsr3std16is_constructibleIT_DpOT0_EE5valueEvE4typeELPv0EEENS7_INS_19fast_awaitable_baseIS4_NS8_15io_uring_resultIS3_EESC_E15access_delegateESC_EESI_+0x56>
+    0.00 :   709f:   mov    %rax,%rdi
+    0.00 :   70a2:   call   2f70 <__clang_call_terminate>

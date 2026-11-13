@@ -1,0 +1,27 @@
+--- a/extension/dpdk_awaitable.h
++++ b/extension/dpdk_awaitable.h
+@@ -8,6 +8,7 @@
+ #include <cerrno>
+ #include <cstddef>
+ #include <cstdint>
++#include <cstring>
+ #include <exception>
+ #include <limits>
+ #include <type_traits>
+@@ -94,14 +95,14 @@
+     dpdk_packet_batch(const dpdk_packet_batch&) = delete;
+     dpdk_packet_batch& operator=(const dpdk_packet_batch&) = delete;
+     dpdk_packet_batch(dpdk_packet_batch&& other) noexcept : count_(other.count_) {
+-        for (std::uint16_t i = 0; i < count_; ++i) packets_[i] = other.packets_[i];
++        std::memcpy(packets_.data(), other.packets_.data(), count_ * sizeof(packet_type*));
+         other.count_ = 0;
+     }
+     dpdk_packet_batch& operator=(dpdk_packet_batch&& other) noexcept {
+         if (this != &other) {
+             clear();
+             count_ = other.count_;
+-            for (std::uint16_t i = 0; i < count_; ++i) packets_[i] = other.packets_[i];
++            std::memcpy(packets_.data(), other.packets_.data(), count_ * sizeof(packet_type*));
+             other.count_ = 0;
+         }
+         return *this;

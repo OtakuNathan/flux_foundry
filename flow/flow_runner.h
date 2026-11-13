@@ -1136,7 +1136,7 @@ namespace flux_foundry {
     auto make_fast_runner(lite_ptr<bp_t> bp) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         using bp_storage = fast_runner_impl::bp_storage<lite_ptr<bp_t>>;
-        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
+        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(std::move(bp)));
     }
 
     template <typename bp_t>
@@ -1191,7 +1191,7 @@ namespace flux_foundry {
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
             "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
         using bp_storage = fast_runner_impl::bp_storage<lite_ptr<bp_t>>;
-        return flow_fast_runner<bp_storage, receiver_t>(bp_storage(bp), std::move(receiver));
+        return flow_fast_runner<bp_storage, receiver_t>(bp_storage(std::move(bp)), std::move(receiver));
     }
 
     template <typename bp_t, typename receiver_t>

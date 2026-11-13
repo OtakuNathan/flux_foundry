@@ -1,0 +1,151 @@
+ Percent |	Source code & Disassembly of uring-current for cycles:u (652 samples, percent: local period)
+------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3    Disassembly of section .text:
+         :
+         : 5    0000000000009e10 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)>:
+         : 6    // original request; its owned buffers stay alive until the terminal CQE.
+         : 7    void cancel() noexcept {}
+         :
+         : 9    private:
+         : 10   request_type request;
+         : 11   static void on_complete(void* data, int result, unsigned flags) noexcept {
+    0.93 :   9e10:   push   %rbx
+    0.00 :   9e11:   sub    $0x30,%rsp
+    0.00 :   9e15:   mov    %rdi,%rbx
+    0.00 :   9e18:   mov    %fs:0x28,%rax
+    0.00 :   9e21:   mov    %rax,0x28(%rsp)
+         : 17   auto* self = static_cast<io_uring_awaitable*>(data);
+         : 18   if (result < 0)
+    2.00 :   9e26:   test   %esi,%esi
+    0.76 :   9e28:   js     9e76 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0x66>
+         : 21   self->resume(async_result_type(error_tag, detail::io_error<E>::make(-result)));
+         : 22   else
+         : 23   self->resume(async_result_type(value_tag,
+         : 24   io_uring_result<Operation>{std::move(self->request.operation), result, flags}));
+    0.00 :   9e2a:   mov    0x58(%rbx),%rax
+         : 26   typename = std::enable_if_t<std::is_nothrow_move_constructible<T_>::value>
+         : 27   #endif
+         : 28   >
+         : 29   explicit raw_either_storage_base(first_t, T &&t)
+         : 30   noexcept(std::is_nothrow_move_constructible<T>::value)
+         : 31   : _state{either_state::first} {
+    0.00 :   9e2e:   movl   $0x1,0x20(%rsp)
+         : 33   noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
+         : 34   #if !FLUX_FOUNDRY_HAS_EXCEPTIONS
+         : 35   static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
+         : 36   "T must be nothrow constructible with Args...");
+         : 37   #endif
+         : 38   return ::new (addr) T(std::forward<Args>(args)...);
+    0.00 :   9e36:   mov    %rax,0x10(%rsp)
+    0.00 :   9e3b:   mov    %esi,0x18(%rsp)
+    0.00 :   9e3f:   mov    %edx,0x1c(%rsp)
+         : 42   using _Vp = _Val<_Tp>;
+         : 43   _Tp* const __pval = std::__addressof(__val);
+         :
+         : 45   if constexpr (!__atomic_impl::__maybe_has_padding<_Vp>())
+         : 46   {
+         : 47   return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   9e43:   mov    $0x2,%ecx
+    0.00 :   9e48:   mov    $0x1,%eax
+    1.69 :   9e4d:   lock cmpxchg %ecx,(%rbx)
+   40.62 :   9e51:   jne    9e60 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0x50>
+    0.00 :   9e53:   lea    0x10(%rsp),%rsi
+         : 53   auto expected = waiting;
+         : 54   if (!status.compare_exchange_strong(expected, done,
+         : 55   std::memory_order_acq_rel, std::memory_order_acquire)) {
+         : 56   return;
+         : 57   }
+         : 58   do_resume(std::move(io_result));
+    0.00 :   9e58:   mov    %rbx,%rdi
+    0.76 :   9e5b:   call   97a0 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)>
+         : 61   : _state{either_state::second} {
+         : 62   opu::construct_at(std::addressof(_data.second), std::move(u));
+         : 63   }
+         :
+         : 65   ~raw_either_storage_base() noexcept {
+         : 66   if (_state == either_state::second) {
+    3.35 :   9e60:   cmpl   $0x2,0x20(%rsp)
+    0.00 :   9e65:   jne    9ee5 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xd5>
+    0.00 :   9e67:   cmpq   $0x0,0x10(%rsp)
+    0.00 :   9e6d:   je     9ee5 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xd5>
+    0.00 :   9e6f:   lea    0x10(%rsp),%rdi
+    0.00 :   9e74:   jmp    9ee0 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xd0>
+         : 73   self->resume(async_result_type(error_tag, detail::io_error<E>::make(-result)));
+    0.00 :   9e76:   neg    %esi
+    0.00 :   9e78:   lea    0x8(%rsp),%rdi
+    0.00 :   9e7d:   call   9f40 <flux_foundry::extension::detail::io_error<std::__exception_ptr::exception_ptr>::make(int)>
+         : 77   noexcept (std::is_nothrow_constructible<U_, Args &&...>::value) : _state{either_state::second} {
+    0.00 :   9e82:   movl   $0x2,0x20(%rsp)
+         : 79   _GLIBCXX26_CONSTEXPR exception_ptr(nullptr_t) noexcept
+         : 80   : _M_exception_object(nullptr)
+         : 81   { }
+         :
+         : 83   _GLIBCXX26_CONSTEXPR exception_ptr(exception_ptr&& __o) noexcept
+         : 84   : _M_exception_object(__o._M_exception_object)
+    0.00 :   9e8a:   mov    0x8(%rsp),%rax
+    0.00 :   9e8f:   mov    %rax,0x10(%rsp)
+         : 87   { __o._M_exception_object = nullptr; }
+    0.00 :   9e94:   movq   $0x0,0x8(%rsp)
+    0.00 :   9e9d:   mov    $0x2,%ecx
+    0.00 :   9ea2:   mov    $0x1,%eax
+    0.00 :   9ea7:   lock cmpxchg %ecx,(%rbx)
+    0.00 :   9eab:   jne    9eba <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xaa>
+    0.00 :   9ead:   lea    0x10(%rsp),%rsi
+    0.00 :   9eb2:   mov    %rbx,%rdi
+    0.00 :   9eb5:   call   97a0 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::do_resume(flux_foundry::result_t<flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>&&)>
+         : 96   if (_state == either_state::second) {
+    0.00 :   9eba:   cmpl   $0x2,0x20(%rsp)
+    0.00 :   9ebf:   jne    9ed3 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xc3>
+    0.00 :   9ec1:   cmpq   $0x0,0x10(%rsp)
+    0.00 :   9ec7:   je     9ed3 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xc3>
+    0.00 :   9ec9:   lea    0x10(%rsp),%rdi
+         : 102  if consteval {
+         : 103  __builtin_eh_ptr_adjust_ref(_M_exception_object, -1);
+         : 104  return;
+         : 105  }
+         : 106  #endif
+         : 107  _M_release();
+    0.00 :   9ece:   call   2130 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 109  if (_M_exception_object)
+    0.00 :   9ed3:   cmpq   $0x0,0x8(%rsp)
+    0.00 :   9ed9:   je     9ee5 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xd5>
+    0.00 :   9edb:   lea    0x8(%rsp),%rdi
+    0.00 :   9ee0:   call   2130 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 114  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   9ee5:   lock decq 0x8(%rbx)
+         : 116  UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+   44.23 :   9eea:   je     9f02 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xf2>
+         : 118  self->release(); // Backend reference; resume may have consumed the flow reference.
+         : 119  }
+    0.00 :   9eec:   mov    %fs:0x28,%rax
+    0.00 :   9ef5:   cmp    0x28(%rsp),%rax
+    0.00 :   9efa:   jne    9f30 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0x120>
+    0.00 :   9efc:   add    $0x30,%rsp
+    0.00 :   9f00:   pop    %rbx
+    0.00 :   9f01:   ret
+         : 126  swap(this->invoker_, rhs.invoker_);
+         : 127  swap(this->manager_, rhs.manager_);
+         : 128  }
+         :
+         : 130  void clear() noexcept {
+         : 131  if (manager_) {
+    0.00 :   9f02:   mov    0x18(%rbx),%rax
+    0.00 :   9f06:   test   %rax,%rax
+    0.00 :   9f09:   je     9f18 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0x108>
+         : 135  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   9f0b:   lea    0x20(%rbx),%rsi
+    0.00 :   9f0f:   xor    %edi,%edi
+    0.00 :   9f11:   mov    $0x2,%edx
+    0.00 :   9f16:   call   *%rax
+         : 140  delete static_cast<derived*>(this);
+    0.00 :   9f18:   mov    %rbx,%rdi
+    1.99 :   9f1b:   call   9890 <flux_foundry::pooling_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, 256ul>::operator delete(void*)>
+    0.00 :   9f20:   mov    %fs:0x28,%rax
+    3.66 :   9f29:   cmp    0x28(%rsp),%rax
+    0.00 :   9f2e:   je     9efc <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)+0xec>
+    0.00 :   9f30:   call   21d0 <__stack_chk_fail@plt>
+    0.00 :   9f35:   mov    %rax,%rdi
+    0.00 :   9f38:   call   2f70 <__clang_call_terminate>

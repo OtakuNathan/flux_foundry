@@ -1,0 +1,22 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 7K of event 'cycles:u'
+# Event count (approx.): 10338439096
+#
+# Overhead  Samples  Shared Object  Symbol  IPC  [IPC Coverage]
+# ........  ............  ...................  ..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................  ....................
+#
+  63.47%  4839  [unknown]  [k] 0000000000000000  -  -
+  10.75%  821  uring-terminal_view  [.] _ZN12flux_foundry16flow_fast_runnerINS_16fast_runner_impl10bp_storageIPNS_9flow_impl14flow_blueprintINS_8result_tINS_9extension16io_uring_requestI9operationEENSt15__exception_ptr13exception_ptrEEENS5_INS6_15io_uring_resultIS8_EESB_EEJNS3_13flow_end_nodeISF_SF_ZNS3_8end_nodeIvE4makeISF_EEDaOSI_EUlOSF_E_EENS3_15flow_async_nodeISC_SF_NS3_18dispatch_wrapper_tIPNS3_15inline_executorEEENS3_8identityENS_17awaitable_factoryIN5probe14uring_terminalIS8_EEEEEENS3_14flow_calc_nodeISC_SC_ST_Lm1EEEEEEEE8receiverE3ipcILm1EE8dispatchISZ_SC_Lm1ETnPNSt9enable_ifIXneT1_Li0EEvE4typeELPv0EEEvRT_RS16_OT0_St17integral_constantImLm3EE  -  -
+  10.05%  768  uring-terminal_view  [.] int flux_foundry::extension::io_uring_context::enqueue<operation>(operation&, void (*)(void*, int, unsigned int), void*)  -  -
+  9.86%  752  uring-terminal_view  [.] _ZN12flux_foundry17awaitable_factoryIN5probe14uring_terminalI9operationEEEclIS4_JNS_8result_tINS_9extension16io_uring_requestIS3_EENSt15__exception_ptr13exception_ptrEEEETnPNSt9enable_ifIXsr3std16is_constructibleIT_DpOT0_EE5valueEvE4typeELPv0EEENS7_INS_19fast_awaitable_baseIS4_NS8_15io_uring_resultIS3_EESC_E15access_delegateESC_EESI_  -  -
+  4.96%  379  uring-terminal_view  [.] double measure<3>(bool, unsigned long, unsigned int)  -  -
+  0.52%  40  uring-terminal_view  [.] flux_foundry::flux_foundry_allocator<96ul, 16ul, 512ul, true>::alloc()  -  -
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

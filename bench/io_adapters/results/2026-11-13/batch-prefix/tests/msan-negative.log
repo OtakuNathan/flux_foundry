@@ -1,0 +1,12 @@
+==12679==WARNING: MemorySanitizer: use-of-uninitialized-value
+    #0 0x55be4d65476c in main /tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-negative.cpp:5:5
+    #1 0x7fe9b6027d0d  (/usr/lib/libc.so.6+0x27d0d) (BuildId: e363db7c8fcc7c06c6f0d2839b2a8ad875b75406)
+    #2 0x7fe9b6027e4a in __libc_start_main (/usr/lib/libc.so.6+0x27e4a) (BuildId: e363db7c8fcc7c06c6f0d2839b2a8ad875b75406)
+    #3 0x55be4d5b30e4 in _start (/tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-negative+0x330e4) (BuildId: 6d748a2379a1259ce9546b0839d2f1b70c7ec0c2)
+
+  Uninitialized value was created by a heap allocation
+    #0 0x55be4d653612 in operator new(unsigned long) (/tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-negative+0xd3612) (BuildId: 6d748a2379a1259ce9546b0839d2f1b70c7ec0c2)
+    #1 0x55be4d65472d in main /tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-negative.cpp:2:27
+
+SUMMARY: MemorySanitizer: use-of-uninitialized-value /tmp/ff-io-perf-vFZ6HVwW/build/batch-prefix-tests/msan-negative.cpp:5:5 in main
+Exiting

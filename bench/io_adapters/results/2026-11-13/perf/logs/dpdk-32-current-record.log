@@ -1,0 +1,8 @@
+Events disabled
+DPDK 25.11.3; software net_ring loopback, 64-byte hot mbufs
+Events enabled
+Events disabled
+repeat,backend,path,mode,bursts,batch,ns_per_burst,ns_per_packet
+0,dpdk,net_ring,fast,16777216,32,333.545,10.423
+[ perf record: Woken up 362 times to write data ]
+[ perf record: Captured and wrote 88.482 MB /tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-32-current.data (5579 samples) ]

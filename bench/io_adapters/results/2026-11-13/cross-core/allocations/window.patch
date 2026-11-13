@@ -1,0 +1,18 @@
+--- a/bench/load_probe.h
++++ b/bench/load_probe.h
+@@ -240,6 +240,7 @@
+     const Ns monitor_start = now_ns();
+     const Ns origin = monitor_start + 2000000;
+     Ns last_submit = origin;
++    ff_alloc_begin();
+     for (std::size_t i = 0; i < o.samples; ++i) {
+         auto& s = samples[i];
+         s.planned = origin + due(p,i);
+@@ -262,6 +263,7 @@
+         s.submit_end = now_ns();
+         last_submit = s.submit_end;
+     }
++    ff_alloc_end();
+     const Ns timeout = now_ns() + INT64_C(30000000000);
+     while (ctx.completed.load(std::memory_order_acquire) != o.samples) {
+         require(now_ns() < timeout,"completion drain timed out"); relax();

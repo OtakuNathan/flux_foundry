@@ -1,0 +1,19 @@
+Internal ctest changing into directory: /home/nathan/Documents/coding/flux_foundry/build/pool-batch/cmake
+Test project /home/nathan/Documents/coding/flux_foundry/build/pool-batch/cmake
+    Start 11: awaitable_lifecycle_contract
+1/4 Test #11: awaitable_lifecycle_contract .........   Passed    0.02 sec
+    Start 19: awaitable_lifecycle_contract_noexc
+2/4 Test #19: awaitable_lifecycle_contract_noexc ...   Passed    0.01 sec
+    Start 31: pooling_handoff_contract
+3/4 Test #31: pooling_handoff_contract .............   Passed    0.17 sec
+    Start 32: pooling_handoff_contract_noexc
+4/4 Test #32: pooling_handoff_contract_noexc .......   Passed    0.18 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Label Time Summary:
+contract    =   0.37 sec*proc (4 tests)
+noexc       =   0.01 sec*proc (1 test)
+smoke       =   0.37 sec*proc (4 tests)
+
+Total Test time (real) =   0.38 sec

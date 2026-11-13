@@ -1,0 +1,25 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 4K of event 'cycles:u'
+# Event count (approx.): 19730820322
+#
+# Overhead  Samples  Shared Object  Symbol  IPC  [IPC Coverage]
+# ........  ............  .......................  ..........................................................  ....................
+#
+  49.02%  2220  dpdk-current  [.] double measure<32u, 0u>(unsigned short, unsigned long)  -  -
+  34.98%  1581  librte_net_ring.so.26.0  [.] 0x0000000000002fcb  -  -
+  2.68%  121  librte_net_ring.so.26.0  [.] 0x00000000000038c7  -  -
+  1.86%  84  librte_net_ring.so.26.0  [.] 0x00000000000038dd  -  -
+  1.39%  63  librte_net_ring.so.26.0  [.] 0x00000000000038f2  -  -
+  0.73%  33  librte_net_ring.so.26.0  [.] 0x0000000000002f70  -  -
+  0.66%  30  librte_net_ring.so.26.0  [.] 0x0000000000003935  -  -
+  0.58%  26  librte_net_ring.so.26.0  [.] 0x00000000000038cb  -  -
+  0.53%  24  librte_net_ring.so.26.0  [.] 0x0000000000003803  -  -
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

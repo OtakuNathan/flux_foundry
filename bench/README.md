@@ -2,6 +2,9 @@
 
 This document keeps the microbenchmark material out of the root `README`.
 
+For actual UV executor old/new comparisons and io_uring/DPDK awaitable costs,
+see [`bench/io_adapters/README.md`](io_adapters/README.md).
+
 For the standalone `flux_foundry` vs Asio harness and collection scripts, see [`bench/horizontal_compare/README.md`](horizontal_compare/README.md).
 
 For new before/after flow-probe comparisons, use the same benchmark sources and

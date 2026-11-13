@@ -1,0 +1,76 @@
+{
+  "commands": [
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-screen/before",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv_handoff.cpp",
+      "-luv",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-latency/clang++-before"
+    ],
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-screen/after",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv_handoff.cpp",
+      "-luv",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-latency/clang++-after"
+    ],
+    [
+      "c++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-screen/before",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv_handoff.cpp",
+      "-luv",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-latency/c++-before"
+    ],
+    [
+      "c++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-screen/after",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv_handoff.cpp",
+      "-luv",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-latency/c++-after"
+    ]
+  ],
+  "samples": 32768,
+  "repeats": 5,
+  "owner_cpu": 3,
+  "producer_cpus": [
+    2,
+    4
+  ],
+  "capacity": 1024
+}

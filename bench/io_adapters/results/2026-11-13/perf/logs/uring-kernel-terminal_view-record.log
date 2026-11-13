@@ -1,0 +1,6 @@
+Events disabled
+Events enabled
+Events disabled
+uring,kernel,fast,67108864,32,114.048
+[ perf record: Woken up 486 times to write data ]
+[ perf record: Captured and wrote 120.724 MB /tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-kernel-terminal_view.data (7630 samples) ]

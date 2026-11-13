@@ -1,0 +1,6 @@
+Events disabled
+DPDK 25.11.3; software net_ring loopback, 64-byte hot mbufs
+Events enabled
+Events disabled
+repeat,backend,path,mode,bursts,batch,ns_per_burst,ns_per_packet
+0,dpdk,net_ring,context,16777216,32,325.756,10.180

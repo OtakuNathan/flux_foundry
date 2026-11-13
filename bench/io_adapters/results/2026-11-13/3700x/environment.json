@@ -1,0 +1,80 @@
+{
+  "baseline": "4e4daf5",
+  "commands": [
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/build/io-perf/baseline",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/io-perf/uv-old",
+      "-luv"
+    ],
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/io-perf/uv-new",
+      "-luv"
+    ],
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uring.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/io-perf/uring",
+      "-luring"
+    ]
+  ],
+  "uname": "Linux Nathan-PC 7.3.3-1-cachyos #1 SMP PREEMPT_DYNAMIC Sat, 07 Nov 2026 13:54:44 +0000 x86_64 GNU/Linux",
+  "started_utc": "2026-11-13T03:09:06.031246+00:00",
+  "sensors_before": {
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1760000"
+  },
+  "lscpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           43 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  16\nOn-line CPU(s) list:                     0-15\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen 7 3700X 8-Core Processor\nCPU family:                              23\nModel:                                   113\nThread(s) per core:                      2\nCore(s) per socket:                      8\nSocket(s):                               1\nStepping:                                0\nMicrocode version:                       0x8701034\nFrequency boost:                         enabled\nCPU(s) scaling MHz:                      52%\nCPU max MHz:                             4426.6670\nCPU min MHz:                             560.0000\nBogoMIPS:                                7199.49\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca sev sev_es\nL1d cache:                               256 KiB (8 instances)\nL1i cache:                               256 KiB (8 instances)\nL2 cache:                                4 MiB (8 instances)\nL3 cache:                                32 MiB (2 instances)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-15\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Mitigation; untrained return thunk; SMT enabled with STIBP protection\nVulnerability Spec rstack overflow:      Mitigation; Safe RET\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace",
+  "compiler": "clang version 23.1.4\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin",
+  "arguments": {
+    "out": "/tmp/ff-io-perf-vFZ6HVwW/build/io-perf",
+    "baseline": "4e4daf5",
+    "baseline_header": "baseline-uv.h",
+    "repeats": 7,
+    "count": 1048576,
+    "owner_cpu": 3,
+    "first_producer_cpu": 4
+  },
+  "sha256": {
+    "executor/uv_executor.h": "32372b16685108e799f32008867d9dfbaeb6e00783cb8e36642dd85cf95acd7f",
+    "utility/close_gate.h": "68b7ae18818af25fee4afc1b63ca77134e78bb2bb330bc04e2d00b4372ac7187",
+    "extension/io_uring_awaitable.h": "9eb12fd1b88af93ab62a5ecab4903ae5286deb6e311a089dad8fc1bb4d31ed2a",
+    "bench/io_adapters/uv.cpp": "df6aa96d1ce0320a5bb80b346bac66a9c397e0406d26033bc96fe01d56803dbb",
+    "bench/io_adapters/uring.cpp": "daa25783ecf71394f72c7d76cc0bd79720f1c663028111754f1eaf6a96e7c58d"
+  },
+  "baseline_header_sha256": "2791197d4366a537316f13aa0f26e7d73057cf8e63b0fca28346ef6d9eeec939",
+  "sensors_after": {
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "powersave",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1760000"
+  }
+}

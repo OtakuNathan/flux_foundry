@@ -1,0 +1,1071 @@
+ Percent |	Source code & Disassembly of uring-current for cycles:u (1546 samples, percent: local period)
+-------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3    Disassembly of section .text:
+         :
+         : 5    0000000000005af0 <double measure<3>(bool, unsigned long, unsigned int)>:
+         : 6    }
+         :
+         : 8    // Staged mode measures userspace submission/routing only. No kernel I/O is
+         : 9    // performed: SQE tokens are returned synchronously by this harness after a batch.
+         : 10   template <int Mode>
+         : 11   double measure(bool kernel, std::size_t count, unsigned batch) {
+    0.00 :   5af0:   push   %rbp
+    0.00 :   5af1:   push   %r15
+    0.00 :   5af3:   push   %r14
+    0.00 :   5af5:   push   %r13
+    0.00 :   5af7:   push   %r12
+    0.00 :   5af9:   push   %rbx
+    0.00 :   5afa:   sub    $0x1b8,%rsp
+    0.00 :   5b01:   mov    %edx,%r14d
+    0.00 :   5b04:   mov    %rsi,%r15
+    0.00 :   5b07:   mov    %edi,0xc(%rsp)
+    0.00 :   5b0b:   mov    %fs:0x28,%rax
+    0.00 :   5b14:   mov    %rax,0x1b0(%rsp)
+         : 24   io_uring ring{};
+    0.00 :   5b1c:   xorps  %xmm0,%xmm0
+    0.00 :   5b1f:   movaps %xmm0,0x190(%rsp)
+    0.00 :   5b27:   movaps %xmm0,0x180(%rsp)
+    0.00 :   5b2f:   movaps %xmm0,0x170(%rsp)
+    0.00 :   5b37:   movaps %xmm0,0x160(%rsp)
+    0.00 :   5b3f:   movaps %xmm0,0x150(%rsp)
+    0.00 :   5b47:   movaps %xmm0,0x140(%rsp)
+    0.00 :   5b4f:   movaps %xmm0,0x130(%rsp)
+    0.00 :   5b57:   movaps %xmm0,0x120(%rsp)
+    0.00 :   5b5f:   movaps %xmm0,0x110(%rsp)
+    0.00 :   5b67:   movaps %xmm0,0x100(%rsp)
+    0.00 :   5b6f:   movaps %xmm0,0xf0(%rsp)
+    0.00 :   5b77:   movaps %xmm0,0xe0(%rsp)
+    0.00 :   5b7f:   movaps %xmm0,0xd0(%rsp)
+    0.00 :   5b87:   movq   $0x0,0x1a0(%rsp)
+         : 40   std::vector<io_uring_sqe> sqes(batch);
+    0.00 :   5b93:   mov    %edx,%ebp
+         : 42   _GLIBCXX20_CONSTEXPR
+         : 43   pointer
+         : 44   _M_allocate(size_t __n)
+         : 45   {
+         : 46   typedef __gnu_cxx::__alloc_traits<_Tp_alloc_type> _Tr;
+         : 47   return __n != 0 ? _Tr::allocate(_M_impl, __n) : pointer();
+    0.00 :   5b95:   test   %edx,%edx
+    0.00 :   5b97:   je     5d18 <double measure<3>(bool, unsigned long, unsigned int)+0x228>
+         : 50   return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp),
+         : 51   __al));
+         : 52   }
+         : 53   #endif
+         : 54   else
+         : 55   return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+    0.00 :   5b9d:   mov    %rbp,%rbx
+    0.00 :   5ba0:   shl    $0x6,%rbx
+    0.00 :   5ba4:   mov    %rbx,%rdi
+    0.00 :   5ba7:   call   2170 <operator new(unsigned long)@plt>
+    0.00 :   5bac:   mov    %rax,%r13
+         : 61   void
+         : 62   _M_create_storage(size_t __n)
+         : 63   {
+         : 64   this->_M_impl._M_start = this->_M_allocate(__n);
+         : 65   this->_M_impl._M_finish = this->_M_impl._M_start;
+         : 66   this->_M_impl._M_end_of_storage = this->_M_impl._M_start + __n;
+    0.00 :   5baf:   add    %rbx,%rax
+    0.00 :   5bb2:   mov    %rax,0x20(%rsp)
+         : 69   io_uring ring{};
+    0.00 :   5bb7:   xorps  %xmm0,%xmm0
+         : 71   // Allow std::_Construct to be used in constant expressions.
+         : 72   std::construct_at(__p, std::forward<_Args>(__args)...);
+         : 73   return;
+         : 74   }
+         : 75   #endif
+         : 76   ::new(static_cast<void*>(__p)) _Tp(std::forward<_Args>(__args)...);
+    0.00 :   5bba:   movups %xmm0,0x0(%r13)
+    0.00 :   5bbf:   movups %xmm0,0x10(%r13)
+    0.00 :   5bc4:   movups %xmm0,0x20(%r13)
+    0.00 :   5bc9:   movups %xmm0,0x30(%r13)
+         : 81   std::random_access_iterator_tag)
+         : 82   {
+         : 83   #if __cplusplus >= 201103L
+         : 84   static_assert(is_integral<_Size>{}, "fill_n must pass integral size");
+         : 85   #endif
+         : 86   if (__n <= 0)
+    0.00 :   5bce:   cmp    $0x1,%r14d
+    0.00 :   5bd2:   je     5ce6 <double measure<3>(bool, unsigned long, unsigned int)+0x1f6>
+         : 89   if (__n > 0)
+         : 90   {
+         : 91   typename iterator_traits<_ForwardIterator>::value_type* __val
+         : 92   = std::addressof(*__first);
+         : 93   std::_Construct(__val);
+         : 94   ++__first;
+    0.00 :   5bd8:   lea    0x40(%r13),%rax
+         : 96   for (; __first != __last; ++__first)
+    0.00 :   5bdc:   lea    -0x80(%rbx),%rcx
+    0.00 :   5be0:   mov    %ecx,%edx
+    0.00 :   5be2:   shr    $0x6,%edx
+    0.00 :   5be5:   inc    %edx
+    0.00 :   5be7:   and    $0x3,%edx
+    0.00 :   5bea:   je     5c1c <double measure<3>(bool, unsigned long, unsigned int)+0x12c>
+    0.00 :   5bec:   nopl   0x0(%rax)
+         : 104  *__first = __val;
+    0.00 :   5bf0:   movups 0x0(%r13),%xmm0
+    0.00 :   5bf5:   movups 0x10(%r13),%xmm1
+    0.00 :   5bfa:   movups 0x20(%r13),%xmm2
+    0.00 :   5bff:   movups 0x30(%r13),%xmm3
+    0.00 :   5c04:   movups %xmm3,0x30(%rax)
+    0.00 :   5c08:   movups %xmm2,0x20(%rax)
+    0.00 :   5c0c:   movups %xmm1,0x10(%rax)
+    0.00 :   5c10:   movups %xmm0,(%rax)
+         : 113  for (; __first != __last; ++__first)
+    0.00 :   5c13:   add    $0x40,%rax
+    0.00 :   5c17:   dec    %rdx
+    0.00 :   5c1a:   jne    5bf0 <double measure<3>(bool, unsigned long, unsigned int)+0x100>
+    0.00 :   5c1c:   cmp    $0xc0,%rcx
+    0.00 :   5c23:   jb     5ce6 <double measure<3>(bool, unsigned long, unsigned int)+0x1f6>
+    0.00 :   5c29:   mov    %r13,%rcx
+    0.00 :   5c2c:   add    %rbx,%rcx
+    0.00 :   5c2f:   nop
+         : 122  *__first = __val;
+    0.00 :   5c30:   movups 0x0(%r13),%xmm0
+    0.00 :   5c35:   movups 0x10(%r13),%xmm1
+    0.00 :   5c3a:   movups 0x20(%r13),%xmm2
+    0.00 :   5c3f:   movups 0x30(%r13),%xmm3
+    0.00 :   5c44:   movups %xmm3,0x30(%rax)
+    0.00 :   5c48:   movups %xmm2,0x20(%rax)
+    0.00 :   5c4c:   movups %xmm1,0x10(%rax)
+    0.00 :   5c50:   movups %xmm0,(%rax)
+    0.00 :   5c53:   movups 0x0(%r13),%xmm0
+    0.00 :   5c58:   movups 0x10(%r13),%xmm1
+    0.00 :   5c5d:   movups 0x20(%r13),%xmm2
+    0.00 :   5c62:   movups 0x30(%r13),%xmm3
+    0.00 :   5c67:   movups %xmm3,0x70(%rax)
+    0.00 :   5c6b:   movups %xmm2,0x60(%rax)
+    0.00 :   5c6f:   movups %xmm1,0x50(%rax)
+    0.00 :   5c73:   movups %xmm0,0x40(%rax)
+    0.00 :   5c77:   movups 0x0(%r13),%xmm0
+    0.00 :   5c7c:   movups 0x10(%r13),%xmm1
+    0.00 :   5c81:   movups 0x20(%r13),%xmm2
+    0.00 :   5c86:   movups 0x30(%r13),%xmm3
+    0.00 :   5c8b:   movups %xmm3,0xb0(%rax)
+    0.00 :   5c92:   movups %xmm2,0xa0(%rax)
+    0.00 :   5c99:   movups %xmm1,0x90(%rax)
+    0.00 :   5ca0:   movups %xmm0,0x80(%rax)
+    0.00 :   5ca7:   movups 0x0(%r13),%xmm0
+    0.00 :   5cac:   movups 0x10(%r13),%xmm1
+    0.00 :   5cb1:   movups 0x20(%r13),%xmm2
+    0.00 :   5cb6:   movups 0x30(%r13),%xmm3
+    0.00 :   5cbb:   movups %xmm0,0xc0(%rax)
+    0.00 :   5cc2:   movups %xmm1,0xd0(%rax)
+    0.00 :   5cc9:   movups %xmm2,0xe0(%rax)
+    0.00 :   5cd0:   movups %xmm3,0xf0(%rax)
+         : 155  for (; __first != __last; ++__first)
+    0.00 :   5cd7:   add    $0x100,%rax
+    0.00 :   5cdd:   cmp    %rcx,%rax
+    0.00 :   5ce0:   jne    5c30 <double measure<3>(bool, unsigned long, unsigned int)+0x140>
+         : 159  unsigned head = 0;
+    0.00 :   5ce6:   movl   $0x0,0x9c(%rsp)
+         : 161  if (kernel) {
+    0.00 :   5cf1:   cmpb   $0x0,0xc(%rsp)
+    0.00 :   5cf6:   je     5d36 <double measure<3>(bool, unsigned long, unsigned int)+0x246>
+    0.00 :   5cf8:   lea    0xd0(%rsp),%rsi
+         : 165  const int rc = io_uring_queue_init(batch, &ring, 0);
+    0.00 :   5d00:   mov    %r14d,%edi
+    0.00 :   5d03:   xor    %edx,%edx
+    0.00 :   5d05:   call   21e0 <io_uring_queue_init@plt>
+         : 169  if (rc) { std::fprintf(stderr, "io_uring_queue_init failed: %d\n", rc); std::exit(1); }
+    0.00 :   5d0a:   test   %eax,%eax
+    0.00 :   5d0c:   jne    66c0 <double measure<3>(bool, unsigned long, unsigned int)+0xbd0>
+         : 172  void* data = nullptr;
+         : 173  std::uint32_t generation = 0;
+         : 174  std::size_t next = 0;
+         : 175  };
+         : 176  static std::size_t checked_capacity(std::size_t n) {
+         : 177  if (n && n <= 65536) return n;
+    0.00 :   5d12:   lea    -0x1(%r14),%eax
+    0.00 :   5d16:   jmp    5d61 <double measure<3>(bool, unsigned long, unsigned int)+0x271>
+    0.00 :   5d18:   movq   $0x0,0x20(%rsp)
+    0.00 :   5d21:   xor    %r13d,%r13d
+         : 182  unsigned head = 0;
+    0.00 :   5d24:   movl   $0x0,0x9c(%rsp)
+         : 184  if (kernel) {
+    0.00 :   5d2f:   cmpb   $0x0,0xc(%rsp)
+    0.00 :   5d34:   jne    5cf8 <double measure<3>(bool, unsigned long, unsigned int)+0x208>
+         : 187  } else {
+         : 188  ring.sq.sqes = sqes.data();
+    0.00 :   5d36:   mov    %r13,0x108(%rsp)
+    0.00 :   5d3e:   lea    0x9c(%rsp),%rax
+         : 191  ring.sq.khead = &head;
+    0.00 :   5d46:   mov    %rax,0xd0(%rsp)
+         : 193  ring.sq.ring_entries = batch;
+    0.00 :   5d4e:   mov    %r14d,0x12c(%rsp)
+         : 195  ring.sq.ring_mask = batch - 1;
+    0.00 :   5d56:   lea    -0x1(%r14),%eax
+    0.00 :   5d5a:   mov    %eax,0x128(%rsp)
+    0.00 :   5d61:   lea    0xd0(%rsp),%rcx
+         : 199  : ring_(&ring), tag_(tag), slots_(checked_capacity(capacity)) {
+    0.00 :   5d69:   mov    %rcx,0x60(%rsp)
+    0.00 :   5d6e:   movw   $0xff20,0x68(%rsp)
+         : 202  if (n && n <= 65536) return n;
+    0.00 :   5d75:   cmp    $0x10000,%eax
+    0.00 :   5d7a:   mov    %r13,0x10(%rsp)
+    0.00 :   5d7f:   jae    6653 <double measure<3>(bool, unsigned long, unsigned int)+0xb63>
+    0.00 :   5d85:   mov    %r15,0x28(%rsp)
+    0.00 :   5d8a:   mov    %r14,0x18(%rsp)
+    0.00 :   5d8f:   mov    %rbp,%r15
+    0.00 :   5d92:   shl    $0x5,%r15
+    0.00 :   5d96:   mov    %r15,%rdi
+    0.00 :   5d99:   call   2170 <operator new(unsigned long)@plt>
+         : 212  this->_M_impl._M_start = this->_M_allocate(__n);
+    0.00 :   5d9e:   mov    %rax,%rbx
+    0.00 :   5da1:   mov    %rax,0x70(%rsp)
+         : 215  this->_M_impl._M_end_of_storage = this->_M_impl._M_start + __n;
+    0.00 :   5da6:   lea    (%rax,%r15,1),%r12
+         : 217  void* data = nullptr;
+    0.00 :   5daa:   xor    %r14d,%r14d
+    0.00 :   5dad:   mov    %rax,%rdi
+    0.00 :   5db0:   xor    %esi,%esi
+    0.00 :   5db2:   mov    %r15,%rdx
+    0.00 :   5db5:   call   20c0 <memset@plt>
+    0.00 :   5dba:   mov    %r12,0x80(%rsp)
+         : 224  // Called by the vector(n) constructor.
+         : 225  _GLIBCXX20_CONSTEXPR
+         : 226  void
+         : 227  _M_default_initialize(size_type __n)
+         : 228  {
+         : 229  this->_M_impl._M_finish =
+    0.00 :   5dc2:   mov    %r12,0x78(%rsp)
+         : 231  ~__atomic_base() noexcept = default;
+         : 232  __atomic_base(const __atomic_base&) = delete;
+         : 233  __atomic_base& operator=(const __atomic_base&) = delete;
+         : 234  __atomic_base& operator=(const __atomic_base&) volatile = delete;
+         :
+         : 236  constexpr __atomic_base(__int_type __i) noexcept : _M_i (__i) { }
+    0.00 :   5dc7:   xorps  %xmm0,%xmm0
+    0.00 :   5dca:   movups %xmm0,0x88(%rsp)
+         : 239  for (std::size_t i = 0; i < slots_.size(); ++i)
+    0.00 :   5dd2:   mov    %ebp,%eax
+    0.00 :   5dd4:   and    $0x7,%eax
+    0.00 :   5dd7:   mov    0x18(%rsp),%r12
+    0.00 :   5ddc:   lea    -0x1(%r12),%ecx
+    0.00 :   5de1:   cmp    $0x7,%ecx
+    0.00 :   5de4:   jb     5e66 <double measure<3>(bool, unsigned long, unsigned int)+0x376>
+    0.00 :   5dea:   lea    0xf8(%rbx),%rcx
+    0.00 :   5df1:   mov    %ebp,%edx
+    0.00 :   5df3:   and    $0xfffffff8,%edx
+    0.00 :   5df6:   neg    %rdx
+    0.00 :   5df9:   mov    $0x4,%r14d
+    0.00 :   5dff:   nop
+         : 252  return *(this->_M_impl._M_start + __n);
+    0.00 :   5e00:   lea    -0x3(%r14),%rsi
+         : 254  slots_[i].next = i + 1;
+    0.00 :   5e04:   mov    %rsi,-0xe0(%rcx)
+    0.00 :   5e0b:   lea    -0x2(%r14),%rsi
+    0.00 :   5e0f:   mov    %rsi,-0xc0(%rcx)
+    0.00 :   5e16:   lea    -0x1(%r14),%rsi
+    0.00 :   5e1a:   mov    %rsi,-0xa0(%rcx)
+    0.00 :   5e21:   mov    %r14,-0x80(%rcx)
+    0.00 :   5e25:   lea    0x1(%r14),%rsi
+    0.00 :   5e29:   mov    %rsi,-0x60(%rcx)
+    0.00 :   5e2d:   lea    0x2(%r14),%rsi
+    0.00 :   5e31:   mov    %rsi,-0x40(%rcx)
+    0.00 :   5e35:   lea    0x3(%r14),%rsi
+    0.00 :   5e39:   mov    %rsi,-0x20(%rcx)
+    0.00 :   5e3d:   lea    0x4(%r14),%rsi
+    0.00 :   5e41:   mov    %rsi,(%rcx)
+         : 269  for (std::size_t i = 0; i < slots_.size(); ++i)
+    0.00 :   5e44:   add    $0x100,%rcx
+    0.00 :   5e4b:   lea    (%rdx,%r14,1),%rsi
+    0.00 :   5e4f:   add    $0x8,%rsi
+    0.00 :   5e53:   add    $0x8,%r14
+    0.00 :   5e57:   cmp    $0x4,%rsi
+    0.00 :   5e5b:   jne    5e00 <double measure<3>(bool, unsigned long, unsigned int)+0x310>
+    0.00 :   5e5d:   test   %rax,%rax
+    0.00 :   5e60:   je     5e90 <double measure<3>(bool, unsigned long, unsigned int)+0x3a0>
+    0.00 :   5e62:   add    $0xfffffffffffffffc,%r14
+    0.00 :   5e66:   mov    %r14,%rcx
+    0.00 :   5e69:   shl    $0x5,%rcx
+    0.00 :   5e6d:   add    %rbx,%rcx
+    0.00 :   5e70:   add    $0x18,%rcx
+    0.00 :   5e74:   inc    %r14
+    0.00 :   5e77:   shl    $0x5,%eax
+    0.00 :   5e7a:   xor    %edx,%edx
+    0.00 :   5e7c:   nopl   0x0(%rax)
+         : 287  slots_[i].next = i + 1;
+    0.00 :   5e80:   mov    %r14,(%rcx,%rdx,1)
+         : 289  for (std::size_t i = 0; i < slots_.size(); ++i)
+    0.00 :   5e84:   add    $0x20,%rdx
+    0.00 :   5e88:   inc    %r14
+    0.00 :   5e8b:   cmp    %rdx,%rax
+    0.00 :   5e8e:   jne    5e80 <double measure<3>(bool, unsigned long, unsigned int)+0x390>
+         : 294  namespace flux_foundry {
+         : 295  inline void* aligned_alloc(size_t align, size_t size) noexcept {
+         : 296  assert((align & (align - 1)) == 0 && "align must be power of 2");
+         : 297  assert(align >= alignof(std::nullptr_t) && "align must be >= alignof(void*)");
+         : 298  #ifndef _WIN32
+         : 299  void* _p = nullptr;
+    0.00 :   5e90:   movq   $0x0,0xb8(%rsp)
+    0.00 :   5e9c:   lea    0xb8(%rsp),%rdi
+         : 302  UNLIKELY_IF (posix_memalign(&_p, align, size) != 0) {
+    0.00 :   5ea4:   mov    $0x40,%esi
+    0.00 :   5ea9:   mov    $0x80,%edx
+    0.00 :   5eae:   call   20b0 <posix_memalign@plt>
+    0.00 :   5eb3:   mov    0xb8(%rsp),%r13
+         : 307  noexcept
+         : 308  #endif
+         : 309  {
+         : 310  A alloc(std::forward<AllocLike>(alloc_like));
+         : 311  auto cb_ = static_cast<cb_t*>(alloc.allocate(alignof(cb_t), alloc_size()));
+         : 312  if (!cb_) {
+    0.00 :   5ebb:   test   %r13,%r13
+    0.00 :   5ebe:   sete   %cl
+    0.00 :   5ec1:   test   %eax,%eax
+    0.00 :   5ec3:   jne    6579 <double measure<3>(bool, unsigned long, unsigned int)+0xa89>
+    0.00 :   5ec9:   test   %cl,%cl
+    0.00 :   5ecb:   jne    6583 <double measure<3>(bool, unsigned long, unsigned int)+0xa93>
+    0.00 :   5ed1:   movq   $0x1,0x40(%r13)
+         : 320  noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
+         : 321  #if !FLUX_FOUNDRY_HAS_EXCEPTIONS
+         : 322  static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
+         : 323  "T must be nothrow constructible with Args...");
+         : 324  #endif
+         : 325  return ::new (addr) T(std::forward<Args>(args)...);
+    0.00 :   5ed9:   lea    0x8321(%rip),%rax        # e201 <flux_foundry::flow_impl::inline_executor::executor()::exec>
+    0.00 :   5ee0:   mov    %rax,0x8(%r13)
+         : 328  std::uint64_t count = 0, sum = 0;
+    0.00 :   5ee4:   xorps  %xmm0,%xmm0
+    0.00 :   5ee7:   movaps %xmm0,0x50(%rsp)
+    0.00 :   5eec:   mov    %rbp,%rbx
+    0.00 :   5eef:   shl    $0x4,%rbx
+    0.00 :   5ef3:   mov    %rbx,%rdi
+    0.00 :   5ef6:   call   2170 <operator new(unsigned long)@plt>
+    0.00 :   5efb:   xorps  %xmm0,%xmm0
+    0.00 :   5efe:   movups %xmm0,(%rax)
+         : 337  if (__n <= 0)
+    0.00 :   5f01:   cmp    $0x1,%r12d
+    0.00 :   5f05:   je     5f64 <double measure<3>(bool, unsigned long, unsigned int)+0x474>
+    0.00 :   5f07:   lea    0x10(%rax),%rsi
+         : 341  for (; __first != __last; ++__first)
+    0.00 :   5f0b:   lea    -0x20(%rbx),%rcx
+    0.00 :   5f0f:   mov    %ecx,%edx
+    0.00 :   5f11:   shr    $0x4,%edx
+    0.00 :   5f14:   inc    %edx
+    0.00 :   5f16:   and    $0x3,%edx
+    0.00 :   5f19:   je     5f2f <double measure<3>(bool, unsigned long, unsigned int)+0x43f>
+    0.00 :   5f1b:   nopl   0x0(%rax,%rax,1)
+         : 349  *__first = __val;
+    0.00 :   5f20:   movups (%rax),%xmm0
+    0.00 :   5f23:   movups %xmm0,(%rsi)
+         : 352  for (; __first != __last; ++__first)
+    0.00 :   5f26:   add    $0x10,%rsi
+    0.00 :   5f2a:   dec    %rdx
+    0.00 :   5f2d:   jne    5f20 <double measure<3>(bool, unsigned long, unsigned int)+0x430>
+    0.00 :   5f2f:   cmp    $0x30,%rcx
+    0.00 :   5f33:   jb     5f64 <double measure<3>(bool, unsigned long, unsigned int)+0x474>
+    0.00 :   5f35:   mov    %rax,%rcx
+    0.00 :   5f38:   add    %rbx,%rcx
+    0.00 :   5f3b:   nopl   0x0(%rax,%rax,1)
+         : 361  *__first = __val;
+    0.00 :   5f40:   movups (%rax),%xmm0
+    0.00 :   5f43:   movups %xmm0,(%rsi)
+    0.00 :   5f46:   movups (%rax),%xmm0
+    0.00 :   5f49:   movups %xmm0,0x10(%rsi)
+    0.00 :   5f4d:   movups (%rax),%xmm0
+    0.00 :   5f50:   movups %xmm0,0x20(%rsi)
+    0.00 :   5f54:   movups (%rax),%xmm0
+    0.00 :   5f57:   movups %xmm0,0x30(%rsi)
+         : 370  for (; __first != __last; ++__first)
+    0.00 :   5f5b:   add    $0x40,%rsi
+    0.00 :   5f5f:   cmp    %rcx,%rsi
+    0.00 :   5f62:   jne    5f40 <double measure<3>(bool, unsigned long, unsigned int)+0x450>
+    0.00 :   5f64:   mov    %rax,0x38(%rsp)
+    0.00 :   5f69:   mov    %rbx,0x40(%rsp)
+         : 376  ssize_t n;
+         : 377  do { n = ::read(ack, buffer, sizeof(buffer)); } while (n < 0 && errno == EINTR);
+         : 378  if (n < 4 || std::memcmp(buffer, "ack\n", 4) != 0) std::abort();
+         : 379  }
+         : 380  inline unsigned& phase() { static unsigned n = 0; return n; }
+         : 381  inline void begin() { if (++phase() == 2) command("enable\n"); }
+    0.00 :   5f6e:   mov    0x8290(%rip),%eax        # e204 <probe_perf::phase()::n>
+    0.00 :   5f74:   inc    %eax
+    0.00 :   5f76:   mov    %eax,0x8288(%rip)        # e204 <probe_perf::phase()::n>
+    0.00 :   5f7c:   cmp    $0x2,%eax
+    0.00 :   5f7f:   jne    5f8d <double measure<3>(bool, unsigned long, unsigned int)+0x49d>
+    0.00 :   5f81:   lea    0x5326(%rip),%rdi        # b2ae <_IO_stdin_used+0x2ae>
+    0.00 :   5f88:   call   67b0 <probe_perf::command(char const*)>
+         : 389  auto bp = make_blueprint<request, E>() | await_io_uring<operation>() | end();
+         : 390  auto shared = make_lite_ptr<decltype(bp)>(std::move(bp));
+         : 391  observed seen;
+         : 392  std::vector<callback_data> callbacks(batch);
+         : 393  probe_perf::begin();
+         : 394  const auto start = probe::clock::now();
+    0.00 :   5f8d:   call   2270 <std::chrono::_V2::steady_clock::now()@plt>
+    0.00 :   5f92:   mov    %rax,0x48(%rsp)
+         : 397  for (std::size_t base = 0; base < count; base += batch) {
+    0.00 :   5f97:   cmpq   $0x0,0x28(%rsp)
+    0.00 :   5f9d:   je     63dd <double measure<3>(bool, unsigned long, unsigned int)+0x8ed>
+    0.00 :   5fa3:   mov    %rbp,%r14
+    0.00 :   5fa6:   neg    %r14
+    0.00 :   5fa9:   movq   $0x0,0x30(%rsp)
+    0.00 :   5fb2:   lea    0xd0(%rsp),%r15
+    0.00 :   5fba:   lea    0xb8(%rsp),%rbx
+    0.00 :   5fc2:   lea    0x50(%rsp),%rdx
+    0.00 :   5fc7:   jmp    5ff2 <double measure<3>(bool, unsigned long, unsigned int)+0x502>
+    0.00 :   5fc9:   nopl   0x0(%rax)
+    0.00 :   5fd0:   mov    0x30(%rsp),%rcx
+    0.00 :   5fd5:   add    %rbp,%rcx
+    0.00 :   5fd8:   mov    %rcx,0x30(%rsp)
+    0.00 :   5fdd:   cmp    0x28(%rsp),%rcx
+    0.00 :   5fe2:   mov    0x18(%rsp),%r12
+    0.00 :   5fe7:   lea    0x50(%rsp),%rdx
+    0.00 :   5fec:   jae    63dd <double measure<3>(bool, unsigned long, unsigned int)+0x8ed>
+         : 415  return __n != 0 ? _Tr::allocate(_M_impl, __n) : pointer();
+    0.00 :   5ff2:   test   %r12d,%r12d
+         : 417  for (unsigned i = 0; i < batch; ++i) {
+    0.00 :   5ff5:   je     6190 <double measure<3>(bool, unsigned long, unsigned int)+0x6a0>
+    0.00 :   5ffb:   mov    $0x1,%r12d
+    0.00 :   6001:   lea    0x40(%r13),%rcx
+    0.00 :   6005:   jmp    603b <double measure<3>(bool, unsigned long, unsigned int)+0x54b>
+    0.00 :   6007:   nopw   0x0(%rax,%rax,1)
+         : 423  return reinterpret_cast<T*>(cb->data);
+         : 424  }
+         :
+         : 426  void release() noexcept {
+         : 427  auto ccb = cb;
+         : 428  cb = nullptr;
+    0.00 :   6010:   movq   $0x0,0xa0(%rsp)
+         : 430  { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+         :
+         : 432  _GLIBCXX_ALWAYS_INLINE __int_type
+         : 433  fetch_sub(__int_type __i,
+         : 434  memory_order __m = memory_order_seq_cst) noexcept
+         : 435  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   601c:   lock decq 0x40(%rdi)
+         : 437  if (ccb) {
+         : 438  #if FLUX_FOUNDRY_WITH_TSAN
+         : 439  UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_acq_rel) == 1) {
+         : 440  #else
+         : 441  UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+   21.50 :   6021:   je     6143 <double measure<3>(bool, unsigned long, unsigned int)+0x653>
+    0.13 :   6027:   lea    (%r14,%r12,1),%rax
+    0.00 :   602b:   inc    %rax
+    0.00 :   602e:   inc    %r12
+    0.00 :   6031:   cmp    $0x1,%rax
+    0.00 :   6035:   je     6160 <double measure<3>(bool, unsigned long, unsigned int)+0x670>
+         : 448  { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+    0.00 :   603b:   lock incq 0x40(%r13)
+   16.50 :   6040:   lock incq 0x40(%r13)
+         : 451  lite_ptr(lite_ptr&& rhs) noexcept : cb{rhs.cb} {
+   15.59 :   6045:   mov    %r13,0xa0(%rsp)
+         : 453  std::is_nothrow_constructible<T_, Args&&...>>
+         : 454  #endif
+         : 455  >>
+         : 456  constexpr flat_storage_leaf(Args &&... args)
+         : 457  noexcept(std::is_nothrow_constructible<T_, Args && ...>::value)
+         : 458  : _value(std::forward<Args>(args)...) {
+    0.19 :   604d:   mov    %rdx,0xa8(%rsp)
+         : 460  running,
+         : 461  consumed,
+         : 462  };
+         :
+         : 464  compressed_pair<flow_bp_storage, receiver_t> data;
+         : 465  runner_state state_ = runner_state::ready;
+    0.00 :   6055:   movb   $0x0,0xb0(%rsp)
+         : 467  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   605d:   lock decq (%rcx)
+         : 469  UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+   24.20 :   6061:   je     611c <double measure<3>(bool, unsigned long, unsigned int)+0x62c>
+         : 471  return cb != nullptr;
+    0.00 :   6067:   mov    0xa0(%rsp),%rdi
+    0.00 :   606f:   test   %rdi,%rdi
+         : 474  receiver_t& receiver() noexcept {
+         : 475  return data.second();
+         : 476  }
+         :
+         : 478  bool begin_run() noexcept {
+         : 479  if (!bp()) {
+    0.00 :   6072:   je     6027 <double measure<3>(bool, unsigned long, unsigned int)+0x537>
+         : 481  return false;
+         : 482  }
+         : 483  if (state_ != runner_state::ready) {
+    0.00 :   6074:   cmpb   $0x0,0xb0(%rsp)
+    0.00 :   607c:   jne    6010 <double measure<3>(bool, unsigned long, unsigned int)+0x520>
+    0.00 :   607e:   mov    0x30(%rsp),%rax
+    0.00 :   6083:   add    %r12,%rax
+         : 488  assert(false && "flow_fast_runner is already running or was consumed by asynchronous handoff");
+         : 489  return false;
+         : 490  }
+         : 491  state_ = runner_state::running;
+    0.00 :   6086:   movb   $0x1,0xb0(%rsp)
+         : 493  typename = std::enable_if_t<std::is_nothrow_move_constructible<T_>::value>
+         : 494  #endif
+         : 495  >
+         : 496  explicit raw_either_storage_base(first_t, T &&t)
+         : 497  noexcept(std::is_nothrow_move_constructible<T>::value)
+         : 498  : _state{either_state::first} {
+    0.97 :   608e:   movl   $0x1,0xc8(%rsp)
+    0.00 :   6099:   lea    0x60(%rsp),%rcx
+    0.00 :   609e:   mov    %rcx,0xb8(%rsp)
+    0.00 :   60a6:   mov    %rax,0xc0(%rsp)
+         :
+         : 504  template <size_t I>
+         : 505  constexpr decltype(auto) get() & noexcept {
+         : 506  static_assert(I < sizeof...(Ts), "get<I>: index out of range");
+         : 507  using leaf_type = typename nth_leaf<I>::type;
+         : 508  return static_cast<leaf_type&>(*this).get();
+    0.00 :   60ae:   add    $0x8,%rdi
+         : 510  template <std::size_t I>
+         : 511  struct ipc {
+         : 512  template <typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
+         : 513  static void run(flow_fast_runner& self, param_t&& in) noexcept {
+         : 514  using node_t = flat_storage_element_t<I, storage_t>;
+         : 515  dispatch(get<I>(self.bp()->nodes_), self, std::forward<param_t>(in), typename node_t::tag {});
+    0.00 :   60b2:   lea    0xa0(%rsp),%rsi
+    0.00 :   60ba:   mov    %rbx,%rdx
+    0.00 :   60bd:   call   a080 <_ZN12flux_foundry16flow_fast_runnerINS_16fast_runner_impl10bp_storageINS_8lite_ptrINS_9flow_impl14flow_blueprintINS_8result_tINS_9extension16io_uring_requestI9operationEENSt15__exception_ptr13exception_ptrEEENS6_INS7_15io_uring_resultIS9_EESC_EEJNS4_13flow_end_nodeISG_SG_ZNS4_8end_nodeIvE4makeISG_EEDaOSJ_EUlOSG_E_EENS4_15flow_async_nodeISD_SG_NS4_18dispatch_wrapper_tIPNS4_15inline_executorEEENS4_8identityENS_17awaitable_factoryINS7_18io_uring_awaitableIS9_SC_EEEEEENS4_14flow_calc_nodeISD_SD_SU_Lm1EEEEEENS_15default_deleterIS12_EELm8ENS_24aligned_malloc_allocatorEEEEE8receiverE3ipcILm1EE8dispatchISZ_SD_Lm1ETnPNSt9enable_ifIXneT1_Li0EEvE4typeELPv0EEEvRT_RS19_OT0_St17integral_constantImLm3EE>
+         : 519  : _state{either_state::second} {
+         : 520  opu::construct_at(std::addressof(_data.second), std::move(u));
+         : 521  }
+         :
+         : 523  ~raw_either_storage_base() noexcept {
+         : 524  if (_state == either_state::second) {
+    0.13 :   60c2:   cmpl   $0x2,0xc8(%rsp)
+    0.46 :   60ca:   jne    60df <double measure<3>(bool, unsigned long, unsigned int)+0x5ef>
+    0.00 :   60cc:   cmpq   $0x0,0xb8(%rsp)
+    0.00 :   60d5:   je     60df <double measure<3>(bool, unsigned long, unsigned int)+0x5ef>
+         : 529  if consteval {
+         : 530  __builtin_eh_ptr_adjust_ref(_M_exception_object, -1);
+         : 531  return;
+         : 532  }
+         : 533  #endif
+         : 534  _M_release();
+    0.00 :   60d7:   mov    %rbx,%rdi
+    0.00 :   60da:   call   2130 <std::__exception_ptr::exception_ptr::_M_release()@plt>
+         : 537  if (state_ == runner_state::running) {
+    0.00 :   60df:   cmpb   $0x1,0xb0(%rsp)
+    0.00 :   60e7:   lea    0x40(%r13),%rcx
+    0.00 :   60eb:   lea    0x50(%rsp),%rdx
+    0.00 :   60f0:   jne    60fa <double measure<3>(bool, unsigned long, unsigned int)+0x60a>
+         : 542  state_ = runner_state::ready;
+    0.00 :   60f2:   movb   $0x0,0xb0(%rsp)
+         : 544  auto ccb = cb;
+    0.00 :   60fa:   mov    0xa0(%rsp),%rdi
+         : 546  cb = nullptr;
+    0.19 :   6102:   movq   $0x0,0xa0(%rsp)
+         : 548  if (ccb) {
+    0.46 :   610e:   test   %rdi,%rdi
+    0.19 :   6111:   jne    601c <double measure<3>(bool, unsigned long, unsigned int)+0x52c>
+    0.00 :   6117:   jmp    6027 <double measure<3>(bool, unsigned long, unsigned int)+0x537>
+         : 552  inline void aligned_free(void* p) noexcept {
+         : 553  UNLIKELY_IF (!p) {
+         : 554  return;
+         : 555  }
+         : 556  #ifndef _WIN32
+         : 557  free(p);
+    0.00 :   611c:   mov    %r13,%rdi
+    0.00 :   611f:   call   21f0 <free@plt>
+    0.00 :   6124:   lea    0x50(%rsp),%rdx
+    0.00 :   6129:   lea    0x40(%r13),%rcx
+         : 562  return cb != nullptr;
+    0.00 :   612d:   mov    0xa0(%rsp),%rdi
+    0.00 :   6135:   test   %rdi,%rdi
+         : 565  if (!bp()) {
+    0.00 :   6138:   jne    6074 <double measure<3>(bool, unsigned long, unsigned int)+0x584>
+    0.00 :   613e:   jmp    6027 <double measure<3>(bool, unsigned long, unsigned int)+0x537>
+    0.00 :   6143:   call   21f0 <free@plt>
+    0.00 :   6148:   lea    0x50(%rsp),%rdx
+    0.00 :   614d:   lea    0x40(%r13),%rcx
+    0.00 :   6151:   jmp    6027 <double measure<3>(bool, unsigned long, unsigned int)+0x537>
+    0.00 :   6156:   cs nopw 0x0(%rax,%rax,1)
+         : 573  } else {
+         : 574  auto runner = make_fast_runner(shared, receiver{&seen});
+         : 575  runner(request{&context, std::move(op)});
+         : 576  }
+         : 577  }
+         : 578  if (kernel) {
+    0.00 :   6160:   cmpb   $0x0,0xc(%rsp)
+    0.00 :   6165:   je     619b <double measure<3>(bool, unsigned long, unsigned int)+0x6ab>
+    0.00 :   6167:   xor    %r12d,%r12d
+    0.00 :   616a:   jmp    617a <double measure<3>(bool, unsigned long, unsigned int)+0x68a>
+    0.00 :   616c:   nopl   0x0(%rax)
+         : 584  unsigned submitted = 0;
+         : 585  while (submitted < batch) {
+         : 586  const int rc = io_uring_submit(&ring);
+         : 587  if (rc == -EINTR) continue;
+         : 588  require(rc > 0, "submit failed or made no progress");
+         : 589  submitted += static_cast<unsigned>(rc);
+    0.00 :   6170:   add    %eax,%r12d
+         : 591  while (submitted < batch) {
+    0.00 :   6173:   cmp    0x18(%rsp),%r12d
+    0.00 :   6178:   jae    61b0 <double measure<3>(bool, unsigned long, unsigned int)+0x6c0>
+         : 594  const int rc = io_uring_submit(&ring);
+    0.00 :   617a:   mov    %r15,%rdi
+    0.00 :   617d:   call   21c0 <io_uring_submit@plt>
+         : 597  if (rc == -EINTR) continue;
+    0.00 :   6182:   cmp    $0xfffffffc,%eax
+    0.00 :   6185:   je     6173 <double measure<3>(bool, unsigned long, unsigned int)+0x683>
+         : 600  require(rc > 0, "submit failed or made no progress");
+    0.00 :   6187:   test   %eax,%eax
+         : 602  #include <sched.h>
+         :
+         : 604  namespace probe {
+         : 605  using clock = std::chrono::steady_clock;
+         : 606  inline void require(bool ok, const char* message) {
+         : 607  if (!ok) { std::fprintf(stderr, "%s\n", message); std::abort(); }
+    0.00 :   6189:   jg     6170 <double measure<3>(bool, unsigned long, unsigned int)+0x680>
+    0.00 :   618b:   jmp    65e7 <double measure<3>(bool, unsigned long, unsigned int)+0xaf7>
+         : 610  if (kernel) {
+    0.00 :   6190:   cmpb   $0x0,0xc(%rsp)
+    0.00 :   6195:   jne    5fd0 <double measure<3>(bool, unsigned long, unsigned int)+0x4e0>
+         : 613  }
+         : 614  require(submitted == batch, "unexpected submit count");
+         : 615  } else {
+         : 616  head = ring.sq.sqe_tail;
+    0.00 :   619b:   mov    0x114(%rsp),%eax
+    0.00 :   61a2:   mov    %eax,0x9c(%rsp)
+    0.00 :   61a9:   jmp    61b6 <double measure<3>(bool, unsigned long, unsigned int)+0x6c6>
+    0.00 :   61ab:   nopl   0x0(%rax,%rax,1)
+    0.00 :   61b0:   jne    660b <double measure<3>(bool, unsigned long, unsigned int)+0xb1b>
+    0.00 :   61b6:   cmpl   $0x0,0x18(%rsp)
+         : 623  }
+         : 624  for (unsigned i = 0; i < batch; ++i) {
+    0.00 :   61bb:   je     5fd0 <double measure<3>(bool, unsigned long, unsigned int)+0x4e0>
+    0.00 :   61c1:   xor    %r12d,%r12d
+    0.00 :   61c4:   data16 data16 cs nopw 0x0(%rax,%rax,1)
+         : 628  std::uint64_t token;
+         : 629  int res = 0;
+         : 630  unsigned flags = 0;
+         : 631  if (kernel) {
+    0.00 :   61d0:   cmpb   $0x0,0xc(%rsp)
+    0.85 :   61d5:   jne    622a <double measure<3>(bool, unsigned long, unsigned int)+0x73a>
+         : 634  return *(this->_M_impl._M_start + __n);
+    0.00 :   61d7:   mov    %r12,%rax
+    0.00 :   61da:   shl    $0x6,%rax
+    0.00 :   61de:   mov    0x10(%rsp),%rcx
+         : 638  do { rc = io_uring_wait_cqe(&ring, &cqe); } while (rc == -EINTR);
+         : 639  require(rc == 0, "wait_cqe failed");
+         : 640  token = cqe->user_data; res = cqe->res; flags = cqe->flags;
+         : 641  io_uring_cqe_seen(&ring, cqe);
+         : 642  } else {
+         : 643  token = sqes[i].user_data;
+    0.00 :   61e3:   mov    0x20(%rcx,%rax,1),%rax
+    0.00 :   61e8:   xor    %esi,%esi
+    0.00 :   61ea:   xor    %edx,%edx
+    0.00 :   61ec:   jmp    6316 <double measure<3>(bool, unsigned long, unsigned int)+0x826>
+    0.00 :   61f1:   data16 data16 data16 data16 data16 cs nopw 0x0(%rax,%rax,1)
+         : 649  break;
+         : 650  }
+         : 651  cqe = NULL;
+         : 652  } while (1);
+         :
+         : 654  *cqe_ptr = cqe;
+    0.00 :   6200:   movq   $0x0,0xb8(%rsp)
+         : 656  return __io_uring_get_cqe(ring, cqe_ptr, 0, wait_nr, NULL);
+    0.00 :   620c:   mov    %r15,%rdi
+    0.00 :   620f:   mov    %rbx,%rsi
+    0.00 :   6212:   xor    %edx,%edx
+    0.00 :   6214:   mov    $0x1,%ecx
+    0.00 :   6219:   xor    %r8d,%r8d
+    0.00 :   621c:   call   2300 <__io_uring_get_cqe@plt>
+         : 663  do { rc = io_uring_wait_cqe(&ring, &cqe); } while (rc == -EINTR);
+    0.00 :   6221:   cmp    $0xfffffffc,%eax
+    0.00 :   6224:   jne    63b9 <double measure<3>(bool, unsigned long, unsigned int)+0x8c9>
+         : 666  unsigned mask = ring->cq.ring_mask;
+    0.00 :   622a:   mov    0x180(%rsp),%esi
+         : 668  unsigned shift = io_uring_cqe_shift(ring);
+    0.00 :   6231:   mov    0x190(%rsp),%eax
+         : 670  unsigned tail = io_uring_smp_load_acquire(ring->cq.ktail);
+    0.00 :   6238:   mov    0x140(%rsp),%rcx
+         : 672  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   6240:   mov    (%rcx),%ecx
+         : 674  unsigned head = *ring->cq.khead;
+    0.00 :   6242:   mov    0x138(%rsp),%rdi
+    0.00 :   624a:   mov    (%rdi),%r8d
+         : 677  if (!available)
+    0.00 :   624d:   cmp    %r8d,%ecx
+    0.00 :   6250:   je     6200 <double measure<3>(bool, unsigned long, unsigned int)+0x710>
+    0.00 :   6252:   shr    $0xb,%eax
+    0.00 :   6255:   and    $0x1,%eax
+    0.00 :   6258:   jmp    6295 <double measure<3>(bool, unsigned long, unsigned int)+0x7a5>
+    0.00 :   625a:   nopw   0x0(%rax,%rax,1)
+         : 684  const unsigned int shift = !!(cqe->flags & IORING_CQE_F_32);
+    0.00 :   6260:   shr    $0xf,%edx
+         : 686  return 1U << shift;
+    0.00 :   6263:   and    $0x1,%dl
+    0.00 :   6266:   mov    $0x1,%r9d
+    0.00 :   626c:   mov    %edx,%ecx
+    0.00 :   626e:   shl    %cl,%r9d
+         : 691  io_uring_smp_store_release(cq->khead, *cq->khead + nr);
+    0.00 :   6271:   add    %r8d,%r9d
+         : 693  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   6274:   mov    %r9d,(%rdi)
+         : 695  unsigned tail = io_uring_smp_load_acquire(ring->cq.ktail);
+    0.00 :   6277:   mov    0x140(%rsp),%rcx
+         : 697  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   627f:   mov    (%rcx),%ecx
+         : 699  unsigned head = *ring->cq.khead;
+    0.00 :   6281:   mov    0x138(%rsp),%rdi
+    0.00 :   6289:   mov    (%rdi),%r8d
+         : 702  if (!available)
+    0.00 :   628c:   cmp    %r8d,%ecx
+    0.00 :   628f:   je     6200 <double measure<3>(bool, unsigned long, unsigned int)+0x710>
+         : 705  cqe = &ring->cq.cqes[(head & mask) << shift];
+    0.00 :   6295:   mov    %r8d,%r10d
+    0.00 :   6298:   and    %esi,%r10d
+    0.00 :   629b:   mov    %eax,%ecx
+    0.00 :   629d:   shl    %cl,%r10d
+    0.00 :   62a0:   mov    0x168(%rsp),%r9
+    0.00 :   62a8:   shl    $0x4,%r10
+         : 712  if (cqe->flags & IORING_CQE_F_SKIP)
+    0.00 :   62ac:   mov    0xc(%r9,%r10,1),%edx
+    0.00 :   62b1:   test   $0x20,%dl
+    0.00 :   62b4:   jne    6260 <double measure<3>(bool, unsigned long, unsigned int)+0x770>
+    0.00 :   62b6:   add    %r10,%r9
+         : 717  if (ring->features & IORING_FEAT_EXT_ARG)
+    0.00 :   62b9:   testb  $0x1,0x199(%rsp)
+    0.00 :   62c1:   jne    62f0 <double measure<3>(bool, unsigned long, unsigned int)+0x800>
+         : 720  if (cqe->user_data != LIBURING_UDATA_TIMEOUT)
+    0.00 :   62c3:   cmpq   $0xffffffffffffffff,(%r9)
+    0.00 :   62c7:   jne    62f0 <double measure<3>(bool, unsigned long, unsigned int)+0x800>
+         : 723  if (cqe->res < 0)
+    0.00 :   62c9:   cmpl   $0x0,0x8(%r9)
+    0.00 :   62ce:   jns    6260 <double measure<3>(bool, unsigned long, unsigned int)+0x770>
+         : 726  const unsigned int shift = !!(cqe->flags & IORING_CQE_F_32);
+    0.00 :   62d0:   shr    $0xf,%edx
+         : 728  return 1U << shift;
+    0.00 :   62d3:   and    $0x1,%dl
+    0.00 :   62d6:   mov    $0x1,%eax
+    0.00 :   62db:   mov    %edx,%ecx
+    0.00 :   62dd:   shl    %cl,%eax
+         : 733  io_uring_smp_store_release(cq->khead, *cq->khead + nr);
+    0.00 :   62df:   add    %r8d,%eax
+         : 735  __atomic_store_n(&_M_i, __i, int(__m));
+    0.00 :   62e2:   mov    %eax,(%rdi)
+    0.00 :   62e4:   jmp    6200 <double measure<3>(bool, unsigned long, unsigned int)+0x710>
+    0.00 :   62e9:   nopl   0x0(%rax)
+         : 739  *cqe_ptr = cqe;
+    0.00 :   62f0:   mov    %r9,0xb8(%rsp)
+         : 741  const unsigned int shift = !!(cqe->flags & IORING_CQE_F_32);
+    0.00 :   62f8:   mov    %edx,%ecx
+    0.00 :   62fa:   shr    $0xf,%ecx
+         : 744  return 1U << shift;
+    0.00 :   62fd:   and    $0x1,%cl
+    0.00 :   6300:   mov    $0x1,%r10d
+    0.00 :   6306:   shl    %cl,%r10d
+         : 748  token = cqe->user_data; res = cqe->res; flags = cqe->flags;
+    0.00 :   6309:   mov    (%r9),%rax
+    0.00 :   630c:   mov    0x8(%r9),%esi
+         : 751  io_uring_smp_store_release(cq->khead, *cq->khead + nr);
+    0.00 :   6310:   add    %r8d,%r10d
+    0.00 :   6313:   mov    %r10d,(%rdi)
+         : 754  if ((token >> 48) != tag_) return false;
+    0.58 :   6316:   mov    %rax,%rcx
+    0.00 :   6319:   shr    $0x30,%rcx
+    0.00 :   631d:   movzwl 0x68(%rsp),%edi
+    0.00 :   6322:   cmp    %edi,%ecx
+    0.00 :   6324:   jne    6531 <double measure<3>(bool, unsigned long, unsigned int)+0xa41>
+         : 760  if (index >= slots_.size()) return false;
+    0.00 :   632a:   movzwl %ax,%ecx
+         : 762  ptrdiff_t __dif = this->_M_impl._M_finish - this->_M_impl._M_start;
+    0.00 :   632d:   mov    0x70(%rsp),%r8
+    0.00 :   6332:   mov    0x78(%rsp),%rdi
+    0.00 :   6337:   sub    %r8,%rdi
+    1.02 :   633a:   sar    $0x5,%rdi
+    0.00 :   633e:   cmp    %rdi,%rcx
+    0.00 :   6341:   jae    6531 <double measure<3>(bool, unsigned long, unsigned int)+0xa41>
+         : 769  return *(this->_M_impl._M_start + __n);
+    0.00 :   6347:   mov    %ecx,%edi
+    0.00 :   6349:   shl    $0x5,%edi
+         : 772  if (!slot.complete || slot.generation != std::uint32_t(token >> 16)) return false;
+    0.00 :   634c:   mov    (%r8,%rdi,1),%r9
+    0.00 :   6350:   test   %r9,%r9
+    0.00 :   6353:   je     6531 <double measure<3>(bool, unsigned long, unsigned int)+0xa41>
+    0.00 :   6359:   add    %rdi,%r8
+    0.00 :   635c:   mov    0x10(%r8),%r10d
+    0.91 :   6360:   shr    $0x10,%rax
+    0.00 :   6364:   cmp    %eax,%r10d
+    0.00 :   6367:   jne    6531 <double measure<3>(bool, unsigned long, unsigned int)+0xa41>
+         : 781  if (flags & IORING_CQE_F_MORE) std::terminate();
+    0.00 :   636d:   test   $0x2,%dl
+    0.00 :   6370:   jne    65e2 <double measure<3>(bool, unsigned long, unsigned int)+0xaf2>
+         : 784  auto* data = slot.data;
+    0.00 :   6376:   mov    0x8(%r8),%rdi
+         : 786  slot.data = nullptr;
+    0.00 :   637a:   xorps  %xmm0,%xmm0
+    0.00 :   637d:   movups %xmm0,(%r8)
+         : 789  if (slot.generation != UINT32_MAX) {
+    0.00 :   6381:   cmp    $0xffffffff,%r10d
+    0.00 :   6385:   je     639b <double measure<3>(bool, unsigned long, unsigned int)+0x8ab>
+         : 792  slot.next = free_;
+    0.00 :   6387:   mov    0x88(%rsp),%rax
+    0.65 :   638f:   mov    %rax,0x18(%r8)
+         : 795  free_ = index;
+    0.00 :   6393:   mov    %rcx,0x88(%rsp)
+         : 797  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   639b:   lock subq $0x2,0x90(%rsp)
+         : 799  fn(data, result, flags);
+   15.48 :   63a5:   call   *%r9
+         : 801  for (unsigned i = 0; i < batch; ++i) {
+    0.00 :   63a8:   inc    %r12
+    0.00 :   63ab:   cmp    %rbp,%r12
+    0.00 :   63ae:   jne    61d0 <double measure<3>(bool, unsigned long, unsigned int)+0x6e0>
+    0.00 :   63b4:   jmp    5fd0 <double measure<3>(bool, unsigned long, unsigned int)+0x4e0>
+         : 806  do { rc = io_uring_wait_cqe(&ring, &cqe); } while (rc == -EINTR);
+    0.00 :   63b9:   test   %eax,%eax
+    0.00 :   63bb:   jne    6555 <double measure<3>(bool, unsigned long, unsigned int)+0xa65>
+         : 809  token = cqe->user_data; res = cqe->res; flags = cqe->flags;
+    0.00 :   63c1:   mov    0xb8(%rsp),%r9
+    0.00 :   63c9:   mov    0xc(%r9),%edx
+         : 812  io_uring_cqe_seen(&ring, cqe);
+    0.00 :   63cd:   mov    0x138(%rsp),%rdi
+    0.00 :   63d5:   mov    (%rdi),%r8d
+    0.00 :   63d8:   jmp    62f8 <double measure<3>(bool, unsigned long, unsigned int)+0x808>
+         : 816  } else {
+         : 817  require(context.complete(token, res, flags), "unroutable completion");
+         : 818  }
+         : 819  }
+         : 820  }
+         : 821  elapsed = probe::ns(start, probe::clock::now()) / count;
+    0.00 :   63dd:   call   2270 <std::chrono::_V2::steady_clock::now()@plt>
+    0.00 :   63e2:   mov    %rax,%rbx
+         : 824  inline void end() { if (phase() == 2) command("disable\n"); }
+    0.00 :   63e5:   cmpl   $0x2,0x7e18(%rip)        # e204 <probe_perf::phase()::n>
+    0.00 :   63ec:   jne    63fa <double measure<3>(bool, unsigned long, unsigned int)+0x90a>
+    0.00 :   63ee:   lea    0x4ee3(%rip),%rdi        # b2d8 <_IO_stdin_used+0x2d8>
+    0.00 :   63f5:   call   67b0 <probe_perf::command(char const*)>
+    0.00 :   63fa:   mov    0x28(%rsp),%r15
+         : 830  probe_perf::end();
+         : 831  require(seen.count == count && seen.sum == count * (count + 1) / 2,
+    0.00 :   63ff:   cmp    %r15,0x50(%rsp)
+    0.00 :   6404:   jne    662f <double measure<3>(bool, unsigned long, unsigned int)+0xb3f>
+    0.00 :   640a:   lea    0x1(%r15),%rax
+    0.00 :   640e:   imul   %r15,%rax
+    0.00 :   6412:   shr    $1,%rax
+    0.00 :   6415:   cmp    %rax,0x58(%rsp)
+    0.00 :   641a:   jne    662f <double measure<3>(bool, unsigned long, unsigned int)+0xb3f>
+         : 839  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   6420:   mov    0x90(%rsp),%rax
+    0.00 :   6428:   nopl   0x0(%rax,%rax,1)
+    0.00 :   6430:   test   $0x1,%al
+    0.00 :   6432:   jne    6444 <double measure<3>(bool, unsigned long, unsigned int)+0x954>
+         : 844  // handle, acquire that final ticket AT THE SAME TIME as setting stop.
+         : 845  bool request_close(bool notification_ticket = false) noexcept {
+         : 846  auto state = state_.load(std::memory_order_acquire);
+         : 847  for (;;) {
+         : 848  if (state & stop) return false;
+         : 849  const auto next = (state | stop) + (notification_ticket ? unit : 0);
+    0.00 :   6434:   lea    0x1(%rax),%rcx
+         : 851  return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+    0.00 :   6438:   lock cmpxchg %rcx,0x90(%rsp)
+    0.00 :   6442:   jne    6430 <double measure<3>(bool, unsigned long, unsigned int)+0x940>
+         : 854  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   6444:   mov    0x90(%rsp),%rax
+         : 856  const auto before = state_.fetch_sub(unit, std::memory_order_acq_rel);
+         : 857  assert(before >= unit && "unbalanced close ticket");
+         : 858  (void)before;
+         : 859  }
+         : 860  bool closing() const noexcept { return (state_.load(std::memory_order_acquire) & stop) != 0; }
+         : 861  bool drained() const noexcept { return state_.load(std::memory_order_acquire) == stop; }
+    0.00 :   644c:   cmp    $0x1,%rax
+         : 863  if (!gate_.drained()) return false;
+    0.00 :   6450:   jne    669c <double measure<3>(bool, unsigned long, unsigned int)+0xbac>
+         : 865  ring_ = nullptr;
+    0.00 :   6456:   movq   $0x0,0x60(%rsp)
+    0.00 :   645f:   mov    0x38(%rsp),%rdi
+    0.00 :   6464:   mov    0x40(%rsp),%rsi
+         : 869  _GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n),
+         : 870  std::align_val_t(alignof(_Tp)));
+         : 871  return;
+         : 872  }
+         : 873  #endif
+         : 874  _GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+    0.00 :   6469:   call   2180 <operator delete(void*, unsigned long)@plt>
+         : 876  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   646e:   lea    0x40(%r13),%rax
+    0.00 :   6472:   lock decq (%rax)
+         : 879  UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   6476:   je     65c8 <double measure<3>(bool, unsigned long, unsigned int)+0xad8>
+         : 881  return __atomic_load_n(&_M_i, int(__m));
+    0.00 :   647c:   mov    0x90(%rsp),%rax
+         : 883  if (gate_.pending()) std::terminate();
+    0.00 :   6484:   cmp    $0x2,%rax
+    0.00 :   6488:   jae    65e2 <double measure<3>(bool, unsigned long, unsigned int)+0xaf2>
+         : 886  ptrdiff_t __n = _M_impl._M_end_of_storage - _M_impl._M_start;
+    0.00 :   648e:   mov    0x70(%rsp),%rdi
+         : 888  if (__p)
+    0.00 :   6493:   test   %rdi,%rdi
+    0.00 :   6496:   mov    0x10(%rsp),%r14
+    0.00 :   649b:   je     64ad <double measure<3>(bool, unsigned long, unsigned int)+0x9bd>
+    0.00 :   649d:   mov    0x80(%rsp),%rsi
+    0.00 :   64a5:   sub    %rdi,%rsi
+    0.00 :   64a8:   call   2180 <operator delete(void*, unsigned long)@plt>
+         : 895  "completion count/checksum mismatch");
+         : 896  require(context.try_detach(), "context did not drain");
+         : 897  }
+         : 898  if (kernel) io_uring_queue_exit(&ring);
+    0.00 :   64ad:   cmpb   $0x0,0xc(%rsp)
+    0.00 :   64b2:   je     64c1 <double measure<3>(bool, unsigned long, unsigned int)+0x9d1>
+    0.00 :   64b4:   lea    0xd0(%rsp),%rdi
+    0.00 :   64bc:   call   2310 <io_uring_queue_exit@plt>
+    0.00 :   64c1:   test   %r14,%r14
+    0.00 :   64c4:   je     64d6 <double measure<3>(bool, unsigned long, unsigned int)+0x9e6>
+    0.00 :   64c6:   mov    0x20(%rsp),%rsi
+    0.00 :   64cb:   sub    %r14,%rsi
+    0.00 :   64ce:   mov    %r14,%rdi
+    0.00 :   64d1:   call   2180 <operator delete(void*, unsigned long)@plt>
+         : 909  return elapsed;
+         : 910  }
+    0.00 :   64d6:   mov    %fs:0x28,%rax
+    0.00 :   64df:   cmp    0x1b0(%rsp),%rax
+    0.00 :   64e7:   jne    6767 <double measure<3>(bool, unsigned long, unsigned int)+0xc77>
+    0.00 :   64ed:   sub    0x48(%rsp),%rbx
+    0.00 :   64f2:   xorps  %xmm0,%xmm0
+    0.00 :   64f5:   cvtsi2sd %rbx,%xmm0
+    0.00 :   64fa:   movq   %r15,%xmm1
+    0.00 :   64ff:   punpckldq 0x4b19(%rip),%xmm1        # b020 <_IO_stdin_used+0x20>
+    0.00 :   6507:   subpd  0x4b21(%rip),%xmm1        # b030 <_IO_stdin_used+0x30>
+    0.00 :   650f:   movapd %xmm1,%xmm2
+    0.00 :   6513:   unpckhpd %xmm1,%xmm2
+    0.00 :   6517:   addsd  %xmm1,%xmm2
+    0.00 :   651b:   divsd  %xmm2,%xmm0
+    0.00 :   651f:   add    $0x1b8,%rsp
+    0.00 :   6526:   pop    %rbx
+    0.00 :   6527:   pop    %r12
+    0.00 :   6529:   pop    %r13
+    0.00 :   652b:   pop    %r14
+    0.00 :   652d:   pop    %r15
+    0.00 :   652f:   pop    %rbp
+    0.00 :   6530:   ret
+    0.00 :   6531:   mov    0x7a58(%rip),%rax        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   6538:   mov    (%rax),%rdi
+    0.00 :   653b:   lea    0x4c0d(%rip),%rsi        # b14f <_IO_stdin_used+0x14f>
+    0.00 :   6542:   lea    0x4da8(%rip),%rdx        # b2f1 <_IO_stdin_used+0x2f1>
+    0.00 :   6549:   xor    %eax,%eax
+    0.00 :   654b:   call   22a0 <fprintf@plt>
+    0.00 :   6550:   call   20d0 <abort@plt>
+    0.00 :   6555:   mov    0x7a34(%rip),%rax        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   655c:   mov    (%rax),%rdi
+    0.00 :   655f:   lea    0x4be9(%rip),%rsi        # b14f <_IO_stdin_used+0x14f>
+    0.00 :   6566:   lea    0x4cbe(%rip),%rdx        # b22b <_IO_stdin_used+0x22b>
+    0.00 :   656d:   xor    %eax,%eax
+    0.00 :   656f:   call   22a0 <fprintf@plt>
+    0.00 :   6574:   call   20d0 <abort@plt>
+    0.00 :   6579:   mov    $0x1,%cl
+         : 947  if (!cb_) {
+    0.00 :   657b:   test   %cl,%cl
+    0.00 :   657d:   je     5ed1 <double measure<3>(bool, unsigned long, unsigned int)+0x3e1>
+         : 950  throw std::bad_alloc();
+    0.00 :   6583:   mov    $0x8,%edi
+    0.00 :   6588:   call   2090 <__cxa_allocate_exception@plt>
+         : 953  *  @c bad_alloc (or classes derived from it) is used to report allocation
+         : 954  *  errors from the throwing forms of @c new.  */
+         : 955  class bad_alloc : public exception
+         : 956  {
+         : 957  public:
+         : 958  _GLIBCXX26_CONSTEXPR bad_alloc() throw() { }
+    0.00 :   658d:   mov    0x79ec(%rip),%rcx        # df80 <vtable for std::bad_alloc@GLIBCXX_3.4>
+    0.00 :   6594:   add    $0x10,%rcx
+    0.00 :   6598:   mov    %rcx,(%rax)
+    0.00 :   659b:   mov    %fs:0x28,%rcx
+    0.00 :   65a4:   cmp    0x1b0(%rsp),%rcx
+    0.00 :   65ac:   jne    6767 <double measure<3>(bool, unsigned long, unsigned int)+0xc77>
+    0.00 :   65b2:   mov    0x79cf(%rip),%rsi        # df88 <typeinfo for std::bad_alloc@GLIBCXX_3.4>
+    0.00 :   65b9:   mov    0x79b0(%rip),%rdx        # df70 <std::bad_alloc::~bad_alloc()@GLIBCXX_3.4>
+    0.00 :   65c0:   mov    %rax,%rdi
+    0.00 :   65c3:   call   2320 <__cxa_throw@plt>
+    0.00 :   65c8:   mov    %r13,%rdi
+    0.00 :   65cb:   call   21f0 <free@plt>
+    0.00 :   65d0:   mov    0x90(%rsp),%rax
+    0.00 :   65d8:   cmp    $0x2,%rax
+    0.00 :   65dc:   jb     648e <double measure<3>(bool, unsigned long, unsigned int)+0x99e>
+    0.00 :   65e2:   call   2050 <std::terminate()@plt>
+    0.00 :   65e7:   mov    0x79a2(%rip),%rax        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   65ee:   mov    (%rax),%rdi
+    0.00 :   65f1:   lea    0x4b57(%rip),%rsi        # b14f <_IO_stdin_used+0x14f>
+    0.00 :   65f8:   lea    0x4bf2(%rip),%rdx        # b1f1 <_IO_stdin_used+0x1f1>
+    0.00 :   65ff:   xor    %eax,%eax
+    0.00 :   6601:   call   22a0 <fprintf@plt>
+    0.00 :   6606:   call   20d0 <abort@plt>
+    0.00 :   660b:   mov    0x797e(%rip),%rax        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   6612:   mov    (%rax),%rdi
+    0.00 :   6615:   lea    0x4b33(%rip),%rsi        # b14f <_IO_stdin_used+0x14f>
+    0.00 :   661c:   lea    0x4bf0(%rip),%rdx        # b213 <_IO_stdin_used+0x213>
+    0.00 :   6623:   xor    %eax,%eax
+    0.00 :   6625:   call   22a0 <fprintf@plt>
+    0.00 :   662a:   call   20d0 <abort@plt>
+    0.00 :   662f:   mov    0x795a(%rip),%rax        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   6636:   mov    (%rax),%rdi
+    0.00 :   6639:   lea    0x4b0f(%rip),%rsi        # b14f <_IO_stdin_used+0x14f>
+    0.00 :   6640:   lea    0x4c03(%rip),%rdx        # b24a <_IO_stdin_used+0x24a>
+    0.00 :   6647:   xor    %eax,%eax
+    0.00 :   6649:   call   22a0 <fprintf@plt>
+    0.00 :   664e:   call   20d0 <abort@plt>
+         : 996  #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+         : 997  throw std::invalid_argument("io_uring_context capacity must be 1..65536");
+    0.00 :   6653:   mov    $0x10,%edi
+    0.00 :   6658:   call   2090 <__cxa_allocate_exception@plt>
+    0.00 :   665d:   mov    %rax,%r15
+    0.00 :   6660:   lea    0x4c1c(%rip),%rsi        # b283 <_IO_stdin_used+0x283>
+    0.00 :   6667:   mov    %rax,%rdi
+    0.00 :   666a:   call   2390 <std::invalid_argument::invalid_argument(char const*)@plt>
+    0.00 :   666f:   mov    %fs:0x28,%rax
+    0.00 :   6678:   cmp    0x1b0(%rsp),%rax
+    0.00 :   6680:   jne    6767 <double measure<3>(bool, unsigned long, unsigned int)+0xc77>
+    0.00 :   6686:   mov    0x7933(%rip),%rsi        # dfc0 <typeinfo for std::invalid_argument@GLIBCXX_3.4>
+    0.00 :   668d:   mov    0x7914(%rip),%rdx        # dfa8 <std::invalid_argument::~invalid_argument()@GLIBCXX_3.4>
+    0.00 :   6694:   mov    %r15,%rdi
+    0.00 :   6697:   call   2320 <__cxa_throw@plt>
+    0.00 :   669c:   mov    0x78ed(%rip),%rax        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   66a3:   mov    (%rax),%rdi
+    0.00 :   66a6:   lea    0x4aa2(%rip),%rsi        # b14f <_IO_stdin_used+0x14f>
+    0.00 :   66ad:   lea    0x4bb9(%rip),%rdx        # b26d <_IO_stdin_used+0x26d>
+    0.00 :   66b4:   xor    %eax,%eax
+    0.00 :   66b6:   call   22a0 <fprintf@plt>
+    0.00 :   66bb:   call   20d0 <abort@plt>
+         : 1018 if (rc) { std::fprintf(stderr, "io_uring_queue_init failed: %d\n", rc); std::exit(1); }
+    0.00 :   66c0:   mov    0x78c9(%rip),%rcx        # df90 <stderr@GLIBC_2.2.5>
+    0.00 :   66c7:   mov    (%rcx),%rdi
+    0.00 :   66ca:   lea    0x4af4(%rip),%rsi        # b1c5 <_IO_stdin_used+0x1c5>
+    0.00 :   66d1:   mov    %eax,%edx
+    0.00 :   66d3:   xor    %eax,%eax
+    0.00 :   66d5:   call   22a0 <fprintf@plt>
+    0.00 :   66da:   mov    $0x1,%edi
+    0.00 :   66df:   call   2200 <exit@plt>
+    0.00 :   66e4:   jmp    66e6 <double measure<3>(bool, unsigned long, unsigned int)+0xbf6>
+    0.00 :   66e6:   mov    %rax,%rbx
+    0.00 :   66e9:   mov    0x38(%rsp),%rdi
+    0.00 :   66ee:   mov    0x40(%rsp),%rsi
+    0.00 :   66f3:   call   2180 <operator delete(void*, unsigned long)@plt>
+    0.00 :   66f8:   jmp    670f <double measure<3>(bool, unsigned long, unsigned int)+0xc1f>
+    0.00 :   66fa:   mov    %rax,%rbx
+    0.00 :   66fd:   mov    %r15,%rdi
+    0.00 :   6700:   call   2110 <__cxa_free_exception@plt>
+    0.00 :   6705:   jmp    6732 <double measure<3>(bool, unsigned long, unsigned int)+0xc42>
+    0.00 :   6707:   mov    %rax,%rbx
+         : 1038 }
+    0.00 :   670a:   jmp    6719 <double measure<3>(bool, unsigned long, unsigned int)+0xc29>
+    0.00 :   670c:   mov    %rax,%rbx
+         : 1041 { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   670f:   lea    0x40(%r13),%rax
+    0.00 :   6713:   lock decq (%rax)
+         : 1044 UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   6717:   je     6725 <double measure<3>(bool, unsigned long, unsigned int)+0xc35>
+    0.00 :   6719:   lea    0x60(%rsp),%rdi
+         : 1047 }
+    0.00 :   671e:   call   6780 <flux_foundry::extension::io_uring_context::~io_uring_context()>
+    0.00 :   6723:   jmp    6732 <double measure<3>(bool, unsigned long, unsigned int)+0xc42>
+    0.00 :   6725:   mov    %r13,%rdi
+    0.00 :   6728:   call   21f0 <free@plt>
+    0.00 :   672d:   jmp    6719 <double measure<3>(bool, unsigned long, unsigned int)+0xc29>
+    0.00 :   672f:   mov    %rax,%rbx
+    0.00 :   6732:   cmpq   $0x0,0x10(%rsp)
+    0.00 :   6738:   je     674c <double measure<3>(bool, unsigned long, unsigned int)+0xc5c>
+    0.00 :   673a:   mov    0x20(%rsp),%rsi
+    0.00 :   673f:   mov    0x10(%rsp),%rdi
+    0.00 :   6744:   sub    %rdi,%rsi
+    0.00 :   6747:   call   2180 <operator delete(void*, unsigned long)@plt>
+    0.00 :   674c:   mov    %fs:0x28,%rax
+    0.00 :   6755:   cmp    0x1b0(%rsp),%rax
+    0.00 :   675d:   jne    6767 <double measure<3>(bool, unsigned long, unsigned int)+0xc77>
+    0.00 :   675f:   mov    %rbx,%rdi
+    0.00 :   6762:   call   2350 <_Unwind_Resume@plt>
+    0.00 :   6767:   call   21d0 <__stack_chk_fail@plt>
+         : 1066 fn(data, result, flags);
+    0.00 :   676c:   mov    %rax,%rdi
+    0.00 :   676f:   call   2f70 <__clang_call_terminate>

@@ -1,0 +1,99 @@
+{
+  "command": [
+    "clang++",
+    "-I/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/overlay",
+    "-std=c++14",
+    "-O3",
+    "-DNDEBUG",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-screen/after",
+    "-I/tmp/ff-io-perf-vFZ6HVwW",
+    "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv_handoff.cpp",
+    "-luv",
+    "-o",
+    "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/probe",
+    "-g",
+    "-include",
+    "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/perf_window.h"
+  ],
+  "runs": [
+    {
+      "name": "ordinary-fast-cpu4",
+      "argv": [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/probe",
+        "ordinary-fast",
+        "overload2m",
+        "2097152",
+        "128",
+        "16",
+        "3",
+        "4"
+      ],
+      "options": [
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "997",
+        "--call-graph",
+        "dwarf,8192",
+        "--user-callchains",
+        "-o",
+        "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/ordinary-fast-cpu4.data"
+      ]
+    },
+    {
+      "name": "ordinary-fast-cpu2",
+      "argv": [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/probe",
+        "ordinary-fast",
+        "overload2m",
+        "2097152",
+        "128",
+        "16",
+        "3",
+        "2"
+      ],
+      "options": [
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "997",
+        "--call-graph",
+        "dwarf,8192",
+        "--user-callchains",
+        "-o",
+        "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/ordinary-fast-cpu2.data"
+      ]
+    },
+    {
+      "name": "raw-cpu4",
+      "argv": [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/probe",
+        "raw",
+        "overload2m",
+        "2097152",
+        "128",
+        "16",
+        "3",
+        "4"
+      ],
+      "options": [
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "997",
+        "--call-graph",
+        "dwarf,8192",
+        "--user-callchains",
+        "-o",
+        "/tmp/ff-io-perf-vFZ6HVwW/build/producer-perf/raw-cpu4.data"
+      ]
+    }
+  ]
+}

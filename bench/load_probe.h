@@ -252,6 +252,10 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
             enqueue(e, task_wrapper_sbo([e]() noexcept { finish(work(e)); }));
         } else if (!std::strcmp(mode,"fast")) {
             auto r = make_fast_runner_view(fb,Receiver{}); r(e);
+        } else if (!std::strcmp(mode,"ordinary-fast")) {
+            // Used explicitly by the production-uv handoff probe. Keep the
+            // awaitable and owning blueprint identical to the normal lane.
+            auto r = make_fast_runner(np,Receiver{}); r(e);
         } else {
             auto r = make_runner(np,Receiver{}); r(e);
         }

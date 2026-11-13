@@ -1,0 +1,83 @@
+{
+  "commands": [
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/current.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/current",
+      "-luring",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters",
+      "-g"
+    ],
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/view.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/view",
+      "-luring",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters",
+      "-g"
+    ],
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/terminal.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/terminal",
+      "-luring",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters",
+      "-g"
+    ],
+    [
+      "clang++",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/tmp/ff-io-perf-vFZ6HVwW",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/terminal_view.cpp",
+      "-o",
+      "/tmp/ff-io-perf-vFZ6HVwW/build/diag-uring/terminal_view",
+      "-luring",
+      "-I/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters",
+      "-g"
+    ]
+  ],
+  "backend": "uring",
+  "cpu": 3,
+  "count": 1048576,
+  "repeats": 7,
+  "variants": [
+    "current",
+    "view",
+    "terminal",
+    "terminal_view"
+  ],
+  "note": "terminal variants change cancellation contract; benchmark only"
+}

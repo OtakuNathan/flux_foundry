@@ -16,7 +16,65 @@ function(flux_foundry_add_noexc_probe target source)
     endif()
 endfunction()
 
+function(flux_foundry_add_io_rejection_tests component flags)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+        foreach(mode exceptions noexc)
+            set(no_exceptions OFF)
+            if(mode STREQUAL "noexc")
+                set(no_exceptions ON)
+            endif()
+            add_test(NAME ${component}_adapter_rejection_${mode}
+                COMMAND ${CMAKE_COMMAND}
+                    -DFF_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DFF_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+                    -DFF_COMPONENT=${component}
+                    "-DFF_DEP_FLAGS=${flags}"
+                    -DFF_NO_EXCEPTIONS=${no_exceptions}
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/io_adapter_rejection.cmake)
+            set_tests_properties(${component}_adapter_rejection_${mode} PROPERTIES
+                LABELS "smoke;contract;compile-fail;${component}" TIMEOUT 120)
+        endforeach()
+    endif()
+endfunction()
+
 # Smoke
+if(TARGET flux_foundry_io_uring)
+    flux_foundry_add_io_rejection_tests(io_uring "${FLUX_FOUNDRY_LIBURING_CFLAGS}")
+    find_package(Threads REQUIRED)
+    add_library(flux_foundry_header_io_uring_standalone OBJECT header_io_uring_standalone.cpp)
+    target_link_libraries(flux_foundry_header_io_uring_standalone PRIVATE flux_foundry::io_uring flux_foundry_test_warnings)
+    set_target_properties(flux_foundry_header_io_uring_standalone PROPERTIES
+        CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    flux_foundry_add_probe(flux_foundry_io_uring_attachment_contract io_uring_attachment_contract.cpp)
+    flux_foundry_add_noexc_probe(flux_foundry_io_uring_attachment_contract_noexc io_uring_attachment_contract.cpp)
+    foreach(suffix "" "_noexc")
+        target_link_libraries(flux_foundry_io_uring_attachment_contract${suffix} PRIVATE flux_foundry::io_uring Threads::Threads)
+        set_target_properties(flux_foundry_io_uring_attachment_contract${suffix} PROPERTIES
+            CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+        add_test(NAME io_uring_attachment_contract${suffix} COMMAND flux_foundry_io_uring_attachment_contract${suffix})
+        set_tests_properties(io_uring_attachment_contract${suffix} PROPERTIES LABELS "smoke;contract;io_uring" TIMEOUT 20)
+        add_test(NAME io_uring_runtime${suffix} COMMAND flux_foundry_io_uring_attachment_contract${suffix} --kernel)
+        set_tests_properties(io_uring_runtime${suffix} PROPERTIES LABELS "smoke;io_uring" TIMEOUT 20 SKIP_RETURN_CODE 77)
+    endforeach()
+endif()
+
+if(TARGET flux_foundry_dpdk)
+    flux_foundry_add_io_rejection_tests(dpdk "${FLUX_FOUNDRY_DPDK_CFLAGS}")
+    add_library(flux_foundry_header_dpdk_standalone OBJECT header_dpdk_standalone.cpp)
+    target_link_libraries(flux_foundry_header_dpdk_standalone PRIVATE flux_foundry::dpdk flux_foundry_test_warnings)
+    set_target_properties(flux_foundry_header_dpdk_standalone PROPERTIES
+        CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    flux_foundry_add_probe(flux_foundry_dpdk_awaitable_contract dpdk_awaitable_contract.cpp)
+    flux_foundry_add_noexc_probe(flux_foundry_dpdk_awaitable_contract_noexc dpdk_awaitable_contract.cpp)
+    foreach(suffix "" "_noexc")
+        target_link_libraries(flux_foundry_dpdk_awaitable_contract${suffix} PRIVATE flux_foundry::dpdk)
+        set_target_properties(flux_foundry_dpdk_awaitable_contract${suffix} PROPERTIES
+            CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+        add_test(NAME dpdk_awaitable_contract${suffix} COMMAND flux_foundry_dpdk_awaitable_contract${suffix})
+        set_tests_properties(dpdk_awaitable_contract${suffix} PROPERTIES LABELS "smoke;contract;dpdk" TIMEOUT 20)
+    endforeach()
+endif()
+
 flux_foundry_add_probe(flux_foundry_flow_smoke flow_smoke_test.cpp)
 add_test(NAME flow_smoke COMMAND flux_foundry_flow_smoke)
 set_tests_properties(flow_smoke PROPERTIES LABELS "smoke")
@@ -99,6 +157,8 @@ if(TARGET flux_foundry_uv_executor)
     add_test(NAME uv_executor_contract COMMAND flux_foundry_uv_executor_contract)
     set_tests_properties(uv_executor_contract PROPERTIES LABELS "smoke;contract;uv" TIMEOUT 30)
     flux_foundry_add_noexc_probe(flux_foundry_uv_executor_contract_noexc uv_executor_contract.cpp)
+    set_target_properties(flux_foundry_uv_executor_contract flux_foundry_uv_executor_contract_noexc PROPERTIES
+        CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
     target_link_libraries(flux_foundry_uv_executor_contract_noexc PRIVATE flux_foundry::uv_executor)
     add_test(NAME uv_executor_contract_noexc COMMAND flux_foundry_uv_executor_contract_noexc)
     set_tests_properties(uv_executor_contract_noexc PROPERTIES LABELS "smoke;contract;uv;noexc" TIMEOUT 30)
@@ -115,6 +175,16 @@ set_tests_properties(flow_state_stress PROPERTIES LABELS "stress" TIMEOUT 300)
 flux_foundry_add_probe(flux_foundry_pooling_allocator_stress pooling_allocator_stress.cpp)
 add_test(NAME pooling_allocator_stress COMMAND flux_foundry_pooling_allocator_stress)
 set_tests_properties(pooling_allocator_stress PROPERTIES LABELS "stress" TIMEOUT 300)
+
+flux_foundry_add_probe(flux_foundry_pooling_handoff_contract pooling_handoff_contract.cpp)
+flux_foundry_add_noexc_probe(flux_foundry_pooling_handoff_contract_noexc pooling_handoff_contract.cpp)
+foreach(suffix "" "_noexc")
+    target_link_libraries(flux_foundry_pooling_handoff_contract${suffix} PRIVATE Threads::Threads)
+    set_target_properties(flux_foundry_pooling_handoff_contract${suffix} PROPERTIES
+        CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    add_test(NAME pooling_handoff_contract${suffix} COMMAND flux_foundry_pooling_handoff_contract${suffix})
+    set_tests_properties(pooling_handoff_contract${suffix} PROPERTIES LABELS "smoke;contract" TIMEOUT 60)
+endforeach()
 
 flux_foundry_add_probe(flux_foundry_hazard_ptr_stack_stress hazard_ptr_stack_stress.cpp)
 add_test(NAME hazard_ptr_stack_stress

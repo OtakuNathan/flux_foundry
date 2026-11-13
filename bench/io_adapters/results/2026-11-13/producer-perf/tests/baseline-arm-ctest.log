@@ -1,0 +1,14 @@
+Internal ctest changing into directory: /home/nathan/Documents/coding/flux_foundry/build/pool-batch/cmake
+Test project /home/nathan/Documents/coding/flux_foundry/build/pool-batch/cmake
+    Start 31: pooling_handoff_contract
+1/2 Test #31: pooling_handoff_contract .........   Passed    0.17 sec
+    Start 32: pooling_handoff_contract_noexc
+2/2 Test #32: pooling_handoff_contract_noexc ...   Passed    0.17 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Label Time Summary:
+contract    =   0.33 sec*proc (2 tests)
+smoke       =   0.33 sec*proc (2 tests)
+
+Total Test time (real) =   0.34 sec

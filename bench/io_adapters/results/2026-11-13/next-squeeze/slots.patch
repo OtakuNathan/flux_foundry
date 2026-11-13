@@ -1,0 +1,29 @@
+--- a/extension/io_uring_awaitable.h
++++ b/extension/io_uring_awaitable.h
+@@ -40,7 +40,7 @@
+                               std::size_t capacity = 256)
+         : ring_(&ring), tag_(tag), slots_(checked_capacity(capacity)) {
+         for (std::size_t i = 0; i < slots_.size(); ++i)
+-            slots_[i].next = i + 1;
++            slots_[i].next = static_cast<std::uint32_t>(i + 1);
+     }
+     io_uring_context(const io_uring_context&) = delete;
+     io_uring_context& operator=(const io_uring_context&) = delete;
+@@ -92,7 +92,7 @@
+         slot.data = nullptr;
+         // Never wrap a generation and accidentally accept an old token.
+         if (slot.generation != UINT32_MAX) {
+-            slot.next = free_;
++            slot.next = static_cast<std::uint32_t>(free_);
+             free_ = index;
+         }
+         gate_.release(); // Original terminal CQE, never submit() or logical cancel.
+@@ -117,7 +117,7 @@
+         callback complete = nullptr;
+         void* data = nullptr;
+         std::uint32_t generation = 0;
+-        std::size_t next = 0;
++        std::uint32_t next = 0; // Capacity and its sentinel fit in 17 bits.
+     };
+     static std::size_t checked_capacity(std::size_t n) {
+         if (n && n <= 65536) return n;

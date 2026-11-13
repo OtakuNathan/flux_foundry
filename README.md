@@ -74,6 +74,12 @@ For the optional libuv component, configure with
 It schedules onto a caller-owned loop with bounded admission and asynchronous
 draining close. See [libuv executor contracts and examples](docs/uv_executor.md).
 
+For awaitables attached to an application-owned io_uring or DPDK RX queue,
+enable `FLUX_FOUNDRY_ENABLE_IO_URING` / `FLUX_FOUNDRY_ENABLE_DPDK` and link
+`flux_foundry::io_uring` / `flux_foundry::dpdk`. The host drives submission and
+completion; the adapters do not create worker threads or own the ring, EAL, or
+ports. See [I/O attachment contracts and examples](docs/io_attachments.md).
+
 Install the header-only package into a prefix:
 
 ```bash

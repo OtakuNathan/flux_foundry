@@ -1,0 +1,166 @@
+ Percent |	Source code & Disassembly of uring-current for cycles:u (1281 samples, percent: local period)
+-------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3    Disassembly of section .text:
+         :
+         : 5    0000000000007320 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()>:
+         : 6    } else {
+         : 7    self->next_step.template emplace<F>(std::forward<F>(next));
+         : 8    }
+         : 9    }
+         :
+         : 11   int submit_async() noexcept {
+    0.00 :   7320:   push   %r15
+    0.00 :   7322:   push   %r14
+    0.39 :   7324:   push   %rbx
+         : 15   // can only submit once
+         : 16   auto expected = idle;
+         : 17   if (!self->status.compare_exchange_strong(expected, waiting,
+    0.70 :   7325:   mov    (%rdi),%rcx
+         : 19   using _Vp = _Val<_Tp>;
+         : 20   _Tp* const __pval = std::__addressof(__val);
+         :
+         : 22   if constexpr (!__atomic_impl::__maybe_has_padding<_Vp>())
+         : 23   {
+         : 24   return __atomic_compare_exchange(__pval, std::__addressof(__e),
+    0.00 :   7328:   mov    $0x1,%edx
+    0.00 :   732d:   xor    %eax,%eax
+    0.00 :   732f:   lock cmpxchg %edx,(%rcx)
+   24.98 :   7333:   mov    $0xffffffff,%eax
+    0.00 :   7338:   jne    7397 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0x77>
+         : 30   return -1;
+         : 31   }
+         :
+         : 33   // Keep awaitable alive across derived::submit(); submit() may
+         : 34   // synchronously complete and drop refs via resume/cancel paths.
+         : 35   self->retain();
+    0.00 :   733a:   mov    (%rdi),%rax
+         : 37   { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+    0.95 :   733d:   lock incq 0x8(%rax)
+         : 39   auto code = static_cast<derived*>(self)->submit();
+   23.54 :   7342:   mov    (%rdi),%rbx
+         : 41   static_assert(detail::io_error_prob<E>::value,
+         : 42   "I/O awaitable requirement: specialize extension::detail::io_error<E> with static E make(int) noexcept.");
+         :
+         : 44   explicit io_uring_awaitable(result_t<request_type, E>&& input) noexcept
+         : 45   : request(std::move(input).value()) {}
+         : 46   bool available() const noexcept { return request.context != nullptr; }
+    0.08 :   7345:   mov    0x50(%rbx),%rax
+    0.00 :   7349:   test   %rax,%rax
+         : 49   int submit() noexcept {
+         : 50   if (!available()) return -EINVAL;
+    0.00 :   734c:   je     737f <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0x5f>
+    0.00 :   734e:   mov    %rdi,%r14
+    0.00 :   7351:   lock incq 0x8(%rbx)
+         : 54   this->retain(); // Kernel/backend lifetime survives logical cancellation.
+         : 55   const int rc = request.context->enqueue(request.operation, &on_complete, this);
+   21.26 :   7356:   lea    0x58(%rbx),%rsi
+    0.00 :   735a:   lea    0x2aaf(%rip),%rdx        # 9e10 <flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>::on_complete(void*, int, unsigned int)>
+    0.00 :   7361:   mov    %rax,%rdi
+    0.00 :   7364:   mov    %rbx,%rcx
+    0.00 :   7367:   call   6890 <int flux_foundry::extension::io_uring_context::enqueue<operation>(operation&, void (*)(void*, int, unsigned int), void*)>
+         : 61   if (rc) this->release();
+    0.78 :   736c:   test   %eax,%eax
+    0.00 :   736e:   je     739d <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0x7d>
+    0.00 :   7370:   lea    0x8(%rbx),%rcx
+         : 65   { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   7374:   lock decq (%rcx)
+         : 67   // This releases a "Backend Reference" preventing the object from being leaked
+         : 68   void release() noexcept {
+         : 69   #if FLUX_FOUNDRY_WITH_TSAN
+         : 70   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+         : 71   #else
+         : 72   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   7378:   je     73ee <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xce>
+    0.00 :   737a:   mov    %r14,%rdi
+    0.00 :   737d:   jmp    7384 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0x64>
+    0.00 :   737f:   mov    $0xffffffea,%eax
+         : 77   self->status.store(idle, std::memory_order_release);
+    0.00 :   7384:   mov    (%rdi),%rcx
+         : 79   #endif
+         :
+         : 81   void
+         : 82   store(_Tp __i, memory_order __m = memory_order_seq_cst) noexcept
+         : 83   {
+         : 84   __atomic_store(std::__addressof(_M_i),
+    0.00 :   7387:   movl   $0x0,(%rcx)
+         : 86   self->release();
+    0.00 :   738d:   mov    (%rdi),%rbx
+    0.00 :   7390:   lock decq 0x8(%rbx)
+         : 89   UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   7395:   je     73c4 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xa4>
+         : 91   }
+    0.32 :   7397:   pop    %rbx
+    0.00 :   7398:   pop    %r14
+    0.00 :   739a:   pop    %r15
+    0.00 :   739c:   ret
+         : 96   self->release();
+    0.00 :   739d:   mov    (%r14),%rbx
+    0.00 :   73a0:   xor    %eax,%eax
+    0.00 :   73a2:   lock decq 0x8(%rbx)
+         : 100  UNLIKELY_IF(refcount.fetch_sub(1, std::memory_order_release) == 1) {
+   27.00 :   73a7:   jne    7397 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0x77>
+         : 102  swap(this->invoker_, rhs.invoker_);
+         : 103  swap(this->manager_, rhs.manager_);
+         : 104  }
+         :
+         : 106  void clear() noexcept {
+         : 107  if (manager_) {
+    0.00 :   73a9:   mov    0x18(%rbx),%rax
+    0.00 :   73ad:   test   %rax,%rax
+    0.00 :   73b0:   je     7417 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xf7>
+         : 111  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   73b2:   lea    0x20(%rbx),%rsi
+    0.00 :   73b6:   xor    %r14d,%r14d
+    0.00 :   73b9:   xor    %edi,%edi
+    0.00 :   73bb:   mov    $0x2,%edx
+    0.00 :   73c0:   call   *%rax
+    0.00 :   73c2:   jmp    73dd <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xbd>
+    0.00 :   73c4:   mov    %rax,%r14
+         : 119  if (manager_) {
+    0.00 :   73c7:   mov    0x18(%rbx),%rax
+    0.00 :   73cb:   test   %rax,%rax
+    0.00 :   73ce:   je     73dd <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xbd>
+         : 123  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   73d0:   lea    0x20(%rbx),%rsi
+    0.00 :   73d4:   xor    %edi,%edi
+    0.00 :   73d6:   mov    $0x2,%edx
+    0.00 :   73db:   call   *%rax
+         : 128  std::atomic_thread_fence(std::memory_order_acquire);
+         : 129  #endif
+         : 130  delete static_cast<derived*>(this);
+    0.00 :   73dd:   mov    %rbx,%rdi
+    0.00 :   73e0:   call   9890 <flux_foundry::pooling_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, 256ul>::operator delete(void*)>
+    0.00 :   73e5:   mov    %r14,%rax
+         : 134  }
+    0.00 :   73e8:   pop    %rbx
+    0.00 :   73e9:   pop    %r14
+    0.00 :   73eb:   pop    %r15
+    0.00 :   73ed:   ret
+    0.00 :   73ee:   mov    %rax,%r15
+         : 140  if (manager_) {
+    0.00 :   73f1:   mov    0x18(%rbx),%rax
+    0.00 :   73f5:   test   %rax,%rax
+    0.00 :   73f8:   je     7407 <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xe7>
+         : 144  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   73fa:   lea    0x20(%rbx),%rsi
+    0.00 :   73fe:   xor    %edi,%edi
+    0.00 :   7400:   mov    $0x2,%edx
+    0.00 :   7405:   call   *%rax
+         : 149  delete static_cast<derived*>(this);
+    0.00 :   7407:   mov    %rbx,%rdi
+    0.00 :   740a:   call   9890 <flux_foundry::pooling_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, 256ul>::operator delete(void*)>
+    0.00 :   740f:   mov    %r15,%rax
+    0.00 :   7412:   jmp    737a <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0x5a>
+    0.00 :   7417:   xor    %r14d,%r14d
+         : 155  if (manager_) {
+    0.00 :   741a:   jmp    73dd <flux_foundry::awaitable_base<flux_foundry::extension::io_uring_awaitable<operation, std::__exception_ptr::exception_ptr>, flux_foundry::extension::io_uring_result<operation>, std::__exception_ptr::exception_ptr>::access_delegate::submit_async()+0xbd>
+         : 157  manager_(nullptr, data_, type_erase_lifespan_op::destroy);
+    0.00 :   741c:   mov    %rax,%rdi
+    0.00 :   741f:   call   2f70 <__clang_call_terminate>
+    0.00 :   7424:   mov    %rax,%rdi
+    0.00 :   7427:   call   2f70 <__clang_call_terminate>
+    0.00 :   742c:   mov    %rax,%rdi
+    0.00 :   742f:   call   2f70 <__clang_call_terminate>

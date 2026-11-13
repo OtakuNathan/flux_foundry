@@ -1,0 +1,18 @@
+--- a/bench/load_probe.h
++++ b/bench/load_probe.h
+@@ -240,6 +240,7 @@
+     const Ns monitor_start = now_ns();
+     const Ns origin = monitor_start + 2000000;
+     Ns last_submit = origin;
++    probe_perf::begin();
+     for (std::size_t i = 0; i < o.samples; ++i) {
+         auto& s = samples[i];
+         s.planned = origin + due(p,i);
+@@ -273,6 +274,7 @@
+     port.dispatch(port.executor,task_wrapper_sbo([&fenced]() noexcept { fenced.store(true,std::memory_order_release); }));
+     while (!fenced.load(std::memory_order_acquire)) relax();
+ 
++    probe_perf::end();
+     const Ns monitor_end = now_ns();
+     const Ns cpu_end = monitor ? monitor->snapshot(monitor->state) : 0;
+     std::vector<Ns> e2e, actual, lag, dispatch, service;

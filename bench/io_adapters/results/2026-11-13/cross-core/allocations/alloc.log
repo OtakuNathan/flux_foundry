@@ -1,0 +1,18 @@
+mode=raw samples=4096; warmup then measured counts
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+mode=raw samples=32768; warmup then measured counts
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+mode=ordinary-fast samples=4096; warmup then measured counts
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+mode=ordinary-fast samples=32768; warmup then measured counts
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+mode=normal samples=4096; warmup then measured counts
+alloc_calls malloc=0 aligned=4096 global_new=0
+alloc_calls malloc=0 aligned=4096 global_new=0
+mode=normal samples=32768; warmup then measured counts
+alloc_calls malloc=0 aligned=4096 global_new=0
+alloc_calls malloc=0 aligned=32768 global_new=0

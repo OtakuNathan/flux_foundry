@@ -1,0 +1,309 @@
+{
+  "perf": "perf version 7.3.1-1",
+  "count": 16777216,
+  "repeats": 3,
+  "cpu": 3,
+  "events": "cycles:u,instructions:u,branches:u,branch-misses:u",
+  "lanes": [
+    [
+      "uring-staged-raw",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-current",
+        "staged",
+        "raw",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-staged-context",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-current",
+        "staged",
+        "context",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-staged-current",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-current",
+        "staged",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-staged-view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-view",
+        "staged",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-staged-terminal",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-terminal",
+        "staged",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-staged-terminal_view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-terminal_view",
+        "staged",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-kernel-raw",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-current",
+        "kernel",
+        "raw",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-kernel-context",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-current",
+        "kernel",
+        "context",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-kernel-current",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-current",
+        "kernel",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-kernel-view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-view",
+        "kernel",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-kernel-terminal",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-terminal",
+        "kernel",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "uring-kernel-terminal_view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-terminal_view",
+        "kernel",
+        "fast",
+        "16777216",
+        "32",
+        "3"
+      ],
+      {}
+    ],
+    [
+      "dpdk-1-raw",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-current",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "1",
+        "FF_PERF_MODE": "0"
+      }
+    ],
+    [
+      "dpdk-1-context",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-current",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "1",
+        "FF_PERF_MODE": "2"
+      }
+    ],
+    [
+      "dpdk-1-current",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-current",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "1",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-1-view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-view",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "1",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-1-terminal",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-terminal",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "1",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-1-terminal_view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-terminal_view",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "1",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-32-raw",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-current",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "32",
+        "FF_PERF_MODE": "0"
+      }
+    ],
+    [
+      "dpdk-32-context",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-current",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "32",
+        "FF_PERF_MODE": "2"
+      }
+    ],
+    [
+      "dpdk-32-current",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-current",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "32",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-32-view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-view",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "32",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-32-terminal",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-terminal",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "32",
+        "FF_PERF_MODE": "4"
+      }
+    ],
+    [
+      "dpdk-32-terminal_view",
+      [
+        "/tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/dpdk-terminal_view",
+        "16777216",
+        "1",
+        "3"
+      ],
+      {
+        "FF_PERF_BATCH": "32",
+        "FF_PERF_MODE": "4"
+      }
+    ]
+  ]
+}

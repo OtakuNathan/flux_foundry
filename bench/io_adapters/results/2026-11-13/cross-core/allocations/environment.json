@@ -1,0 +1,29 @@
+{
+  "command": [
+    "clang++",
+    "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-alloc/overlay",
+    "-std=c++14",
+    "-O3",
+    "-DNDEBUG",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-I/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-screen/after",
+    "-I/tmp/ff-io-perf-vFZ6HVwW",
+    "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/uv_handoff.cpp",
+    "-luv",
+    "-o",
+    "/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-alloc/probe",
+    "-include",
+    "/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters/diagnostic_alloc.h",
+    "/tmp/ff-io-perf-vFZ6HVwW/build/cross-core-alloc/producer_alloc.cpp",
+    "-I/tmp/ff-io-perf-vFZ6HVwW/bench/io_adapters",
+    "-Wl,--wrap=malloc",
+    "-Wl,--wrap=posix_memalign",
+    "-Wl,--wrap=aligned_alloc",
+    "-Wl,--wrap=_Znwm",
+    "-Wl,--wrap=_ZnwmRKSt9nothrow_t"
+  ],
+  "note": "Thread-local producer counters only; warmup and measured loops log separately. Instrumented timings are discarded."
+}

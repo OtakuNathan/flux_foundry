@@ -1,0 +1,16 @@
+mode=raw; each measure logs separately (warmup, then timed workload)
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+uring,staged,raw,1048576,32,2.830
+mode=context; each measure logs separately (warmup, then timed workload)
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+uring,staged,context,1048576,32,14.952
+mode=normal; each measure logs separately (warmup, then timed workload)
+alloc_calls malloc=0 aligned=32768 global_new=0
+alloc_calls malloc=0 aligned=1048576 global_new=0
+uring,staged,normal,1048576,32,148.246
+mode=fast; each measure logs separately (warmup, then timed workload)
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+uring,staged,fast,1048576,32,84.565

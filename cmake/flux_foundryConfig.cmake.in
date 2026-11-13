@@ -2,6 +2,18 @@
 
 include(CMakeFindDependencyMacro)
 
+set(flux_foundry_dpdk_FOUND @FLUX_FOUNDRY_ENABLE_DPDK@)
+if(flux_foundry_dpdk_FOUND)
+    find_dependency(PkgConfig)
+    pkg_check_modules(FLUX_FOUNDRY_DPDK REQUIRED IMPORTED_TARGET libdpdk)
+endif()
+
+set(flux_foundry_io_uring_FOUND @FLUX_FOUNDRY_ENABLE_IO_URING@)
+if(flux_foundry_io_uring_FOUND)
+    find_dependency(PkgConfig)
+    pkg_check_modules(FLUX_FOUNDRY_LIBURING REQUIRED IMPORTED_TARGET liburing)
+endif()
+
 set(flux_foundry_uv_executor_FOUND @FLUX_FOUNDRY_ENABLE_UV_EXECUTOR@)
 if(flux_foundry_uv_executor_FOUND)
     find_dependency(PkgConfig)

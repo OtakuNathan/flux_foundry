@@ -17,6 +17,19 @@ jobs:
       - name: Toolchain info
         run: c++ --version
 
+      - name: Atomic I/O close protocols under TSan
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libuv1-dev liburing-dev pkg-config
+          cmake -S . -B build-io-tsan -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-omit-frame-pointer' \
+            -DFLUX_FOUNDRY_ENABLE_UV_EXECUTOR=ON -DFLUX_FOUNDRY_ENABLE_IO_URING=ON
+          cmake --build build-io-tsan --parallel 2 --target \
+            flux_foundry_uv_executor_contract flux_foundry_uv_executor_contract_noexc \
+            flux_foundry_io_uring_attachment_contract flux_foundry_io_uring_attachment_contract_noexc
+          TSAN_OPTIONS='halt_on_error=1 exitcode=66' \
+            ctest --test-dir build-io-tsan -R '^(uv_executor_contract.*|io_uring_attachment_contract.*)$' --output-on-failure --timeout 120
+
       - name: Build TSAN probes
         run: |
           set -euo pipefail

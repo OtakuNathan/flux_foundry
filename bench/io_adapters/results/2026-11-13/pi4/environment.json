@@ -1,0 +1,88 @@
+{
+  "baseline": "4e4daf50235dd201fc07da3124b54c60b60bba00",
+  "commands": [
+    [
+      "clang++-19",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/nathan/Documents/coding/flux_foundry/build/io-perf-final/baseline",
+      "-I/home/nathan/Documents/coding/flux_foundry",
+      "/home/nathan/Documents/coding/flux_foundry/bench/io_adapters/uv.cpp",
+      "-o",
+      "/home/nathan/Documents/coding/flux_foundry/build/io-perf-final/uv-old",
+      "-luv",
+      "-lpthread",
+      "-ldl",
+      "-lrt"
+    ],
+    [
+      "clang++-19",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/nathan/Documents/coding/flux_foundry",
+      "/home/nathan/Documents/coding/flux_foundry/bench/io_adapters/uv.cpp",
+      "-o",
+      "/home/nathan/Documents/coding/flux_foundry/build/io-perf-final/uv-new",
+      "-luv",
+      "-lpthread",
+      "-ldl",
+      "-lrt"
+    ],
+    [
+      "clang++-19",
+      "-std=c++14",
+      "-O3",
+      "-DNDEBUG",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/nathan/Documents/coding/flux_foundry",
+      "/home/nathan/Documents/coding/flux_foundry/bench/io_adapters/uring.cpp",
+      "-o",
+      "/home/nathan/Documents/coding/flux_foundry/build/io-perf-final/uring",
+      "-I/tmp/ff-io-deps/usr/include",
+      "-L/tmp/ff-io-deps/usr/lib/aarch64-linux-gnu",
+      "-luring"
+    ]
+  ],
+  "uname": "Linux Nathan 6.18.39+rpt-rpi-v8 #1 SMP PREEMPT Debian 1:6.18.39-1+rpt1 (2026-07-29) aarch64 GNU/Linux",
+  "started_utc": "2026-11-13T03:06:45.570190+00:00",
+  "sensors_before": {
+    "/sys/class/thermal/thermal_zone0/temp": "34563",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1800000"
+  },
+  "lscpu": "Architecture:                            aarch64\nCPU op-mode(s):                          32-bit, 64-bit\nByte Order:                              Little Endian\nCPU(s):                                  4\nOn-line CPU(s) list:                     0-3\nVendor ID:                               ARM\nModel name:                              Cortex-A72\nModel:                                   3\nThread(s) per core:                      1\nCore(s) per cluster:                     4\nSocket(s):                               -\nCluster(s):                              1\nStepping:                                r0p3\nFrequency boost:                         disabled\nCPU(s) scaling MHz:                      100%\nCPU max MHz:                             1800.0000\nCPU min MHz:                             600.0000\nBogoMIPS:                                108.00\nFlags:                                   fp asimd evtstrm crc32 cpuid\nL1d cache:                               128 KiB (4 instances)\nL1i cache:                               192 KiB (4 instances)\nL2 cache:                                1 MiB (1 instance)\nNUMA node(s):                            2\nNUMA node0 CPU(s):                       0-3\nNUMA node1 CPU(s):                       0-3\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Vulnerable\nVulnerability Spectre v1:                Mitigation; __user pointer sanitization\nVulnerability Spectre v2:                Vulnerable\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected",
+  "compiler": "Debian clang version 19.1.7 (3+b1)\nTarget: aarch64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-19/bin",
+  "arguments": {
+    "out": "/home/nathan/Documents/coding/flux_foundry/build/io-perf-final",
+    "baseline": "HEAD",
+    "repeats": 7,
+    "count": 1048576,
+    "owner_cpu": 0,
+    "first_producer_cpu": 1
+  },
+  "sha256": {
+    "executor/uv_executor.h": "32372b16685108e799f32008867d9dfbaeb6e00783cb8e36642dd85cf95acd7f",
+    "utility/close_gate.h": "68b7ae18818af25fee4afc1b63ca77134e78bb2bb330bc04e2d00b4372ac7187",
+    "extension/io_uring_awaitable.h": "9eb12fd1b88af93ab62a5ecab4903ae5286deb6e311a089dad8fc1bb4d31ed2a",
+    "bench/io_adapters/uv.cpp": "df6aa96d1ce0320a5bb80b346bac66a9c397e0406d26033bc96fe01d56803dbb",
+    "bench/io_adapters/uring.cpp": "daa25783ecf71394f72c7d76cc0bd79720f1c663028111754f1eaf6a96e7c58d"
+  },
+  "sensors_after": {
+    "/sys/class/thermal/thermal_zone0/temp": "35537",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor": "ondemand",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq": "1800000"
+  }
+}

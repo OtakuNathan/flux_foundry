@@ -1,0 +1,421 @@
+ Percent |	Source code & Disassembly of dpdk-current for cycles:u (2220 samples, percent: local period)
+------------------------------------------------------------------------------------------------------------
+         :
+         :
+         :
+         : 3    Disassembly of section .text:
+         :
+         : 5    000000000000b740 <double measure<32u, 0u>(unsigned short, unsigned long)>:
+         : 6    seen->consume(std::move(out).value());
+         : 7    }
+         : 8    };
+         :
+         : 10   template <unsigned Size, unsigned Mode>
+         : 11   double measure(std::uint16_t port, std::size_t bursts) {
+    0.00 :   b740:   push   %r15
+         : 13   using context_type = dpdk_rx_context<Size>;
+         : 14   using batch_type = dpdk_packet_batch<Size>;
+         : 15   context_type context(port, 0);
+         : 16   observed seen{port};
+         : 17   auto bp = make_blueprint<context_type*, E>() | await_dpdk_rx<Size>() | end();
+    0.00 :   b742:   lea    0x11378(%rip),%rax        # 1cac1 <flux_foundry::flow_impl::inline_executor::executor()::exec>
+         : 19   inline void* aligned_alloc(size_t align, size_t size) noexcept {
+         : 20   assert((align & (align - 1)) == 0 && "align must be power of 2");
+         : 21   assert(align >= alignof(std::nullptr_t) && "align must be >= alignof(void*)");
+         : 22   #ifndef _WIN32
+         : 23   void* _p = nullptr;
+         : 24   UNLIKELY_IF (posix_memalign(&_p, align, size) != 0) {
+    0.00 :   b749:   mov    $0x80,%edx
+         : 26   double measure(std::uint16_t port, std::size_t bursts) {
+    0.00 :   b74e:   push   %r14
+    0.00 :   b750:   push   %r13
+    0.00 :   b752:   push   %r12
+    0.00 :   b754:   push   %rbp
+    0.00 :   b755:   push   %rbx
+    0.00 :   b756:   movzwl %di,%ebx
+    0.00 :   b759:   sub    $0x198,%rsp
+    0.00 :   b760:   mov    %fs:0x28,%r13
+    0.00 :   b769:   mov    %r13,0x188(%rsp)
+    0.00 :   b771:   mov    %rsi,%r13
+         : 37   auto bp = make_blueprint<context_type*, E>() | await_dpdk_rx<Size>() | end();
+    0.00 :   b774:   mov    %rax,0x30(%rsp)
+         :
+         : 40   flow_blueprint() = default;
+         :
+         : 42   explicit constexpr flow_blueprint(storage_t &&s)
+         : 43   noexcept(std::is_nothrow_move_constructible<storage_t>::value)
+         : 44   : nodes_(std::move(s)) {
+    0.00 :   b779:   mov    0x70(%rsp),%rax
+    0.00 :   b77e:   mov    $0x40,%esi
+    0.00 :   b783:   movdqa 0x30(%rsp),%xmm0
+    0.00 :   b789:   lea    0x60(%rsp),%rdi
+    0.00 :   b78e:   movaps %xmm0,0x20(%rsp)
+         : 50   std::is_nothrow_constructible<T_, Args&&...>>
+         : 51   #endif
+         : 52   >>
+         : 53   constexpr flat_storage_leaf(Args &&... args)
+         : 54   noexcept(std::is_nothrow_constructible<T_, Args && ...>::value)
+         : 55   : _value(std::forward<Args>(args)...) {
+    0.00 :   b793:   movq   %xmm0,0x68(%rsp)
+    0.00 :   b799:   movdqa 0x60(%rsp),%xmm0
+    0.00 :   b79f:   mov    %rax,0x50(%rsp)
+    0.00 :   b7a4:   movaps %xmm0,0x40(%rsp)
+         : 60   void* _p = nullptr;
+    0.00 :   b7a9:   movq   $0x0,0x60(%rsp)
+         : 62   UNLIKELY_IF (posix_memalign(&_p, align, size) != 0) {
+    0.00 :   b7b2:   call   3440 <posix_memalign@plt>
+    0.00 :   b7b7:   test   %eax,%eax
+    0.00 :   b7b9:   jne    bb6c <double measure<32u, 0u>(unsigned short, unsigned long)+0x42c>
+         : 66   return nullptr;
+         : 67   }
+         : 68   return _p;
+    0.00 :   b7bf:   mov    0x60(%rsp),%rax
+    0.00 :   b7c4:   mov    %rax,(%rsp)
+         : 71   noexcept
+         : 72   #endif
+         : 73   {
+         : 74   A alloc(std::forward<AllocLike>(alloc_like));
+         : 75   auto cb_ = static_cast<cb_t*>(alloc.allocate(alignof(cb_t), alloc_size()));
+         : 76   if (!cb_) {
+    0.00 :   b7c8:   test   %rax,%rax
+    0.00 :   b7cb:   je     bb6c <double measure<32u, 0u>(unsigned short, unsigned long)+0x42c>
+         : 79   noexcept (std::is_nothrow_constructible<T, Args&&...>::value) {
+         : 80   #if !FLUX_FOUNDRY_HAS_EXCEPTIONS
+         : 81   static_assert(std::is_nothrow_constructible<T, Args&&...>::value,
+         : 82   "T must be nothrow constructible with Args...");
+         : 83   #endif
+         : 84   return ::new (addr) T(std::forward<Args>(args)...);
+    0.00 :   b7d1:   movdqa 0x40(%rsp),%xmm0
+    0.00 :   b7d7:   mov    %rax,%rdx
+         : 87   ~__atomic_base() noexcept = default;
+         : 88   __atomic_base(const __atomic_base&) = delete;
+         : 89   __atomic_base& operator=(const __atomic_base&) = delete;
+         : 90   __atomic_base& operator=(const __atomic_base&) volatile = delete;
+         :
+         : 92   constexpr __atomic_base(__int_type __i) noexcept : _M_i (__i) { }
+    0.00 :   b7da:   movq   $0x1,0x40(%rax)
+    0.00 :   b7e2:   movups %xmm0,(%rax)
+    0.00 :   b7e5:   mov    0x50(%rsp),%rax
+    0.00 :   b7ea:   mov    %rax,0x10(%rdx)
+         : 97   ssize_t n;
+         : 98   do { n = ::read(ack, buffer, sizeof(buffer)); } while (n < 0 && errno == EINTR);
+         : 99   if (n < 4 || std::memcmp(buffer, "ack\n", 4) != 0) std::abort();
+         : 100  }
+         : 101  inline unsigned& phase() { static unsigned n = 0; return n; }
+         : 102  inline void begin() { if (++phase() == 2) command("enable\n"); }
+    0.00 :   b7ee:   mov    0x12050c(%rip),%eax        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   b7f4:   add    $0x1,%eax
+    0.00 :   b7f7:   mov    %eax,0x120503(%rip)        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   b7fd:   cmp    $0x2,%eax
+    0.00 :   b800:   je     ba2c <double measure<32u, 0u>(unsigned short, unsigned long)+0x2ec>
+         : 108  require(!error, "DPDK context failed");
+         : 109  static_cast<observed*>(data)->consume(std::move(batch));
+         : 110  };
+         : 111  auto canceled = [](void*) noexcept { return false; };
+         : 112  probe_perf::begin();
+         : 113  const auto start = probe::clock::now();
+    0.00 :   b806:   call   33a0 <std::chrono::_V2::steady_clock::now()@plt>
+    0.00 :   b80b:   mov    %rax,0x18(%rsp)
+         : 116  for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   b810:   test   %r13,%r13
+    0.00 :   b813:   je     ba4b <double measure<32u, 0u>(unsigned short, unsigned long)+0x30b>
+         : 119  return 0;
+         : 120  }
+         : 121  #endif
+         :
+         : 123  /* fetch pointer to queue data */
+         : 124  p = &rte_eth_fp_ops[port_id];
+    0.00 :   b819:   movzwl %bx,%eax
+         : 126  observed seen{port};
+    0.00 :   b81c:   xor    %r15d,%r15d
+    0.00 :   b81f:   xor    %r14d,%r14d
+    0.00 :   b822:   mov    %eax,0x8(%rsp)
+         : 130  for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   b826:   xor    %r12d,%r12d
+         : 132  qd = p->rxq.data[queue_id];
+    0.00 :   b829:   shl    $0x7,%rbx
+    0.00 :   b82d:   lea    0xfa4c(%rip),%rbp        # 1b280 <rte_eth_fp_ops@DPDK_26>
+    0.00 :   b834:   nopl   0x0(%rax)
+    0.00 :   b838:   lea    0x0(%rbp,%rbx,1),%rax
+    0.00 :   b83d:   mov    (%rax),%rdx
+         : 138  queue_id, port_id);
+         : 139  return 0;
+         : 140  }
+         : 141  #endif
+         :
+         : 143  nb_rx = p->rx_pkt_burst(qd, rx_pkts, nb_pkts);
+    0.00 :   b840:   lea    0x80(%rsp),%rsi
+    0.00 :   b848:   mov    (%rdx),%rdi
+    0.36 :   b84b:   mov    $0x20,%edx
+    0.05 :   b850:   call   *0x10(%rax)
+    0.00 :   b853:   movzwl %ax,%edx
+         : 149  * call back was inserted into the list.
+         : 150  * Since there is a clear dependency between loading
+         : 151  * cb and cb->fn/cb->next, rte_memory_order_acquire memory order is
+         : 152  * not required.
+         : 153  */
+         : 154  cb = rte_atomic_load_explicit(&p->rxq.clbk[queue_id],
+    0.00 :   b856:   mov    0x8(%rbp,%rbx,1),%rax
+    0.00 :   b85b:   mov    (%rax),%r9
+         : 157  rte_memory_order_relaxed);
+         : 158  if (unlikely(cb != NULL))
+    0.14 :   b85e:   test   %r9,%r9
+    0.00 :   b861:   jne    b998 <double measure<32u, 0u>(unsigned short, unsigned long)+0x258>
+         : 161  #include <sched.h>
+         :
+         : 163  namespace probe {
+         : 164  using clock = std::chrono::steady_clock;
+         : 165  inline void require(bool ok, const char* message) {
+         : 166  if (!ok) { std::fprintf(stderr, "%s\n", message); std::abort(); }
+    0.00 :   b867:   cmp    $0x20,%dx
+    0.00 :   b86b:   jne    bafa <double measure<32u, 0u>(unsigned short, unsigned long)+0x3ba>
+    0.00 :   b871:   lea    0x20(%r14),%rdi
+    0.00 :   b875:   mov    %r14,%rax
+    0.09 :   b878:   neg    %rax
+    0.00 :   b87b:   lea    0x80(%rsp,%rax,8),%rsi
+    0.00 :   b883:   nopw   0x0(%rax,%rax,1)
+    0.09 :   b889:   data16 cs nopw 0x0(%rax,%rax,1)
+    0.00 :   b894:   data16 cs nopw 0x0(%rax,%rax,1)
+    0.00 :   b89f:   data16 cs nopw 0x0(%rax,%rax,1)
+    0.00 :   b8aa:   data16 cs nopw 0x0(%rax,%rax,1)
+    0.14 :   b8b5:   data16 cs nopw 0x0(%rax,%rax,1)
+         : 179  if (Mode == 0) {
+         : 180  rte_mbuf* packets[Size];
+         : 181  const auto n = rte_eth_rx_burst(port, 0, packets, Size);
+         : 182  require(n == Size, "raw RX burst incomplete");
+         : 183  for (unsigned j = 0; j < n; ++j) seen.record(packets[j]);
+    0.00 :   b8c0:   mov    (%rsi,%r14,8),%rax
+    0.41 :   b8c4:   cmpl   $0x40,0x24(%rax)
+   16.24 :   b8c8:   jne    bad9 <double measure<32u, 0u>(unsigned short, unsigned long)+0x399>
+         : 187  sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.81 :   b8ce:   movzwl 0x10(%rax),%ecx
+         : 189  ++packets;
+   10.46 :   b8d2:   add    $0x1,%r14
+         : 191  sum += *rte_pktmbuf_mtod(packet, unsigned char*);
+    0.95 :   b8d6:   mov    (%rax),%rax
+    8.65 :   b8d9:   movzbl (%rax,%rcx,1),%eax
+   60.99 :   b8dd:   add    %rax,%r15
+         : 195  for (unsigned j = 0; j < n; ++j) seen.record(packets[j]);
+    0.23 :   b8e0:   cmp    %r14,%rdi
+    0.09 :   b8e3:   jne    b8c0 <double measure<32u, 0u>(unsigned short, unsigned long)+0x180>
+         : 198  }
+         : 199  #endif
+         :
+         : 201  /* fetch pointer to queue data */
+         : 202  p = &rte_eth_fp_ops[port_id];
+         : 203  qd = p->txq.data[queue_id];
+    0.00 :   b8e5:   lea    0x0(%rbp,%rbx,1),%rax
+    0.00 :   b8ea:   mov    0x40(%rax),%rcx
+         : 206  * call back was inserted into the list.
+         : 207  * Since there is a clear dependency between loading
+         : 208  * cb and cb->fn/cb->next, rte_memory_order_acquire memory order is
+         : 209  * not required.
+         : 210  */
+         : 211  cb = rte_atomic_load_explicit(&p->txq.clbk[queue_id],
+    0.04 :   b8ee:   mov    0x48(%rax),%rax
+         : 213  qd = p->txq.data[queue_id];
+    0.00 :   b8f2:   mov    (%rcx),%r9
+         : 215  cb = rte_atomic_load_explicit(&p->txq.clbk[queue_id],
+    0.00 :   b8f5:   mov    (%rax),%r8
+         : 217  rte_memory_order_relaxed);
+         : 218  if (unlikely(cb != NULL))
+    0.05 :   b8f8:   test   %r8,%r8
+    0.09 :   b8fb:   jne    b968 <double measure<32u, 0u>(unsigned short, unsigned long)+0x228>
+         : 221  #endif
+         :
+         : 223  uint16_t requested_pkts = nb_pkts;
+         : 224  rte_mbuf_history_mark_bulk(tx_pkts, nb_pkts, RTE_MBUF_HISTORY_OP_TX);
+         :
+         : 226  nb_pkts = p->tx_pkt_burst(qd, tx_pkts, nb_pkts);
+    0.00 :   b8fd:   lea    0x80(%rsp),%rsi
+    0.00 :   b905:   mov    %r9,%rdi
+    0.05 :   b908:   call   *0x50(%rbp,%rbx,1)
+    0.00 :   b90c:   cmp    $0x20,%ax
+    0.09 :   b910:   jne    bb46 <double measure<32u, 0u>(unsigned short, unsigned long)+0x406>
+         : 232  for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   b916:   add    $0x1,%r12
+    0.00 :   b91a:   cmp    %r12,%r13
+    0.00 :   b91d:   jne    b838 <double measure<32u, 0u>(unsigned short, unsigned long)+0xf8>
+         : 236  auto runner = make_fast_runner(shared, receiver<Size>{&seen});
+         : 237  runner(&context);
+         : 238  require(context.poll(), "fast awaitable did not receive");
+         : 239  }
+         : 240  }
+         : 241  const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   b923:   call   33a0 <std::chrono::_V2::steady_clock::now()@plt>
+         : 243  inline void end() { if (phase() == 2) command("disable\n"); }
+    0.00 :   b928:   cmpl   $0x2,0x1203d1(%rip)        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   b92f:   mov    %rax,%rbx
+    0.00 :   b932:   je     baae <double measure<32u, 0u>(unsigned short, unsigned long)+0x36e>
+         : 247  probe_perf::end();
+         : 248  require(seen.packets == bursts * Size && seen.sum == bursts * Size * (Size + 1) / 2,
+    0.00 :   b938:   mov    %r13,%rax
+    0.00 :   b93b:   shl    $0x5,%rax
+    0.00 :   b93f:   cmp    %r14,%rax
+    0.00 :   b942:   je     b9bc <double measure<32u, 0u>(unsigned short, unsigned long)+0x27c>
+    0.00 :   b944:   mov    0xf915(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   b94b:   lea    0xcabe(%rip),%rdx        # 18410 <_IO_stdin_used+0x410>
+    0.00 :   b952:   xor    %eax,%eax
+    0.00 :   b954:   lea    0xc6bd(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   b95b:   call   30d0 <fprintf@plt>
+    0.00 :   b960:   call   3280 <abort@plt>
+    0.00 :   b965:   nopl   (%rax)
+         : 260  nb_pkts = rte_eth_call_tx_callbacks(port_id, queue_id,
+    0.00 :   b968:   mov    0x8(%rsp),%edi
+    0.00 :   b96c:   mov    $0x20,%ecx
+    0.00 :   b971:   xor    %esi,%esi
+    0.00 :   b973:   mov    %r9,0x10(%rsp)
+    0.00 :   b978:   lea    0x80(%rsp),%rdx
+    0.00 :   b980:   call   31d0 <rte_eth_call_tx_callbacks@plt>
+    0.00 :   b985:   mov    0x10(%rsp),%r9
+    0.00 :   b98a:   movzwl %ax,%edx
+    0.00 :   b98d:   jmp    b8fd <double measure<32u, 0u>(unsigned short, unsigned long)+0x1bd>
+    0.00 :   b992:   nopw   0x0(%rax,%rax,1)
+         : 271  nb_rx = rte_eth_call_rx_callbacks(port_id, queue_id,
+    0.00 :   b998:   mov    0x8(%rsp),%edi
+    0.00 :   b99c:   movzwl %dx,%ecx
+    0.00 :   b99f:   mov    $0x20,%r8d
+    0.00 :   b9a5:   xor    %esi,%esi
+    0.00 :   b9a7:   lea    0x80(%rsp),%rdx
+    0.00 :   b9af:   call   3350 <rte_eth_call_rx_callbacks@plt>
+    0.00 :   b9b4:   movzwl %ax,%edx
+    0.00 :   b9b7:   jmp    b867 <double measure<32u, 0u>(unsigned short, unsigned long)+0x127>
+         : 280  const duration<_Rep2, _Period2>& __rhs)
+         : 281  {
+         : 282  typedef duration<_Rep1, _Period1>                       __dur1;
+         : 283  typedef duration<_Rep2, _Period2>                       __dur2;
+         : 284  typedef typename common_type<__dur1,__dur2>::type       __cd;
+         : 285  return __cd(__cd(__lhs).count() - __cd(__rhs).count());
+    0.00 :   b9bc:   sub    0x18(%rsp),%rbx
+         : 287  return _ToDur(static_cast<__to_rep>(__d.count()));
+    0.00 :   b9c1:   pxor   %xmm0,%xmm0
+    0.00 :   b9c5:   cvtsi2sd %rbx,%xmm0
+         : 290  const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   b9ca:   test   %r12,%r12
+    0.00 :   b9cd:   js     ba8f <double measure<32u, 0u>(unsigned short, unsigned long)+0x34f>
+    0.00 :   b9d3:   pxor   %xmm1,%xmm1
+    0.00 :   b9d7:   cvtsi2sd %r12,%xmm1
+    0.00 :   b9dc:   divsd  %xmm1,%xmm0
+         : 296  require(seen.packets == bursts * Size && seen.sum == bursts * Size * (Size + 1) / 2,
+    0.00 :   b9e0:   imul   $0x420,%r13,%r13
+    0.00 :   b9e7:   shr    $1,%r13
+    0.00 :   b9ea:   cmp    %r15,%r13
+    0.00 :   b9ed:   jne    b944 <double measure<32u, 0u>(unsigned short, unsigned long)+0x204>
+         : 301  { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+         :
+         : 303  _GLIBCXX_ALWAYS_INLINE __int_type
+         : 304  fetch_sub(__int_type __i,
+         : 305  memory_order __m = memory_order_seq_cst) noexcept
+         : 306  { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+    0.00 :   b9f3:   mov    (%rsp),%rax
+    0.00 :   b9f7:   lock subq $0x1,0x40(%rax)
+         : 309  cb = nullptr;
+         : 310  if (ccb) {
+         : 311  #if FLUX_FOUNDRY_WITH_TSAN
+         : 312  UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_acq_rel) == 1) {
+         : 313  #else
+         : 314  UNLIKELY_IF(ccb->cb.first().fetch_sub(1, std::memory_order_release) == 1) {
+    0.00 :   b9fd:   je     babf <double measure<32u, 0u>(unsigned short, unsigned long)+0x37f>
+         : 316  "packet count/checksum mismatch");
+         : 317  require(context.try_detach(), "context did not drain");
+         : 318  return elapsed;
+         : 319  }
+    0.00 :   ba03:   mov    0x188(%rsp),%rax
+    0.00 :   ba0b:   sub    %fs:0x28,%rax
+    0.00 :   ba14:   jne    bb41 <double measure<32u, 0u>(unsigned short, unsigned long)+0x401>
+    0.00 :   ba1a:   add    $0x198,%rsp
+    0.00 :   ba21:   pop    %rbx
+    0.00 :   ba22:   pop    %rbp
+    0.00 :   ba23:   pop    %r12
+    0.00 :   ba25:   pop    %r13
+    0.00 :   ba27:   pop    %r14
+    0.00 :   ba29:   pop    %r15
+    0.00 :   ba2b:   ret
+         : 331  inline void begin() { if (++phase() == 2) command("enable\n"); }
+    0.00 :   ba2c:   lea    0xc80d(%rip),%rdi        # 18240 <_IO_stdin_used+0x240>
+    0.00 :   ba33:   call   8f80 <probe_perf::command(char const*)>
+         : 334  const auto start = probe::clock::now();
+    0.00 :   ba38:   call   33a0 <std::chrono::_V2::steady_clock::now()@plt>
+    0.00 :   ba3d:   mov    %rax,0x18(%rsp)
+         : 337  for (std::size_t i = 0; i < bursts; ++i) {
+    0.00 :   ba42:   test   %r13,%r13
+    0.00 :   ba45:   jne    b819 <double measure<32u, 0u>(unsigned short, unsigned long)+0xd9>
+         : 340  const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   ba4b:   call   33a0 <std::chrono::_V2::steady_clock::now()@plt>
+         : 342  return __cd(__cd(__lhs).count() - __cd(__rhs).count());
+    0.00 :   ba50:   sub    0x18(%rsp),%rax
+         : 344  return _ToDur(static_cast<__to_rep>(__d.count()));
+    0.00 :   ba55:   pxor   %xmm0,%xmm0
+    0.00 :   ba59:   pxor   %xmm1,%xmm1
+         : 347  inline void end() { if (phase() == 2) command("disable\n"); }
+    0.00 :   ba5d:   cmpl   $0x2,0x12029c(%rip)        # 12bd00 <probe_perf::phase()::n>
+    0.00 :   ba64:   cvtsi2sd %rax,%xmm0
+    0.00 :   ba69:   divsd  %xmm1,%xmm0
+    0.00 :   ba6d:   jne    b9f3 <double measure<32u, 0u>(unsigned short, unsigned long)+0x2b3>
+    0.00 :   ba6f:   lea    0xc7eb(%rip),%rdi        # 18261 <_IO_stdin_used+0x261>
+    0.00 :   ba76:   movsd  %xmm0,0x8(%rsp)
+    0.00 :   ba7c:   call   8f80 <probe_perf::command(char const*)>
+    0.00 :   ba81:   movsd  0x8(%rsp),%xmm0
+         : 356  observed seen{port};
+    0.00 :   ba87:   xor    %r15d,%r15d
+    0.00 :   ba8a:   jmp    b9e0 <double measure<32u, 0u>(unsigned short, unsigned long)+0x2a0>
+         : 359  const auto elapsed = probe::ns(start, probe::clock::now()) / bursts;
+    0.00 :   ba8f:   mov    %r12,%rax
+    0.00 :   ba92:   and    $0x1,%r12d
+    0.00 :   ba96:   pxor   %xmm1,%xmm1
+    0.00 :   ba9a:   shr    $1,%rax
+    0.00 :   ba9d:   or     %r12,%rax
+    0.00 :   baa0:   cvtsi2sd %rax,%xmm1
+    0.00 :   baa5:   addsd  %xmm1,%xmm1
+    0.00 :   baa9:   jmp    b9dc <double measure<32u, 0u>(unsigned short, unsigned long)+0x29c>
+    0.00 :   baae:   lea    0xc7ac(%rip),%rdi        # 18261 <_IO_stdin_used+0x261>
+    0.00 :   bab5:   call   8f80 <probe_perf::command(char const*)>
+    0.00 :   baba:   jmp    b938 <double measure<32u, 0u>(unsigned short, unsigned long)+0x1f8>
+    0.00 :   babf:   movsd  %xmm0,0x8(%rsp)
+         : 372  inline void aligned_free(void* p) noexcept {
+         : 373  UNLIKELY_IF (!p) {
+         : 374  return;
+         : 375  }
+         : 376  #ifndef _WIN32
+         : 377  free(p);
+    0.00 :   bac5:   mov    (%rsp),%rdi
+    0.00 :   bac9:   call   30c0 <free@plt>
+         : 380  return elapsed;
+    0.00 :   bace:   movsd  0x8(%rsp),%xmm0
+    0.00 :   bad4:   jmp    ba03 <double measure<32u, 0u>(unsigned short, unsigned long)+0x2c3>
+    0.00 :   bad9:   mov    0xf780(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   bae0:   lea    0xc535(%rip),%rdx        # 1801c <_IO_stdin_used+0x1c>
+    0.00 :   bae7:   xor    %eax,%eax
+    0.00 :   bae9:   lea    0xc528(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   baf0:   call   30d0 <fprintf@plt>
+    0.00 :   baf5:   jmp    b960 <double measure<32u, 0u>(unsigned short, unsigned long)+0x220>
+    0.00 :   bafa:   mov    0xf75f(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   bb01:   lea    0xc762(%rip),%rdx        # 1826a <_IO_stdin_used+0x26a>
+    0.00 :   bb08:   xor    %eax,%eax
+    0.00 :   bb0a:   lea    0xc507(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   bb11:   call   30d0 <fprintf@plt>
+    0.00 :   bb16:   jmp    b960 <double measure<32u, 0u>(unsigned short, unsigned long)+0x220>
+         : 395  release();
+    0.00 :   bb1b:   mov    (%rsp),%rax
+    0.00 :   bb1f:   lea    0x60(%rsp),%rdi
+    0.00 :   bb24:   mov    %rax,0x60(%rsp)
+    0.00 :   bb29:   call   b020 <flux_foundry::lite_ptr<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<32ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> >, flux_foundry::default_deleter<flux_foundry::flow_impl::flow_blueprint<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::flow_end_node<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::end_node<void>::make<flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr> >(flux_foundry::flow_impl::end_node<void>&&)::{lambda(flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>&&)#1}>, flux_foundry::flow_impl::flow_async_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_packet_batch<32ul, flux_foundry::extension::dpdk_api>, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::dispatch_wrapper_t<flux_foundry::flow_impl::inline_executor*>, flux_foundry::flow_impl::identity, flux_foundry::awaitable_factory<flux_foundry::extension::dpdk_rx_awaitable<32ul, std::__exception_ptr::exception_ptr, flux_foundry::extension::dpdk_api> > >, flux_foundry::flow_impl::flow_calc_node<flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::result_t<flux_foundry::extension::dpdk_rx_context<32ul, flux_foundry::extension::dpdk_api>*, std::__exception_ptr::exception_ptr>, flux_foundry::flow_impl::identity, 1ul> > >, 8ul, flux_foundry::aligned_malloc_allocator>::release()>
+    0.00 :   bb2e:   mov    0x188(%rsp),%rax
+    0.00 :   bb36:   sub    %fs:0x28,%rax
+    0.00 :   bb3f:   je     bb84 <double measure<32u, 0u>(unsigned short, unsigned long)+0x444>
+         : 403  }
+    0.00 :   bb41:   call   3120 <__stack_chk_fail@plt>
+    0.00 :   bb46:   mov    0xf713(%rip),%rdi        # 1b260 <stderr@GLIBC_2.2.5>
+    0.00 :   bb4d:   lea    0xc72e(%rip),%rdx        # 18282 <_IO_stdin_used+0x282>
+    0.00 :   bb54:   xor    %eax,%eax
+    0.00 :   bb56:   lea    0xc4bb(%rip),%rsi        # 18018 <_IO_stdin_used+0x18>
+    0.00 :   bb5d:   call   30d0 <fprintf@plt>
+    0.00 :   bb62:   jmp    b960 <double measure<32u, 0u>(unsigned short, unsigned long)+0x220>
+    0.00 :   bb67:   mov    %rax,%rbx
+    0.00 :   bb6a:   jmp    bb1b <double measure<32u, 0u>(unsigned short, unsigned long)+0x3db>
+    0.00 :   bb6c:   mov    0x188(%rsp),%rax
+    0.00 :   bb74:   sub    %fs:0x28,%rax
+    0.00 :   bb7d:   jne    bb41 <double measure<32u, 0u>(unsigned short, unsigned long)+0x401>
+    0.00 :   bb7f:   call   34d6 <void flux_foundry::lite_ptr<flux_foundry::flow_controller, flux_foundry::default_deleter<flux_foundry::flow_controller>, 64ul, flux_foundry::aligned_malloc_allocator>::emplace_with_allocator<flux_foundry::aligned_malloc_allocator, flux_foundry::default_deleter<flux_foundry::flow_controller>>(flux_foundry::aligned_malloc_allocator&&, flux_foundry::default_deleter<flux_foundry::flow_controller>&&) [clone .part.0]>
+    0.00 :   bb84:   mov    %rbx,%rdi
+    0.00 :   bb87:   call   3250 <_Unwind_Resume@plt>

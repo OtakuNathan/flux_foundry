@@ -1,0 +1,15 @@
+--- a/executor/uv_executor.h
++++ b/executor/uv_executor.h
+@@ -72,7 +72,11 @@
+     // transfers the task exactly once, possibly running it inline on the owner.
+     bool try_dispatch(task_t&& task) noexcept {
+         if (!task || !state_) return false;
+-        const auto state = state_; // state_ is immutable after construction.
++        // The public object must outlive concurrent producer calls. On the
++        // owner-inline path a task may destroy it, but handle_owner keeps
++        // state alive until the loop's close callback; recursive uv_run is
++        // forbidden. The admission ticket prevents close while sending.
++        auto* const state = state_.get();
+         if (!state->gate.try_acquire()) return false;
+         if (std::this_thread::get_id() == state->loop_thread && state->queue.empty()) {
+             task(); // May close or destroy the public executor.

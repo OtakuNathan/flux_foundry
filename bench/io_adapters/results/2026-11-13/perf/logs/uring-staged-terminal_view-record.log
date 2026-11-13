@@ -1,0 +1,6 @@
+Events disabled
+Events enabled
+Events disabled
+uring,staged,fast,67108864,32,34.846
+[ perf record: Woken up 152 times to write data ]
+[ perf record: Captured and wrote 36.933 MB /tmp/ff-io-perf-vFZ6HVwW/build/perf-adapters/uring-staged-terminal_view.data (2329 samples) ]

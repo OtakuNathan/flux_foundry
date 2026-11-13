@@ -1,0 +1,9 @@
+mode=fast; each measure logs separately (warmup, then timed workload)
+DPDK 25.11.3; software net_ring loopback, 64-byte hot mbufs
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+repeat,backend,path,mode,bursts,batch,ns_per_burst,ns_per_packet
+0,dpdk,net_ring,fast,1048576,1,71.600,71.600
+alloc_calls malloc=0 aligned=0 global_new=0
+alloc_calls malloc=0 aligned=0 global_new=0
+0,dpdk,net_ring,fast,1048576,32,352.548,11.017

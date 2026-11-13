@@ -20,10 +20,26 @@ verdicts also remain active in Release builds.
 | `vaccine_enabled` / `_disabled` / `_noexc` | Read-only success/error/move-only/void inspection, normal/fast/const-view runners, queued handoff and disabled blueprint type/size identity. Failure subprocesses check source position, false/throwing predicates, custom hooks and mandatory termination. `vaccine_disabled_codegen` compares optimized executables (stripped symbols, no build ID) on Linux GCC/Clang. |
 | `allocation_failure_contract` | Fail allocation attempts 1 through 3 through the allocator interface; verify recovery on subsequent attempts and no live allocations. Throw from object construction and verify control-block cleanup. |
 | `allocation_failure_contract_noexc` | Same allocation failure schedule with exceptions disabled; verifies empty handles and cleanup. |
+| `pooling_handoff_contract` / `_noexc` | Cross-thread allocation/return with cache capacities 1, 2, 3, 4, 16 and 512; shared-pool, malloc-fallback and mixed-origin blocks; payload integrity and complete shared-pool reclamation after thread exit. |
 | `simple_executor_contract` / `_noexc` | Capacities 1 and 2; nested full-queue dispatch, dispatch before run, concurrent shutdown with an explicitly blocked consumer, repeated shutdown, and draining all admitted work. |
 | `void_recovery_contract` / `_noexc` / `_noexc_relaxed` | Void success bypass, error recovery and forwarding, exception matching and replacement; typed conversion and move-only controls; mutable move-only handlers; normal and fast runners. No-exception targets cover both strict and relaxed policy. |
 | `end_move_contract` / `_noexc` / `_noexc_relaxed` | Default end preserves success/error, value and ownership for tracked, move-only and void results without copying. Checks normal, fast owning and fast view runners, inline and queued delivery, balanced payload lifetimes, and a separate copy-only fallback control. |
 | `gsource_executor_contract` | Capacities 1 and 2; dispatch while owning the context outside the executor callback, nested dispatch from its callback, producer-thread wakeups and delivery. Requires the optional GLib target. |
+| `uv_executor_contract` / `_noexc` | Atomic admission/close tickets, bounded MPSC queue, paused publication, producer/closer paused after native wake, owner-only final close, retained rejection and lifetime. Concurrent waves include capacities 1, 2, 3, 7 and 64. TSan runs synchronization cases without the conflicting global allocator replacement. |
+| `io_uring_attachment_contract` / `_noexc` | Borrowed ring admission, foreign/stale/duplicate CQEs, errno, normal/fast runners, cancellation retaining owned buffers, reentrant submission and close/drain, including concurrent close while SQ preparation is paused. `io_uring_runtime` / `_noexc` performs a real file read sharing a batch with a host NOP; blocked/unsupported kernels explicitly skip. |
+| `dpdk_awaitable_contract` / `_noexc` | Fake RX/TX API: empty RX remains pending, one waiter per queue, cancellation before/during receive, close/drain, move-only packet ownership and zero/partial TX acceptance. Native headers are also compiled; no hardware or PMD runtime validation is implied. |
+
+Enable the I/O attachment targets with `FLUX_FOUNDRY_ENABLE_IO_URING=ON` and/or
+`FLUX_FOUNDRY_ENABLE_DPDK=ON`, then run `ctest -L 'io_uring|dpdk'`. See the
+[attachment guide](../docs/io_attachments.md) for dependencies and host contracts.
+
+The optional GNU/Clang `io_uring_adapter_rejection_*` and
+`dpdk_adapter_rejection_*` tests verify `static_assert` diagnostics in C++14,
+with and without exceptions. They require valid controls to compile, then match
+the intended messages for 13 io_uring and 19 DPDK cases per mode: missing/wrong
+signatures, throwing callbacks/moves/destructors, invalid packet/operation types,
+out-of-range capacities and invalid errno adapters. Compile failures caused by
+missing dependency headers do not count as successful rejections.
 
 Enable and run GLib coverage on Linux:
 
@@ -67,6 +83,14 @@ UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
 ```
 
 Sanitizer startup failures are infrastructure failures, not passing tests.
+MSan additionally needs instrumented C++ dependencies. Linking an MSan test
+against the system libstdc++ can report false positives at `std::exception_ptr`
+boundaries even in an FF-free program. Use an MSan-built libc++ and libc++abi
+for exception-enabled tests; do not suppress the report in FF's error handling.
+The [DPDK MSan recheck](../bench/io_adapters/results/2026-11-13/batch-prefix/tests/msan-runtime.md)
+records a working isolated runtime build, the minimal reproducer and a negative
+control. It covers the fake backend; uninstrumented native I/O libraries need
+separate treatment before claiming MSan coverage of those backends.
 TSan runs separately in the nightly workflow and includes the deterministic
 awaitable lifecycle test. Protocol models are documented in [model/README.md](model/README.md).
 

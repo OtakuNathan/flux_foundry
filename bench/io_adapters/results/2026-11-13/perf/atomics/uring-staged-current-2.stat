@@ -1,0 +1,8 @@
+# started on Fri Nov 13 11:39:32 2026
+
+5621531431;;cycles:u;1281224655;100.00;;
+3363;;ls_locks.non_spec_lock:u;1281224655;100.00;;
+39728379;;ls_locks.spec_lock_hi_spec:u;1281224655;100.00;;
+211926498;;ls_locks.spec_lock_lo_spec:u;1281224655;100.00;;
+0;;ls_locks.bus_lock:u;1281224655;100.00;;
+46082064;;ls_bad_status2.stli_other:u;1281224655;100.00;;
