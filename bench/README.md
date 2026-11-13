@@ -105,6 +105,52 @@ For sharing, send `diagnostics.tar.gz`: the runner bundles `summary.txt`,
 `results.csv`, `environment.json`, `trace-summary.txt` and the small `*.timeline.csv` /
 `*.spikes.csv` files. Full sample traces stay outside this small bundle.
 
+### Compare full-queue backoff parameters
+
+```sh
+python3 bench/io_adapters/compare_backoff.py
+```
+
+This focused UV experiment reuses `utility/back_off.h` directly. It compares
+`backoff_strategy<>` (16 spin stages, then `std::this_thread::yield()`) with
+`backoff_strategy<SIZE_MAX>` (effectively spin-only within a bounded benchmark).
+Both retain the same exponential spin loop and default `max_loop=1024`.
+The spin case requires a 64-bit step counter and verifies that no scheduler
+yield was called. ARM's `yield` instruction remains part of both spin loops;
+the changed threshold controls the C++ scheduler-yield call.
+
+Only the benchmark's no-drop retry wrapper around `uv_executor::try_dispatch`
+changes policy. Production headers/defaults, UV callback budget, allocator,
+other internal backoffs and simple executor remain unchanged. This experiment
+therefore tests one possible source of long dispatch calls, not all possible
+causes of a stalled producer or consumer.
+
+One binary contains both policies. The script runs five paired trials of raw
+tasks and ordinary awaitable + fast runner, at 500k/s and 2M/s, alternating
+policy/case order. Each case has one million measured events and its own warmup.
+Both policies count rejected dispatch attempts and scheduler-yield calls on
+the producer thread; these counters add instrumentation relative to the plain
+probe. A zero yield count means this mechanism was not exercised in that run.
+
+Process CPU time is sampled only at the measurement boundaries. CPU percentage
+includes both threads: 100% means one CPU's worth of time, 200% means two. The
+interval includes the 2 ms arrival lead-in and final fence, but excludes setup,
+quantile sorting and trace output. It measures total workload CPU cost rather
+than isolated retry cost. Lower tail latency with higher CPU use is a tradeoff,
+not automatically a better production default. This comparison does not prove
+whether a thread was preempted or migrated between CPU types.
+
+Use `--modes normal` to test the ordinary runner separately,
+`--profiles overload2m` to focus on pressure, or `--trace` for event timelines.
+The default omits trace output to reduce between-case activity. Optional trace
+compression runs after each pair. `CXX`, `EXTRA_CXXFLAGS` and pkg-config work as
+in the main suite; threads are unpinned unless Linux CPU arguments are supplied.
+For a smoke run: `--trials 2 --samples 8192`.
+
+Send the generated `build/backoff-TIMESTAMP/backoff-diagnostics.tar.gz`, which
+contains environment details, per-trial results and the comparison summary
+(plus small timeline/spike files when `--trace` is enabled).
+
 For actual UV executor old/new comparisons and io_uring/DPDK awaitable costs,
 see [`bench/io_adapters/README.md`](io_adapters/README.md).
 

@@ -228,8 +228,8 @@ static Quantiles quantiles(std::vector<Ns>& v) {
     return {q(500),q(950),q(990),q(999),v.back()};
 }
 struct CpuMonitor { void* state; Ns (*snapshot)(void*); };
-struct ProbeTiming { Ns wall_ns, consumer_cpu_ns; };
-static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& o, const Profile& p, const char* mode, unsigned repeat, const char* prefix = "", bool newline = true, const CpuMonitor* monitor = nullptr) {
+struct ProbeTiming { Ns wall_ns, consumer_cpu_ns, process_cpu_ns; };
+static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& o, const Profile& p, const char* mode, unsigned repeat, const char* prefix = "", bool newline = true, const CpuMonitor* monitor = nullptr, const CpuMonitor* process_monitor = nullptr) {
     // Preallocate and touch all sample storage; blueprint setup is outside timing.
     std::vector<Sample> samples(o.samples);
     Context ctx(port, &samples, o.work, o.samples / 4, p.stall);
@@ -238,6 +238,7 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
     auto fb = make_blueprint<Event,E>() | await<Fast>() | end();
     std::size_t peak_outstanding = 0;
     const Ns cpu_start = monitor ? monitor->snapshot(monitor->state) : 0;
+    const Ns process_start = process_monitor ? process_monitor->snapshot(process_monitor->state) : 0;
     const Ns monitor_start = now_ns();
     const Ns origin = monitor_start + 2000000;
     Ns last_submit = origin;
@@ -275,6 +276,7 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
     while (!fenced.load(std::memory_order_acquire)) relax();
 
     const Ns monitor_end = now_ns();
+    const Ns process_end = process_monitor ? process_monitor->snapshot(process_monitor->state) : 0;
     const Ns cpu_end = monitor ? monitor->snapshot(monitor->state) : 0;
     std::vector<Ns> e2e, actual, lag, dispatch, service;
     e2e.reserve(o.samples); actual.reserve(o.samples); lag.reserve(o.samples);
@@ -313,7 +315,7 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
         drain_last_submit/1000000.0,drain_schedule/1000000.0,sizeof(Sample)*o.samples/1048576.0,newline ? "\n" : ",");
     std::fflush(stdout);
     ff_bench::export_samples(samples, origin, capacity, mode, p.name, repeat);
-    return {monitor_end-monitor_start,cpu_end-cpu_start};
+    return {monitor_end-monitor_start,cpu_end-cpu_start,process_end-process_start};
 }
 static void print_csv_header(const char* prefix = "", const char* suffix = "") {
     std::printf("%scapacity,mode,profile,repeat,samples,work,producer_cpu,consumer_cpu,completed_per_s,e2e_p50_us,e2e_p95_us,e2e_p99_us,e2e_p999_us,e2e_max_us,actual_p99_us,submit_lag_p50_us,submit_lag_p99_us,dispatch_p50_us,dispatch_p99_us,dispatch_max_us,service_p50_us,peak_outstanding,late_events,drain_last_submit_ms,drain_schedule_ms,sample_storage_mib%s\n",prefix,suffix);
