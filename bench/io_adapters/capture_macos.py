@@ -20,11 +20,12 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from run import ROOT, capture, positive
+from macos_trace_support import record_attached, audit_exports
 
 
 def trace_tables(toc):
     """Discover tables from this Xcode version; do not assume schema names."""
-    tables = []
+    tables, seen = [], set()
     root = ET.fromstring(toc)
     for run in root.findall(".//run"):
         number = run.get("number", "")
@@ -32,10 +33,11 @@ def trace_tables(toc):
             continue
         for table in run.findall("./data/table"):
             schema = table.get("schema", "")
-            if re.fullmatch(r"[A-Za-z0-9_.:-]+", schema):
+            if re.fullmatch(r"[A-Za-z0-9_.:-]+", schema) and (number, schema) not in seen:
+                seen.add((number, schema))
                 xpath = "/trace-toc/run[@number='%s']/data/table[@schema='%s']" % (number, schema)
                 tables.append(dict(run=number, schema=schema, xpath=xpath,
-                    selected=bool(re.search(r"thread|sched|context|signpost|syscall", schema, re.I))))
+                    selected=bool(re.search(r"thread|sched|context|signpost|syscall|tid-pid", schema, re.I))))
     return tables
 
 
@@ -70,7 +72,7 @@ def main():
     parser.add_argument("--mode", choices=("raw", "ordinary-fast", "normal"), default="raw")
     parser.add_argument("--profile", choices=("steady500k", "overload2m"), default="steady500k")
     parser.add_argument("--budget", type=positive, default=16)
-    parser.add_argument("--samples", type=positive, default=1000000)
+    parser.add_argument("--samples", type=positive, default=250000)
     parser.add_argument("--limit-seconds", type=positive, default=30, help="recording safety limit; incomplete runs fail validation")
     args = parser.parse_args()
     if platform.system() != "Darwin":
@@ -86,8 +88,8 @@ def main():
         source_sha256={name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in
             ("bench/io_adapters/uv_handoff.cpp", "bench/load_probe.h", "bench/system_trace.h", "executor/uv_executor.h")})
     env = os.environ.copy()
-    env.pop("FF_BENCH_TRACE_PREFIX", None)
-    env.pop("FF_BENCH_PHASE_FILE", None)
+    for key in ("FF_BENCH_TRACE_PREFIX", "FF_BENCH_PHASE_FILE", "FF_BENCH_READY_FILE", "FF_BENCH_GO_FILE"):
+        env.pop(key, None)
 
     def save():
         (out / "environment.json").write_text(json.dumps(metadata, indent=2) + "\n")
@@ -132,7 +134,7 @@ def main():
         metadata["xcode"] = run(["xcodebuild", "-version"], "xcode-version")[0]
         metadata["hardware"] = capture(["sysctl", "-n", "machdep.cpu.brand_string"])
         help_text = run(["xcrun", "xctrace", "help", "record"], "record-help", check=False)[0]
-        required = ("--template", "--launch", "--output", "--time-limit", "--target-stdout", "--env")
+        required = ("--template", "--attach", "--output", "--time-limit", "--window", "--notify-tracing-started")
         if any(option not in help_text for option in required):
             raise RuntimeError("installed xctrace does not advertise the required recording options; inspect record-help.log")
         templates = run(["xcrun", "xctrace", "list", "templates"], "templates")[0]
@@ -153,11 +155,7 @@ def main():
         before = measurement(run(command, "control-before", phase=out / "control-before.phase.csv")[0])
         metadata["phases"]["control-before"] = phase_metadata(out / "control-before.phase.csv")
         trace = out / "capture.trace"
-        record = ["xcrun", "xctrace", "record", "--template", "System Trace", "--output", str(trace),
-                  "--time-limit", str(args.limit_seconds) + "s", "--target-stdout", str(out / "profiled.csv"),
-                  "--env", "FF_BENCH_PHASE_FILE=" + str(out / "profiled.phase.csv"), "--launch", "--"] + command
-        # Preserve native permission dialogs; no sudo, --no-prompt, QoS or power changes.
-        run(record, "record", live=True)
+        record_attached(command, ["xcrun", "xctrace"], out, env, args.limit_seconds, metadata, save)
         profiled = measurement((out / "profiled.csv").read_text())
         metadata["phases"]["profiled"] = phase_metadata(out / "profiled.phase.csv")
         after = measurement(run(command, "control-after", phase=out / "control-after.phase.csv")[0])
@@ -185,6 +183,11 @@ def main():
                     table["export_file"] = dest.name + ".gz"
                     dest.unlink()
         exported = sum("export_file" in t for t in metadata["tables"])
+        print("  validate target thread attribution and measured interval", flush=True)
+        quality = audit_exports(out, metadata["tables"], metadata["phases"]["profiled"],
+                                metadata["target_threads"], (out / "record.log").read_text())
+        metadata["quality"] = quality
+        (out / "quality.json").write_text(json.dumps(quality, indent=2) + "\n")
         lines = ["System Trace diagnostic, NOT an uninstrumented performance comparison.",
                  "Threads: ff-producer and ff-uv-consumer. Signpost: FF measured (org.flux-foundry.bench).",
                  "The phase CSV gives clock anchors; the region excludes warmup, setup and quantile sorting.",
@@ -198,9 +201,13 @@ def main():
             lines.append(" | ".join(row[k] for k in ("capture", "completed_per_s", "e2e_p99_us", "actual_p99_us", "cpu_percent")))
         if not exported:
             lines.append("No candidate tables exported: open capture.trace in Instruments; the bundle alone cannot establish thread states.")
+        lines.append("Target thread-state rows: " + str(quality["target_state_rows"]))
+        for warning in quality["warnings"]:
+            lines.append("INCOMPLETE EVIDENCE: " + warning)
+        lines.append("Passing these basic checks still requires inspecting the actual thread states within the measured region.")
         (out / "summary.txt").write_text("\n".join(lines) + "\n")
         print("\n" + "\n".join(lines), flush=True)
-        metadata["status"] = "captured"
+        metadata["status"] = "captured" if quality["passed_basic_checks"] else "captured_incomplete"
     except (OSError, RuntimeError, subprocess.CalledProcessError, ET.ParseError, KeyboardInterrupt) as exc:
         error = exc
         metadata["status"] = "failed"

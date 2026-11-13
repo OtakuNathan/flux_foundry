@@ -73,9 +73,11 @@ int main(int argc, char** argv) {
     ff_bench::name_trace_thread("ff-producer");
 
     uv_executor* executor = nullptr;
+    unsigned long long consumer_tid = 0;
     std::atomic<bool> ready{false}, close_returned{false};
     std::thread owner([&] {
         ff_bench::name_trace_thread("ff-uv-consumer");
+        consumer_tid = ff_bench::trace_thread_id();
         pin(o.consumer_cpu);
         uv_loop_t loop{};
         require(uv_loop_init(&loop) == 0, "uv_loop_init failed");
@@ -91,6 +93,8 @@ int main(int argc, char** argv) {
         require(uv_loop_close(&loop) == 0, "uv_loop_close failed");
     });
     while (!ready.load(std::memory_order_acquire)) relax();
+    // The ready release also publishes the diagnostic consumer TID.
+    ff_bench::await_trace_attachment(consumer_tid);
     Port port{executor, [](void* ptr, task_wrapper_sbo&& task) noexcept {
         auto* ex = static_cast<uv_executor*>(ptr);
         // No-drop benchmark policy: wait for queue space. Production dispatch

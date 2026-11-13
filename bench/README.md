@@ -179,13 +179,24 @@ preemption from average CPU use or counts of `std::this_thread::yield()` calls.
 Any native developer-tool permission dialogs remain visible; the script does
 not invoke sudo or change system settings, QoS, affinity, or power policy.
 
-The default isolates the repeatable low-load tail: raw tasks, 500k/s, one million
+The default isolates the repeatable low-load tail: raw tasks, 500k/s, 250,000
 events, budget 16, queue capacity 1024, work 128 and adaptive backoff. It builds
 one `-O3 -g -fno-omit-frame-pointer` binary, then runs an unprofiled control,
 one System Trace capture, and another unprofiled control. Use these controls to
 assess profiler disturbance; the debug/frame-pointer-enabled binary can differ
 from earlier performance builds. No per-event logging or new per-event clocks
 are added. Trace capture itself has overhead.
+
+The profiled process first creates and names both threads, writes their PID/TIDs
+to an atomic readiness file, and waits before warmup. The collector attaches
+System Trace to that existing process and waits for xctrace's
+`--notify-tracing-started` Darwin notification before releasing the workload.
+This lets Instruments take its initial snapshot with both threads already alive.
+The notification uses a dedicated file descriptor; it does not guess readiness
+from an elapsed delay or a human-readable log line. The target exits if readiness
+is not confirmed within 120 seconds. The collector stops its recorder with
+SIGINT as soon as the target completes and retains an explicit recording window
+equal to the safety limit. It cleans up only the child processes it started.
 
 The diagnostic-only `FF_BENCH_SYSTEM_TRACE=1` build names the threads
 `ff-producer` and `ff-uv-consumer`. It emits an
@@ -200,11 +211,21 @@ Ordinary builds compile out this instrumentation.
 
 The script discovers exportable scheduling/thread/signpost/syscall schemas from
 the trace table of contents and attempts each matching export. Schema names and
-export support vary across Xcode versions. An exported table is not by itself
+export support vary across Xcode versions. Duplicate schemas are exported once;
+the query already selects all tables sharing that run/schema. An exported table is not by itself
 proof that it contains the relevant thread states; inspect it alongside the
 measured interval. Missing/failed exports are recorded. Native recordings and
 symbols remain under `capture.trace` and `uv-handoff.dSYM` for Instruments GUI
 inspection if portable tables are insufficient.
+
+`quality.json` checks for the recorder's lost-event warning, thread-state rows
+attributable to both expected PID/TIDs, and a signpost interval consistent with
+the measured clock interval. Failed checks mark the package `captured_incomplete`
+and print `INCOMPLETE EVIDENCE`; they are not silently treated as a valid scheduling
+diagnosis. Passing these basic checks still requires inspecting actual states
+and coverage before making a causal claim. The initial launch-based M1 capture
+had lost events, no attributable target thread-state rows, and a clipped signpost
+interval, motivating the attach/readiness protocol and shorter default workload.
 
 Send `build/system-trace-TIMESTAMP/system-trace-diagnostics.tar.gz`. It contains
 the controls, measured result, clock anchors, environment, tool logs, TOC and
