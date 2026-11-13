@@ -219,6 +219,34 @@ private:
     }
 };
 
+// Opt-in terminal-only lane: controller cancellation is not registered.
+// The attachment still completes close with ECANCELED on its next poll, so
+// shutdown does not require packet traffic. There is exactly one callback per
+// accepted waiter and none for a rejected waiter; resume consumes ownership.
+template <std::size_t Capacity = 32, typename E = flow_async_agg_err_t, typename Api = dpdk_api>
+struct dpdk_rx_fast_awaitable final
+    : fast_awaitable_base<dpdk_rx_fast_awaitable<Capacity, E, Api>, dpdk_packet_batch<Capacity, Api>, E> {
+    using context_type = dpdk_rx_context<Capacity, Api>;
+    using batch_type = typename context_type::batch_type;
+    using async_result_type = result_t<batch_type, E>;
+    static_assert(detail::io_error_prob<E>::value,
+        "I/O awaitable requirement: specialize extension::detail::io_error<E> with static E make(int) noexcept.");
+    explicit dpdk_rx_fast_awaitable(result_t<context_type*, E>&& input) noexcept : context(input.value()) {}
+    bool available() const noexcept { return context != nullptr; }
+    int submit() noexcept {
+        return available() ? context->enqueue(&on_complete, &not_canceled, this) : -EINVAL;
+    }
+private:
+    context_type* context;
+    static bool not_canceled(void*) noexcept { return false; }
+    static void on_complete(void* data, batch_type&& batch, int error) noexcept {
+        auto* self = static_cast<dpdk_rx_fast_awaitable*>(data);
+        if (error) self->resume(async_result_type(error_tag, detail::io_error<E>::make(error)));
+        else self->resume(async_result_type(value_tag, std::move(batch)));
+        // resume may have destroyed self, including its continuation storage.
+    }
+};
+
 } // namespace extension
 
 template <std::size_t Capacity = 32, typename E = flow_async_agg_err_t>
@@ -227,6 +255,14 @@ auto await_dpdk_rx() noexcept { return await<extension::dpdk_rx_awaitable<Capaci
 template <std::size_t Capacity = 32, typename E = flow_async_agg_err_t, typename Executor>
 auto await_dpdk_rx(Executor&& executor) noexcept {
     return await<extension::dpdk_rx_awaitable<Capacity, E>>(std::forward<Executor>(executor));
+}
+
+template <std::size_t Capacity = 32, typename E = flow_async_agg_err_t>
+auto await_dpdk_rx_fast() noexcept { return await<extension::dpdk_rx_fast_awaitable<Capacity, E>>(); }
+
+template <std::size_t Capacity = 32, typename E = flow_async_agg_err_t, typename Executor>
+auto await_dpdk_rx_fast(Executor&& executor) noexcept {
+    return await<extension::dpdk_rx_fast_awaitable<Capacity, E>>(std::forward<Executor>(executor));
 }
 } // namespace flux_foundry
 #endif

@@ -20,6 +20,9 @@ verdicts also remain active in Release builds.
 | `vaccine_enabled` / `_disabled` / `_noexc` | Read-only success/error/move-only/void inspection, normal/fast/const-view runners, queued handoff and disabled blueprint type/size identity. Failure subprocesses check source position, false/throwing predicates, custom hooks and mandatory termination. `vaccine_disabled_codegen` compares optimized executables (stripped symbols, no build ID) on Linux GCC/Clang. |
 | `allocation_failure_contract` | Fail allocation attempts 1 through 3 through the allocator interface; verify recovery on subsequent attempts and no live allocations. Throw from object construction and verify control-block cleanup. |
 | `allocation_failure_contract_noexc` | Same allocation failure schedule with exceptions disabled; verifies empty handles and cleanup. |
+| `continuation_storage_contract` / `_noexc` | Actual continuation size/SBO, stateful mutable adaptors, ordinary/fast awaitables and runners, inline/delayed/worker-before-return completion, failure, cancellation and capture destruction. |
+| `aggregation_ownership_contract` / `_noexc` | Per-launch child blueprint ownership in all four async aggregator forms, reusable factories, asynchronous child captures and a pending fast `when_any` loser. |
+| `controller_pool_contract` / `_noexc` | Explicit allocator failure, alignment/reuse, last external owner preventing reclamation, late cancellation isolation, remote release after origin exit, and cancellation before backend completion. |
 | `pooling_handoff_contract` / `_noexc` | Cross-thread allocation/return with cache capacities 1, 2, 3, 4, 16 and 512; shared-pool, malloc-fallback and mixed-origin blocks; payload integrity and complete shared-pool reclamation after thread exit. |
 | `simple_executor_contract` / `_noexc` | Capacities 1 and 2; nested full-queue dispatch, dispatch before run, concurrent shutdown with an explicitly blocked consumer, repeated shutdown, and draining all admitted work. |
 | `void_recovery_contract` / `_noexc` / `_noexc_relaxed` | Void success bypass, error recovery and forwarding, exception matching and replacement; typed conversion and move-only controls; mutable move-only handlers; normal and fast runners. No-exception targets cover both strict and relaxed policy. |
@@ -134,5 +137,9 @@ retains failing output, including the round and exact schedule.
 
 `ctest --test-dir <build> -L identity-pool --output-on-failure` runs the new
 identity allocator contract, the ordinary/fast pipeline lifetime contracts
-with the default policy enabled, their no-exception counterparts, legacy policy controls, and
-compile-time rejection cases. See [the policy contract](../docs/identity_pool.md).
+with the default policy enabled, their no-exception counterparts, legacy policy controls,
+and compile-time rejection cases. `identity_pool_routes4_{lifecycle,pipeline,controller}`
+and their `_noexc` variants also select four routes through the public configuration
+macro. The direct allocator contract checks multiple origins, full inboxes, stale
+generations, all-route flushing and concurrent owner exit. See
+[the policy contract](../docs/identity_pool.md).

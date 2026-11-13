@@ -24,7 +24,7 @@
 
 namespace flux_foundry {
 // Construct on the thread which will own/run the supplied loop. The loop is
-// borrowed, not a thread pool. dispatch/try_dispatch/close may be concurrent,
+// borrowed, not a thread pool. Submission methods and close may be concurrent,
 // provided the executor object itself remains alive. No concurrent uv_run or
 // recursive uv_run is allowed. Run the loop through the uv_close callback.
 class uv_executor {
@@ -37,13 +37,18 @@ public:
     static constexpr std::size_t max_tasks_per_round = 16;
     static constexpr std::size_t default_capacity = 1024;
 
+    // Old libuv runtimes need an explicit fence before a coalesced send.
+    // always_fence is a conservative opt-in, also useful for matched controls.
+    enum class wake_fence_policy { runtime_compatible, always_fence };
+
     // Checked initialization reports invalid parameters / libuv errors. General
     // allocation exhaustion follows the program's std allocator policy.
     uv_executor(std::nothrow_t, uv_loop_t* loop,
                 std::size_t capacity = default_capacity,
-                std::size_t budget = max_tasks_per_round) {
+                std::size_t budget = max_tasks_per_round,
+                wake_fence_policy fence = wake_fence_policy::runtime_compatible) {
         if (!loop || !capacity || !budget) { error_ = UV_EINVAL; return; }
-        auto state = std::make_shared<state_t>(loop, capacity, budget);
+        auto state = std::make_shared<state_t>(loop, capacity, budget, fence);
         error_ = uv_async_init(loop, &state->async, &state_t::on_async);
         if (error_) return;
         state->async.data = state.get();
@@ -51,8 +56,9 @@ public:
         state_ = std::move(state);
     }
     explicit uv_executor(uv_loop_t* loop, std::size_t capacity = default_capacity,
-                         std::size_t budget = max_tasks_per_round)
-        : uv_executor(std::nothrow, loop, capacity, budget) {
+                         std::size_t budget = max_tasks_per_round,
+                         wake_fence_policy fence = wake_fence_policy::runtime_compatible)
+        : uv_executor(std::nothrow, loop, capacity, budget, fence) {
         if (error_) {
 #if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
             if(error_==UV_EINVAL) throw std::invalid_argument("uv_executor requires loop, capacity and budget");
@@ -92,6 +98,28 @@ public:
         state->wake();
         state->gate.release();
         return true;
+    }
+
+    // Enqueues an accepted prefix without allocation or waiting for capacity.
+    // Unlike try_dispatch, this operation NEVER invokes tasks inline, even on
+    // the owner. It stops at the first empty task or full queue. The returned
+    // prefix has been moved; every task in the remaining suffix is untouched.
+    // The array must stay alive until return. Concurrent batches may interleave
+    // at task boundaries; only each producer's order is preserved.
+    std::size_t try_dispatch_batch(task_t* tasks, std::size_t count) noexcept {
+        if (!tasks || !count || !state_) return 0;
+        auto* const state = state_.get();
+        if (!state->gate.try_acquire()) return 0;
+        std::size_t accepted = 0;
+        while (accepted < count && tasks[accepted]
+                && state->queue.push(std::move(tasks[accepted]))) {
+            ++accepted;
+        }
+        // One admission ticket covers the whole batch, including the send.
+        // Close may run after admission; it still drains every accepted task.
+        if (accepted) state->wake();
+        state->gate.release();
+        return accepted;
     }
 
     // FF's void dispatch contract has no error channel. Rejection is a caller
@@ -172,6 +200,7 @@ private:
         uv_loop_t* const loop;
         const std::thread::id loop_thread;
         const std::size_t budget;
+        const bool needs_wake_fence;
         detail::close_gate gate;
         task_queue queue;
         uv_async_t async{};
@@ -179,13 +208,16 @@ private:
         std::atomic<std::size_t> handle_closed{0};
         std::shared_ptr<state_t> handle_owner;
 
-        state_t(uv_loop_t* target, std::size_t cap, std::size_t batch)
-            : loop(target), loop_thread(std::this_thread::get_id()), budget(batch), queue(cap) {}
+        state_t(uv_loop_t* target, std::size_t cap, std::size_t batch, wake_fence_policy fence)
+            : loop(target), loop_thread(std::this_thread::get_id()), budget(batch),
+              needs_wake_fence(fence == wake_fence_policy::always_fence || uv_version() < 0x013500),
+              queue(cap) {}
         // Called with an admission ticket or from the owner callback before
         // uv_close. Slot release/acquire publishes tasks independently of uv.
         void wake() noexcept {
-            // Older libuv releases can coalesce sends without a full fence.
-            std::atomic_thread_fence(std::memory_order_seq_cst);
+            // Since 1.53, uv_async_send/callback provide seq_cst ordering even
+            // when sends coalesce. Select by linked runtime, not header version.
+            if (needs_wake_fence) std::atomic_thread_fence(std::memory_order_seq_cst);
             if (uv_async_send(&async)) std::terminate();
         }
         static void on_async(uv_async_t* handle) noexcept {

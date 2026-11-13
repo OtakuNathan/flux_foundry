@@ -28,9 +28,13 @@ jobs:
             flux_foundry_uv_executor_contract flux_foundry_uv_executor_contract_noexc \
             flux_foundry_io_uring_attachment_contract flux_foundry_io_uring_attachment_contract_noexc \
             flux_foundry_identity_pool_contract flux_foundry_identity_pool_contract_noexc \
-            flux_foundry_identity_pool_pipeline flux_foundry_identity_pool_pipeline_noexc
+            flux_foundry_identity_pool_pipeline flux_foundry_identity_pool_pipeline_noexc \
+            flux_foundry_identity_pool_routes4_pipeline flux_foundry_identity_pool_routes4_pipeline_noexc \
+            flux_foundry_controller_pool_contract flux_foundry_controller_pool_contract_noexc \
+            flux_foundry_continuation_storage_contract flux_foundry_continuation_storage_contract_noexc \
+            flux_foundry_aggregation_ownership_contract flux_foundry_aggregation_ownership_contract_noexc
           TSAN_OPTIONS='halt_on_error=1 exitcode=66' \
-            ctest --test-dir build-io-tsan -R '^(uv_executor_contract.*|io_uring_attachment_contract.*|identity_pool_(contract|pipeline).*)$' --output-on-failure --timeout 120
+            ctest --test-dir build-io-tsan -R '^(uv_executor_contract.*|io_uring_attachment_contract.*|identity_pool_(contract|pipeline|routes4_pipeline).*|(controller_pool|continuation_storage|aggregation_ownership)_contract.*)$' --output-on-failure --timeout 120
 
       - name: Build TSAN probes
         run: |

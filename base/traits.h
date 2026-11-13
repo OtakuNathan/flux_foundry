@@ -104,6 +104,12 @@
 #define FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
 #endif
 
+// Independently buffered remote allocation origins. Keep TU configuration consistent.
+// One route preserves the existing memory bound; multi-producer workloads can opt in.
+#ifndef FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT
+#define FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT 1
+#endif
+
 // Identity-routed awaitable pooling. Keep consistent across translation units.
 #ifndef FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
 #define FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL 1

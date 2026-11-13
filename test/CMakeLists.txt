@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
+find_package(Threads REQUIRED)
 
 function(flux_foundry_add_probe target source)
     add_executable(${target} ${source})
@@ -40,7 +41,6 @@ endfunction()
 # Smoke
 if(TARGET flux_foundry_io_uring)
     flux_foundry_add_io_rejection_tests(io_uring "${FLUX_FOUNDRY_LIBURING_CFLAGS}")
-    find_package(Threads REQUIRED)
     add_library(flux_foundry_header_io_uring_standalone OBJECT header_io_uring_standalone.cpp)
     target_link_libraries(flux_foundry_header_io_uring_standalone PRIVATE flux_foundry::io_uring flux_foundry_test_warnings)
     set_target_properties(flux_foundry_header_io_uring_standalone PROPERTIES
@@ -116,16 +116,30 @@ add_test(NAME hazard_ptr_contract_noexc COMMAND flux_foundry_hazard_ptr_contract
 set_tests_properties(hazard_ptr_contract_noexc PROPERTIES LABELS "smoke;noexc" TIMEOUT 30)
 
 # Deterministic contract regressions; timeout also catches deadlocks.
-foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment continuation_emplace)
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment continuation_emplace continuation_storage aggregation_ownership controller_pool)
     flux_foundry_add_probe(flux_foundry_${contract}_contract ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract COMMAND flux_foundry_${contract}_contract)
     set_tests_properties(${contract}_contract PROPERTIES LABELS "smoke;contract" TIMEOUT 20)
 endforeach()
 
-foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment continuation_emplace)
+add_library(flux_foundry_header_controller_pool_standalone OBJECT header_controller_pool_standalone.cpp)
+target_link_libraries(flux_foundry_header_controller_pool_standalone PRIVATE
+    flux_foundry::flux_foundry flux_foundry_test_warnings Threads::Threads)
+set_target_properties(flux_foundry_header_controller_pool_standalone PROPERTIES
+    CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+
+foreach(contract awaitable_lifecycle allocation_failure simple_executor mutable_callable void_recovery end_move ownership_assignment continuation_emplace continuation_storage aggregation_ownership controller_pool)
     flux_foundry_add_noexc_probe(flux_foundry_${contract}_contract_noexc ${contract}_contract.cpp)
     add_test(NAME ${contract}_contract_noexc COMMAND flux_foundry_${contract}_contract_noexc)
     set_tests_properties(${contract}_contract_noexc PROPERTIES LABELS "smoke;contract;noexc" TIMEOUT 20)
+endforeach()
+
+foreach(contract continuation_storage aggregation_ownership controller_pool)
+    foreach(suffix "" "_noexc")
+        target_link_libraries(flux_foundry_${contract}_contract${suffix} PRIVATE Threads::Threads)
+        set_target_properties(flux_foundry_${contract}_contract${suffix} PROPERTIES
+            CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    endforeach()
 endforeach()
 
 # Terminal forwarding and void recovery must also work with the relaxed policy.
@@ -212,6 +226,30 @@ foreach(kind contract lifecycle pipeline)
             CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
         add_test(NAME identity_pool_${kind}${suffix} COMMAND flux_foundry_identity_pool_${kind}${suffix})
         set_tests_properties(identity_pool_${kind}${suffix} PROPERTIES LABELS "smoke;contract;identity-pool" TIMEOUT 90)
+    endforeach()
+endforeach()
+
+# Exercise the public route policy through real awaitable and controller storage,
+# in addition to the direct allocator specializations in identity_pool_contract.
+foreach(kind lifecycle pipeline controller)
+    if(kind STREQUAL "lifecycle")
+        set(route_source awaitable_lifecycle_contract.cpp)
+    elseif(kind STREQUAL "pipeline")
+        set(route_source pipeline_lifetime_contract.cpp)
+    else()
+        set(route_source controller_pool_contract.cpp)
+    endif()
+    flux_foundry_add_probe(flux_foundry_identity_pool_routes4_${kind} ${route_source})
+    flux_foundry_add_noexc_probe(flux_foundry_identity_pool_routes4_${kind}_noexc ${route_source})
+    foreach(suffix "" "_noexc")
+        target_link_libraries(flux_foundry_identity_pool_routes4_${kind}${suffix} PRIVATE Threads::Threads)
+        target_compile_definitions(flux_foundry_identity_pool_routes4_${kind}${suffix} PRIVATE
+            FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL=1 FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT=4)
+        set_target_properties(flux_foundry_identity_pool_routes4_${kind}${suffix} PROPERTIES
+            CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+        add_test(NAME identity_pool_routes4_${kind}${suffix} COMMAND flux_foundry_identity_pool_routes4_${kind}${suffix})
+        set_tests_properties(identity_pool_routes4_${kind}${suffix} PROPERTIES
+            LABELS "smoke;contract;identity-pool" TIMEOUT 90)
     endforeach()
 endforeach()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)

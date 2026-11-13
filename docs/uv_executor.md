@@ -73,6 +73,41 @@ own progress. The capacity bounds queued tasks and unpublished reservations, exc
 the owner and any inline recursion. The callback drains at most the configured
 budget of queued tasks; recursive inline work is not covered by that budget.
 
+### Explicit batch submission
+
+`try_dispatch_batch(task_t* tasks, std::size_t count)` queues a prefix and
+returns its length. It acquires one admission ticket and sends one native
+notification for the accepted prefix. Each task still uses the existing MPSC
+publication protocol. The operation does not allocate queue storage or wait
+for space, and it stops at the first empty task or full queue. Null pointers,
+zero counts, closed admission and uninitialized executors return zero.
+
+Accepted tasks are moved out of the array; the unaccepted suffix is untouched.
+The array must remain valid through the call, and the public executor must
+outlive concurrent producer calls. Concurrent batches can interleave at task
+boundaries; a batch is not an indivisible transaction or a contiguous global
+ordering unit. A batch admitted before concurrent `close()` may finish queuing
+its prefix afterward; all accepted tasks are included in the close drain.
+
+Batch submission always queues, including on the owner with an empty queue.
+It never calls user tasks inline and never recursively executes a batch. This
+avoids callback reentrancy from an owner-thread batch call. With a concurrent
+producer, the owner may execute accepted tasks and free capacity before the
+batch call returns. A callback may enqueue another batch; that work joins the queue
+and remains subject to the callback budget. The owner must return to the event
+loop to make space instead of spinning on an unaccepted suffix. Single-task
+`try_dispatch` keeps its existing owner-inline behavior.
+
+```cpp
+flux_foundry::uv_executor::task_t tasks[] = {
+    flux_foundry::uv_executor::task_t([]() noexcept { /* first task */ }),
+    flux_foundry::uv_executor::task_t([]() noexcept { /* second task */ })
+};
+const std::size_t accepted = executor.try_dispatch_batch(tasks, 2);
+// tasks[0..accepted) were transferred; retain/retry the remaining suffix
+// according to the application's bounded-ingress policy.
+```
+
 FF's `void dispatch(task&&)` cannot report rejection: it terminates on rejected
 submission instead of losing a continuation. Use `try_dispatch` at bounded
 application ingress, or provision capacity and enforce admission before using
@@ -131,10 +166,18 @@ blocking the loop. Its publisher will wake the loop after publication. All
 positive runtime capacities remain supported, including 1 and non-powers of two.
 Indices wrap within the ring, so there is no lifetime limit from sequence overflow.
 
-Each successful queued publication sends a notification; libuv coalesces these.
+Each successful queued single submission or nonempty accepted batch sends a notification;
+libuv coalesces these.
 The callback rearms when its budget leaves a ready head or closing senders remain.
-A full fence precedes native sends for older libuv coalescing behavior; the queue
-has its own publication synchronization. See the
+A full fence precedes native sends when the linked libuv runtime is older than
+1.53.0. From 1.53.0, libuv guarantees sequential consistency for async sends and
+callbacks, including coalesced sends, so the redundant caller fence is omitted.
+The choice is cached at construction using `uv_version()`, not the potentially
+different header version. The optional final constructor argument
+`uv_executor::wake_fence_policy::always_fence` retains the conservative fence
+on every version, for example for a matched performance control; the default is
+`runtime_compatible`. Neither option removes the compatibility fence from old
+runtimes. Queue publication and gate memory orders are unchanged. See the
 [libuv async memory-ordering notes](https://docs.libuv.org/en/v1.x/async.html).
 These changes remove FF's mutex from queue/admission/close, but do not claim
 lock-free execution of user callbacks, allocation, or native libuv internals.
@@ -156,3 +199,8 @@ that admitted work is not lost or reordered behind a paused publisher.
 the legacy throwing-constructor assertion is specific to the exception build.
 TSan builds omit only the global new/delete fault-injection replacement, which
 conflicts with TSan's allocator interceptors; regular and UBSan builds exercise it.
+Batch contracts additionally cover partial acceptance, an empty task within the
+input, enqueue-only owner behavior, exactly one send per accepted batch,
+reentrant batches, callback-triggered executor destruction, concurrent close,
+unpublished reservations and admission held through a paused final send.
+Both automatic and forced compatibility-fence policies are exercised.

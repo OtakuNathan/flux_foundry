@@ -1,6 +1,8 @@
 #include "extension/dpdk_awaitable.h"
 // Compile the real DPDK API path, independent of the mock contract tests.
 void check_dpdk_header() {
+    auto fast = flux_foundry::await_dpdk_rx_fast<>();
+    (void)fast;
     flux_foundry::extension::dpdk_rx_context<> attached(0, 0);
     attached.poll();
     auto batch = flux_foundry::extension::dpdk_packet_batch<>::receive(0, 0);

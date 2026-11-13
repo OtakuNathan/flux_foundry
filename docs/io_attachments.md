@@ -149,6 +149,44 @@ passed to `await_io_uring<Operation>(&executor)` selects where the continuation
 resumes, not where SQ preparation runs. Host CQ overflow prevention/draining,
 flush recovery, fd ownership and scheduling remain host responsibilities.
 
+### Opt-in terminal-only io_uring node
+
+`await_io_uring_fast<Operation, E>()`, optionally with a continuation executor,
+selects `extension::io_uring_fast_awaitable<Operation, E>`. It uses the same
+attachment, operation validation, owned-buffer storage, generation tokens and
+CQE-to-error conversion as the ordinary adapter. It derives from
+`fast_awaitable_base` and does not register controller-driven cancellation while
+waiting. The accepted request's original terminal CQE owns its completion;
+there is no separate early logical completion or extra backend reference pair.
+
+```cpp
+auto bp = make_blueprint<request, flow_async_agg_err_t>()
+    | await_io_uring_fast<read_operation>()
+    | transform([](io_uring_result<read_operation> read) noexcept {
+        return read.result;
+    })
+    | end();
+auto runner = make_fast_runner_view(bp);
+runner(request{&attached, read_operation{fd, {}}});
+// Keep bp and the host resources alive through completion.
+```
+
+Selecting a fast runner alone does not change the awaitable type stored in a
+blueprint. Choose this factory explicitly when early controller cancellation is
+unnecessary. A normal runner can also contain a fast node; its controller still
+governs later normal flow checkpoints, but cannot finish this pending node before
+the backend callback. The ordinary factory retains its existing cancellation
+semantics.
+
+The fast node does not relax host shutdown: an accepted SQE must still be
+submitted and its original CQE routed after close or a short/failed flush.
+Rejected submission produces one synchronous failure and registers no later
+callback. A successful terminal callback may reenter the freed registry slot
+or destroy the drained attachment. If a continuation executor is selected,
+owned operation buffers transfer into that continuation and remain alive after
+the attachment has detached. The borrowed blueprint must outlive deferred
+continuations when using `make_fast_runner_view`.
+
 ## DPDK: await the next RX burst
 
 ```cpp
@@ -211,6 +249,25 @@ with cancellation. `try_detach()` closes and returns false until it is drained.
 No port or EAL shutdown is performed. Destruction with a pending waiter
 terminates. Calls to the context itself remain serialized on the host loop.
 
+### Opt-in terminal-only DPDK node
+
+`await_dpdk_rx_fast<Capacity, E>()`, optionally with a continuation executor,
+selects `extension::dpdk_rx_fast_awaitable<Capacity, E, Api>`. The type form also
+accepts the same custom `Api` policy as the ordinary awaitable. It removes the
+per-request atomic cancel flag and competing logical completion path; a successful
+enqueue owns exactly one terminal callback. An empty RX remains pending.
+Attachment `close()` still completes it with cancellation on the next `poll()`,
+without requiring NIC traffic. A second waiter, null context or closed
+attachment produces one failure without replacing an accepted waiter.
+
+The packet batch has the same move-only ownership and partial-TX behavior.
+The context clears its waiter before invoking the continuation, allowing a new
+fast waiter to be installed reentrantly. Received packets can outlive the
+attachment, including through a deferred continuation on another executor;
+their native mempool must still outlive the packet batch. A controller request
+alone does not wake or finish a pending fast waiter. Use the ordinary factory
+when immediate logical cancellation is required.
+
 ## Validation
 
 The optional CTest targets cover bounded admission, stale/foreign CQEs,
@@ -218,6 +275,10 @@ reentrant submission, close/drain, cancellation with retained buffers, normal
 and fast runners, empty RX, canceled RX without traffic, mbuf cleanup and
 zero/partial TX acceptance. Both exception and strict no-exception builds run.
 Standalone header targets compile the native API paths.
+The terminal-only variants also cover normal and fast runners, failed admission,
+negative CQEs/close errors, stale and duplicate CQEs, controller requests with no
+early backend release, reentrant registration, attachment destruction inside a
+callback, and deferred continuation ownership after attachment destruction.
 
 GNU/Clang `io_uring_adapter_rejection_*` and `dpdk_adapter_rejection_*` tests
 compile a valid control first, then reject 13 io_uring and 19 DPDK misuse cases

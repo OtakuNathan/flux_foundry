@@ -1,0 +1,117 @@
+Selected integrated CMake regression run (GCC 14.2, C++14, Release):
+38 passed; 2 native io_uring runtime cases skipped, not passed.
+
+Test project /tmp/ff-opt-pass/build
+      Start 45: uv_executor_contract
+      Start 46: uv_executor_contract_noexc
+ 1/40 Test #45: uv_executor_contract .....................   Passed    1.66 sec
+      Start 67: flow_controller_memorder_stress
+ 2/40 Test #67: flow_controller_memorder_stress ..........   Passed    0.13 sec
+      Start 54: identity_pool_contract_noexc
+ 3/40 Test #54: identity_pool_contract_noexc .............   Passed    0.05 sec
+      Start 58: identity_pool_pipeline_noexc
+ 4/40 Test #58: identity_pool_pipeline_noexc .............   Passed    0.06 sec
+      Start 53: identity_pool_contract
+ 5/40 Test #53: identity_pool_contract ...................   Passed    0.12 sec
+      Start 69: flow_multiflow_cancel_executor_stress
+ 6/40 Test #69: flow_multiflow_cancel_executor_stress ....   Passed    0.07 sec
+      Start 14: flow_fork_join_semantics
+ 7/40 Test #46: uv_executor_contract_noexc ...............   Passed    2.13 sec
+      Start 51: legacy_pool_pipeline
+ 8/40 Test #14: flow_fork_join_semantics .................   Passed    0.07 sec
+      Start 57: identity_pool_pipeline
+ 9/40 Test #51: legacy_pool_pipeline .....................   Passed    0.05 sec
+      Start 52: legacy_pool_pipeline_noexc
+10/40 Test #57: identity_pool_pipeline ...................   Passed    0.05 sec
+      Start 40: continuation_storage_contract_noexc
+11/40 Test #40: continuation_storage_contract_noexc ......   Passed    0.01 sec
+      Start 31: controller_pool_contract
+12/40 Test #52: legacy_pool_pipeline_noexc ...............   Passed    0.04 sec
+      Start 29: continuation_storage_contract
+13/40 Test #31: controller_pool_contract .................   Passed    0.01 sec
+      Start 41: aggregation_ownership_contract_noexc
+14/40 Test #41: aggregation_ownership_contract_noexc .....   Passed    0.00 sec
+      Start 21: awaitable_lifecycle_contract
+15/40 Test #29: continuation_storage_contract ............   Passed    0.01 sec
+      Start  3: io_uring_attachment_contract
+16/40 Test #21: awaitable_lifecycle_contract .............   Passed    0.01 sec
+      Start 30: aggregation_ownership_contract
+17/40 Test  #3: io_uring_attachment_contract .............   Passed    0.01 sec
+      Start 42: controller_pool_contract_noexc
+18/40 Test #30: aggregation_ownership_contract ...........   Passed    0.01 sec
+      Start 32: awaitable_lifecycle_contract_noexc
+19/40 Test #42: controller_pool_contract_noexc ...........   Passed    0.00 sec
+      Start 39: continuation_emplace_contract_noexc
+20/40 Test #32: awaitable_lifecycle_contract_noexc .......   Passed    0.00 sec
+      Start 34: simple_executor_contract_noexc
+21/40 Test #39: continuation_emplace_contract_noexc ......   Passed    0.00 sec
+      Start 18: runner_reuse_contract
+22/40 Test #34: simple_executor_contract_noexc ...........   Passed    0.00 sec
+      Start  5: io_uring_attachment_contract_noexc
+23/40 Test #18: runner_reuse_contract ....................   Passed    0.00 sec
+      Start 35: mutable_callable_contract_noexc
+24/40 Test #35: mutable_callable_contract_noexc ..........   Passed    0.00 sec
+      Start 28: continuation_emplace_contract
+25/40 Test #28: continuation_emplace_contract ............   Passed    0.00 sec
+      Start 23: simple_executor_contract
+26/40 Test #23: simple_executor_contract .................   Passed    0.00 sec
+      Start 24: mutable_callable_contract
+27/40 Test #24: mutable_callable_contract ................   Passed    0.01 sec
+      Start  4: io_uring_runtime
+28/40 Test  #4: io_uring_runtime .........................***Skipped   0.00 sec
+      Start  6: io_uring_runtime_noexc
+29/40 Test  #6: io_uring_runtime_noexc ...................***Skipped   0.01 sec
+      Start  9: dpdk_awaitable_contract
+30/40 Test  #9: dpdk_awaitable_contract ..................   Passed    0.00 sec
+      Start 10: dpdk_awaitable_contract_noexc
+31/40 Test #10: dpdk_awaitable_contract_noexc ............   Passed    0.00 sec
+      Start 55: identity_pool_lifecycle
+32/40 Test #55: identity_pool_lifecycle ..................   Passed    0.00 sec
+      Start 56: identity_pool_lifecycle_noexc
+33/40 Test  #5: io_uring_attachment_contract_noexc .......   Passed    0.05 sec
+      Start 59: identity_pool_routes4_lifecycle
+34/40 Test #56: identity_pool_lifecycle_noexc ............   Passed    0.00 sec
+      Start 60: identity_pool_routes4_lifecycle_noexc
+35/40 Test #59: identity_pool_routes4_lifecycle ..........   Passed    0.00 sec
+      Start 61: identity_pool_routes4_pipeline
+36/40 Test #60: identity_pool_routes4_lifecycle_noexc ....   Passed    0.01 sec
+      Start 62: identity_pool_routes4_pipeline_noexc
+37/40 Test #61: identity_pool_routes4_pipeline ...........   Passed    0.03 sec
+      Start 63: identity_pool_routes4_controller
+38/40 Test #62: identity_pool_routes4_pipeline_noexc .....   Passed    0.03 sec
+      Start 64: identity_pool_routes4_controller_noexc
+39/40 Test #63: identity_pool_routes4_controller .........   Passed    0.01 sec
+40/40 Test #64: identity_pool_routes4_controller_noexc ...   Passed    0.01 sec
+
+100% tests passed out of 40
+
+Label Time Summary:
+contract         =   4.38 sec*proc (34 tests)
+dpdk             =   0.01 sec*proc (2 tests)
+identity-pool    =   0.46 sec*proc (14 tests)
+io_uring         =   0.06 sec*proc (4 tests)
+noexc            =   2.16 sec*proc (8 tests)
+smoke            =   4.46 sec*proc (38 tests)
+stress           =   0.20 sec*proc (2 tests)
+uv               =   3.79 sec*proc (2 tests)
+
+Total Test time (real) =   2.35 sec
+
+The following tests did not run:
+	  4 - io_uring_runtime (Skipped)
+	  6 - io_uring_runtime_noexc (Skipped)
+
+Identity-pool ThreadSanitizer run:
+PASS: identity routing, bounded multi-route batches, full inboxes, stale/exhausted slots, adoption, exit races, late TLS and alignment
+
+Controller ThreadSanitizer run:
+[OK] last external owner controls reclamation; stale cancel stays isolated
+[OK] explicit allocator failure preserves allocation policy
+[OK] pooled control block alignment and fresh state on reuse
+[OK] return after allocating thread exits
+[OK] normal runner with explicit pooled controller
+[OK] pooled controller cancellation before late backend completion
+
+AddressSanitizer + UndefinedBehaviorSanitizer focused lifecycle runs passed.
+LeakSanitizer was disabled (detect_leaks=0): this environment aborts LSan under ptrace.
+No LSan coverage, native kernel io_uring performance, native DPDK throughput, physical NIC, ARM, or MSVC execution is claimed by this local run.

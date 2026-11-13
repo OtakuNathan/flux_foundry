@@ -19,6 +19,7 @@ The project is tuned for predictable behavior and explicit contracts under concu
 | Your task | Start with |
 | --- | --- |
 | A flow needs cancellation | `make_runner` and the normal awaitable contracts; cancellation is cooperative, not synchronous callback preemption. |
+| Repeated normal runners spend time allocating controllers | Opt into [pooled controller storage](docs/controller_pool.md) with `make_runner(std::allocator_arg, pooled_controller_allocator<>{}, ...)`; external cancellation handles still own the controller until their last release. |
 | A synchronous calculation needs no cancellation | `make_fast_runner_view` for a borrowed blueprint, or `make_fast_runner` to own it. Fast runners omit the cancellation controller. |
 | An async flow needs no cancellation | Fast runners also support async steps. Choose ordinary or fast awaitables according to the backend's lifecycle guarantees; see the [fast async contracts](#fast-async-lane). |
 | Map a successful value | `transform`: nonthrowing callback; upstream errors pass through. |
@@ -85,7 +86,17 @@ ports. See [I/O attachment contracts and examples](docs/io_attachments.md).
 The [awaitable identity pool](docs/identity_pool.md) batches cross-thread
 returns to the allocating thread and adopts late returns after that thread exits.
 It is enabled by default; define `FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL=0` to use
-the previous awaitable allocation policy.
+the previous awaitable allocation policy. For a few interleaved allocating
+origins, `FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT=4` selects four bounded outgoing
+batches; the default remains one, with a smaller TLS retention bound.
+
+The [lifecycle and batching experiments](bench/optimization_pass/README.md)
+provide matched controls for continuation SBO, child blueprint ownership,
+controller storage, executor drain/wake costs, identity routing and terminal-only
+I/O adapters. See [flow storage notes](docs/flow_optimization_notes.md) for the
+ownership invariants behind the default flow changes. Batch UV submission and
+the public `await_io_uring_fast` / `await_dpdk_rx_fast` factories are explicit
+choices documented in the backend guides above.
 
 Install the header-only package into a prefix:
 
