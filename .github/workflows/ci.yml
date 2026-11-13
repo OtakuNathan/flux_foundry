@@ -34,7 +34,9 @@ jobs:
           -DFLUX_FOUNDRY_WARNINGS_AS_ERRORS=ON
 
       - name: Build
-        run: cmake --build build --parallel
+        # Template-heavy targets can exhaust a runner when native make gets -j
+        # without a limit. Keep compiler concurrency bounded across the matrix.
+        run: cmake --build build --parallel 2
 
       - name: Smoke tests
         run: ctest --test-dir build -L smoke --output-on-failure
@@ -50,7 +52,7 @@ jobs:
           cmake -S test/package_consumer -B build/package-consumer
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
-          && cmake --build build/package-consumer --parallel
+          && cmake --build build/package-consumer --parallel 2
           && ctest --test-dir build/package-consumer --output-on-failure
 
   linux-gsource-package:
@@ -85,7 +87,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
           -DFLUX_FOUNDRY_TEST_GSOURCE=ON
-          && cmake --build build/package-consumer --parallel
+          && cmake --build build/package-consumer --parallel 2
           && ctest --test-dir build/package-consumer --output-on-failure
 
   linux-sanitizers:
@@ -130,7 +132,7 @@ jobs:
         run: cmake -S . -B build -DFLUX_FOUNDRY_BUILD_TESTS=ON
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --parallel 2
 
       - name: Smoke tests
         run: ctest --test-dir build -C Release -L smoke --output-on-failure
@@ -145,7 +147,7 @@ jobs:
         run: >-
           cmake -S test/package_consumer -B build/package-consumer
           -DCMAKE_PREFIX_PATH=${{ github.workspace }}/build/install
-          && cmake --build build/package-consumer --config Release --parallel
+          && cmake --build build/package-consumer --config Release --parallel 2
           && ctest --test-dir build/package-consumer -C Release --output-on-failure
 
   linux-uv-package:

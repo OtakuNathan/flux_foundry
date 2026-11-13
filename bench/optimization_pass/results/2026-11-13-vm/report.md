@@ -192,8 +192,8 @@ retries. Batch 16, 131,072 tasks per producer, capacity 65,536 and budget 4,096:
 | 4 / always fence | 221.546 [168.755–251.612] | 160.617 [118.188–206.154] | −27.5% |
 
 The forced-fence controls improve too, so batching's signal does not depend on
-fence removal. The4-producer automatic case wins only 3/5 pairs and includes a
-567.087ns/task outlier. Width 1 is inconclusive: 97.398 versus 90.867 ns/task with
+fence removal. The 4-producer automatic case wins only 3/5 pairs and includes a
+567.087 ns/task outlier. Width 1 is inconclusive: 97.398 versus 90.867 ns/task with
 broad overlap. Retry counters have different units in single and batch modes,
 so their ratio is not a like-for-like contention metric.
 
@@ -272,7 +272,8 @@ Ordinary factories remain unchanged.
 - **io_uring:** initialization returned `-EPERM`; the driver returned 77 and both
   integrated native-runtime cases skipped. No kernel throughput was measured.
 - **DPDK:** headers, fake-API contracts and benchmark compile passed, but EAL
-  returned 77: no detected lcores. This environment has no `/sys`; DPDK 25.11
+  initialization failed because no lcores were detected; the benchmark exited 77.
+  This environment has no `/sys`; DPDK 25.11
   checks `cpuN/topology/core_id` for core detection. Ordinary core-list/remap
   flags use the same check, so no valid native `net_ring` run was possible.
   There is no DPDK performance result here.
