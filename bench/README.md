@@ -151,6 +151,20 @@ Send the generated `build/backoff-TIMESTAMP/backoff-diagnostics.tar.gz`, which
 contains environment details, per-trial results and the comparison summary
 (plus small timeline/spike files when `--trace` is enabled).
 
+To hold the default backoff fixed and compare only UV callback budgets:
+
+```sh
+python3 bench/io_adapters/compare_backoff.py --policies adaptive --budgets 16 64 256 --trials 6
+```
+
+With three budgets, six trials cover every budget in every position twice,
+using rotated and reversed variant order. Other parameters and the binary stay
+the same. Larger budgets let a callback process more queued tasks before
+returning to the event loop; this can also delay other handles, which this
+single-handle workload does not measure. Report CPU cost and tail variability
+alongside throughput. This experiment does not directly observe OS scheduling;
+the package name remains `backoff-diagnostics.tar.gz` for both comparisons.
+
 For actual UV executor old/new comparisons and io_uring/DPDK awaitable costs,
 see [`bench/io_adapters/README.md`](io_adapters/README.md).
 
