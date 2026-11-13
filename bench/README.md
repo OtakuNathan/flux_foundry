@@ -56,6 +56,55 @@ allocator comparison. The suite does not exercise io_uring, DPDK, or a real NIC.
 Share `summary.txt` and `environment.json` for an initial comparison; retain the
 CSV and raw logs for investigating variability.
 
+### Diagnose latency spikes
+
+```sh
+python3 bench/run.py --uv on --skip-flow --trials 3 --samples 1000000 --trace
+```
+
+This exports the scheduled probes' **existing** seven timestamps after timing,
+validation, and the FIFO fence. It adds no per-event clock reads or trace buffers.
+UV warmup is excluded. After each process exits, Python compresses each raw CSV
+and builds the following files in the result directory:
+
+- `*.samples.csv.gz`: every event's timestamps in nanoseconds relative to that
+  case's planned origin, with its event ID. Keep these for detailed analysis.
+- `*.timeline.csv`: 1 ms windows, planned/submitted/started/completed counts,
+  remaining planned submissions and unfinished submitted events at window end.
+  These are logical operation counts, not executor queue occupancy. Duration
+  maxima are grouped by the event's **submission** window; count columns use
+  each transition's own time. Empty windows are retained.
+- `*.spikes.csv`: the 16 largest end-to-end latency events, their timestamps and
+  per-event latency breakdown. These are maxima, not representative p99 samples.
+- `trace-summary.txt`: per-case maxima and definitions. The ordinary
+  `summary.txt` still contains throughput and p99 statistics.
+
+For an individual event, `e2e = submit_lag + pre_dispatch + dispatch_to_begin +
+service`. `pre_dispatch` includes producer-side runner/awaitable preparation.
+`dispatch_to_begin` includes enqueueing/retries and the wait until the callback
+begins; it is not a pure queue residence measurement. `service` runs from callback
+entry through the receiver's completion timestamp, excluding subsequent cleanup.
+`dispatch_call` and `submit_call` can overlap consumer execution and must not be
+added to that decomposition.
+
+`producer_gap` is time from the previous submit return to the next submit start;
+it includes intentional arrival pacing. `consumer_gap` is time from the previous
+completion timestamp to the next callback start; it includes callback cleanup,
+loop work, idle time and scheduling delays. A gap alone does not prove a thread
+was descheduled, blocked on allocation, or migrated between CPU types.
+
+Start with windows where unfinished work grows: compare submission counts,
+completion counts, submission lag, dispatch duration and callback service time.
+Then inspect individual spikes and nearby events in the raw trace. OS-level
+profiling is a separate follow-up once the affected path is identified.
+
+Large runs create substantial trace data and take extra time to process. Writing
+and compression happen outside measurement, but diagnostic code layout and
+between-case activity can still affect results; keep an untraced control run.
+For sharing, send `diagnostics.tar.gz`: the runner bundles `summary.txt`,
+`results.csv`, `environment.json`, `trace-summary.txt` and the small `*.timeline.csv` /
+`*.spikes.csv` files. Full sample traces stay outside this small bundle.
+
 For actual UV executor old/new comparisons and io_uring/DPDK awaitable costs,
 see [`bench/io_adapters/README.md`](io_adapters/README.md).
 

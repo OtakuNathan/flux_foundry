@@ -33,6 +33,7 @@ template<> struct async_submission_failed_error<std::error_code> {
 #include "flow/flow.h"
 #include "executor/simple_executor.h"
 #include "memory/aligned_alloc.h"
+#include "bench/sample_trace.h"
 
 namespace load_probe {
 using namespace flux_foundry;
@@ -311,6 +312,7 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
         qs.p50/1000.0,peak_outstanding,late,
         drain_last_submit/1000000.0,drain_schedule/1000000.0,sizeof(Sample)*o.samples/1048576.0,newline ? "\n" : ",");
     std::fflush(stdout);
+    ff_bench::export_samples(samples, origin, capacity, mode, p.name, repeat);
     return {monitor_end-monitor_start,cpu_end-cpu_start};
 }
 static void print_csv_header(const char* prefix = "", const char* suffix = "") {

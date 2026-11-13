@@ -14,6 +14,9 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tarfile
+
+from trace_samples import summarize as summarize_trace
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +41,7 @@ def main():
     parser.add_argument("--count", type=positive, default=1000000, help="tasks per UV throughput trial")
     parser.add_argument("--uv", choices=("auto", "on", "off"), default="auto")
     parser.add_argument("--skip-flow", action="store_true", help="only run cross-thread probes")
+    parser.add_argument("--trace", action="store_true", help="export scheduled-event timelines after timing, then compress and summarize")
     args = parser.parse_args()
     if args.samples > 1000000:
         parser.error("--samples must be <= 1000000")
@@ -50,6 +54,7 @@ def main():
     out = (args.out or ROOT / "build" / datetime.datetime.now().strftime("bench-%Y%m%d-%H%M%S-%f")).resolve()
     out.mkdir(parents=True, exist_ok=False)
     commands = []
+    traces = []
     metadata = {
         "platform": platform.platform(), "machine": platform.machine(),
         "logical_cpus": os.cpu_count(), "compiler": capture(compiler + ["--version"]),
@@ -64,12 +69,23 @@ def main():
     if uv:
         metadata["libuv"] = capture(["pkg-config", "--modversion", "libuv"])
 
-    def run(command, name):
+    def run(command, name, trace=False):
         commands.append(command)
         (out / "environment.json").write_text(json.dumps(metadata, indent=2) + "\n")
         print("  " + name, flush=True)
+        env = os.environ.copy()
+        env.pop("FF_BENCH_TRACE_PREFIX", None)
+        if trace:
+            env["FF_BENCH_TRACE_PREFIX"] = str(out / name)
         with (out / (name + ".log")).open("w") as log, (out / (name + ".stderr")).open("w") as err:
-            subprocess.run(command, cwd=ROOT, stdout=log, stderr=err, check=True)
+            subprocess.run(command, cwd=ROOT, stdout=log, stderr=err, check=True, env=env)
+        if trace:
+            files = sorted(out.glob(name + "-*.samples.csv"))
+            if len(files) != (3 if name.startswith("queue-") else 1):
+                raise RuntimeError("missing sample traces for " + name)
+            for file in files:
+                print("    analyze " + file.name, flush=True)
+                traces.append(summarize_trace(file))
         return (out / (name + ".log")).read_text()
 
     flags = ["-std=c++14", "-O3", "-DNDEBUG", "-pthread", "-I" + str(ROOT)]
@@ -127,7 +143,7 @@ def main():
             profiles.reverse()
         for profile in profiles:
             output = run([queue, "--samples", str(args.samples), "--repeats", "1",
-                          "--capacity", "1024", "--profile", profile], "queue-%s-%d" % (profile, trial))
+                          "--capacity", "1024", "--profile", profile], "queue-%s-%d" % (profile, trial), trace=args.trace)
             scheduled(output, "simple-scheduled", trial)
         if uv:
             for producers in ([1, 3] if trial % 2 else [3, 1]):
@@ -140,7 +156,7 @@ def main():
             for profile in profiles:
                 for mode in modes:
                     output = run([handoff, mode, profile, str(args.samples), "128", "16", "-1", "-1"],
-                                 "uv-%s-%s-%d" % (mode, profile, trial))
+                                 "uv-%s-%s-%d" % (mode, profile, trial), trace=args.trace)
                     scheduled(output, "uv-scheduled", trial)
 
     with (out / "results.csv").open("w", newline="") as f:
@@ -161,6 +177,23 @@ def main():
                        (*key, statistics.median(values), min(values), max(values)))
     report = "\n".join(summary) + "\n"
     (out / "summary.txt").write_text(report)
+    if traces:
+        (out / "trace-summary.txt").write_text(
+            "Diagnostic maxima, NOT p99. Times are relative to each case's planned origin.\n"
+            "Timeline counts use their own event times; duration maxima use submission-time bins.\n"
+            "pending_submit_end = planned - submitted; inflight_end = submitted - completed, at bin end.\n"
+            "inflight is logical unfinished work, not executor queue occupancy.\n"
+            "producer_gap includes planned waiting; consumer_gap includes callback cleanup and loop work.\n"
+            "These gaps do not establish OS preemption. dispatch_call can overlap service.\n"
+            "For the same event: e2e = submit_lag + pre_dispatch + dispatch_to_begin + service.\n"
+            "See *.spikes.csv for the 16 largest e2e events and *.timeline.csv for 1 ms windows.\n\n"
+            + "\n".join(traces) + "\n")
+        with tarfile.open(out / "diagnostics.tar.gz", "w:gz") as archive:
+            files = [out / name for name in ("summary.txt", "results.csv", "environment.json", "trace-summary.txt")]
+            files += sorted(out.glob("*.timeline.csv")) + sorted(out.glob("*.spikes.csv"))
+            for file in files:
+                archive.add(file, arcname=file.name)
+        print("Share diagnostic bundle: " + str(out / "diagnostics.tar.gz"), flush=True)
     print("\n" + report)
     print("Saved logs, commands, environment.json, results.csv, summary.txt in " + str(out))
 
