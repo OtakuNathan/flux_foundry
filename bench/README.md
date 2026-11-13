@@ -182,6 +182,10 @@ and ordinary awaitable + fast runner at both offered loads; examine CPU use and
 per-trial tails together. It does not measure other I/O handles' fairness or
 power consumption. Existing invocations default to the blocking loop.
 
+The [M1 Max loop/budget results](io_adapters/results/2026-11-13/m1-loop-policy/README.md)
+retain 120 process trials: polling reduced 500k/s median p99 by 42–44% at
+increased CPU use, while 2M/s results did not establish a consistent winner.
+
 This isolates an observed M1 Max scheduling cost. A System Trace of revision
 `f7f996d` (macOS 15.3.2, libuv 1.53.0; raw/500k, 250,000 events) passed the
 capture checks and had continuous, nonoverlapping state coverage for both

@@ -1,0 +1,43 @@
+UV loop/budget/backoff comparison: adaptive=backoff_strategy<>, spin=backoff_strategy<SIZE_MAX>.
+Same binary, interleaved variants, rotating/reversing order; capacity=1024, work=128.
+Variants: adaptive/budget16/blocking, adaptive/budget16/poll, adaptive/budget64/blocking, adaptive/budget64/poll, adaptive/budget256/blocking, adaptive/budget256/poll
+Policies keep max_loop=1024 and only change the probe retry boundary; budget controls tasks per UV callback.
+blocking drives UV_RUN_DEFAULT; poll repeatedly drives UV_RUN_NOWAIT with a CPU relax between iterations.
+Polling keeps async sends/callbacks and may consume a full owner core; other I/O fairness/power are not measured.
+Counters add per-rejection instrumentation equally to both policies.
+scheduler_yields counts calls, not observed context switches; zero means this mechanism was not exercised.
+cpu_percent is process CPU / wall time: 100% is one core, 200% is two.
+CPU interval includes the 2 ms lead-in and drain fence; excludes setup, sorting and trace output.
+Scheduled throughput is offered-load constrained. p99 columns are medians of per-trial quantiles.
+
+case | metric | adaptive/budget16/blocking median [min,max] | adaptive/budget16/poll median [min,max] | adaptive/budget64/blocking median [min,max] | adaptive/budget64/poll median [min,max] | adaptive/budget256/blocking median [min,max] | adaptive/budget256/poll median [min,max]
+raw/overload2m | completed_per_s | 1999998.334 [1996771.221,2000000.164] | 1999998.582 [1993757.545,2000000.332] | 1999998.334 [1999470.472,2000000.336] | 1999999.416 [1991335.532,2000000.332] | 1999999.168 [1995270.045,2000000.000] | 1999998.668 [1999998.000,2000000.500]
+raw/overload2m | e2e_p99_us | 2282.062 [20.083,7045.166] | 2193.563 [1600.875,2482.500] | 2204.792 [71.333,4178.417] | 1826.626 [1103.750,3455.875] | 726.292 [47.167,4202.334] | 1630.583 [26.208,2718.458]
+raw/overload2m | e2e_p999_us | 2575.667 [49.709,7731.166] | 2599.729 [2372.375,2937.709] | 2715.854 [85.750,5066.708] | 2232.438 [1667.917,4389.167] | 1168.125 [87.250,5114.792] | 2159.667 [91.625,3213.333]
+raw/overload2m | actual_p99_us | 714.312 [19.458,796.667] | 715.229 [626.042,729.375] | 680.958 [71.208,687.791] | 652.750 [402.458,696.792] | 203.146 [41.750,686.125] | 543.625 [21.875,753.417]
+raw/overload2m | submit_lag_p99_us | 1773.042 [0.750,6532.708] | 1687.396 [1090.209,1976.334] | 1699.666 [0.916,3668.708] | 1300.479 [701.209,2946.750] | 503.917 [0.833,3699.709] | 1166.125 [0.750,2210.167]
+raw/overload2m | dispatch_p99_us | 1.167 [0.750,1.833] | 0.980 [0.958,1.334] | 0.875 [0.709,0.958] | 0.875 [0.750,0.917] | 0.708 [0.708,0.792] | 0.855 [0.708,0.917]
+raw/overload2m | dispatch_max_us | 43.291 [17.917,107.041] | 48.084 [42.208,74.750] | 41.791 [21.542,70.125] | 39.625 [26.042,69.625] | 33.459 [20.792,41.958] | 36.417 [18.959,55.250]
+raw/overload2m | retries | 166476.000 [0.000,470883.000] | 136397.000 [56223.000,174564.000] | 128454.500 [0.000,180126.000] | 91976.000 [30872.000,159978.000] | 13469.000 [0.000,161543.000] | 73540.500 [0.000,283681.000]
+raw/overload2m | scheduler_yields | 318.000 [0.000,729.000] | 250.500 [18.000,358.000] | 306.500 [0.000,766.000] | 46.000 [1.000,412.000] | 0.000 [0.000,722.000] | 58.500 [0.000,460.000]
+raw/overload2m | cpu_percent | 195.524 [193.911,196.935] | 194.012 [192.861,195.511] | 194.541 [194.184,196.706] | 194.572 [192.453,195.358] | 195.024 [194.581,196.076] | 196.390 [195.257,198.604]
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 2/6 trials (descriptive, not a significance test).
+  adaptive/budget64/blocking had lower e2e p99 than adaptive/budget16/blocking in 3/6 trials (descriptive, not a significance test).
+  adaptive/budget64/poll had lower e2e p99 than adaptive/budget16/blocking in 3/6 trials (descriptive, not a significance test).
+  adaptive/budget256/blocking had lower e2e p99 than adaptive/budget16/blocking in 3/6 trials (descriptive, not a significance test).
+  adaptive/budget256/poll had lower e2e p99 than adaptive/budget16/blocking in 4/6 trials (descriptive, not a significance test).
+ordinary-fast/overload2m | completed_per_s | 1999888.340 [1849460.253,1999999.000] | 1999982.168 [1994193.407,1999998.500] | 1999915.919 [1991034.043,2000000.000] | 1999998.582 [1980471.399,1999999.832] | 1999998.834 [1989441.042,1999999.832] | 1990794.280 [1981666.776,1999999.168]
+ordinary-fast/overload2m | e2e_p99_us | 5270.583 [3731.708,43762.584] | 5363.438 [4280.291,11682.625] | 4534.749 [3391.834,7210.750] | 5153.500 [2980.917,20584.583] | 4952.166 [3148.750,10183.875] | 4961.062 [3798.458,10299.958]
+ordinary-fast/overload2m | e2e_p999_us | 6032.291 [4156.125,44393.459] | 5875.709 [4597.250,12127.500] | 5002.333 [3840.750,8135.708] | 5881.751 [3738.666,21246.791] | 5783.979 [3674.125,10827.125] | 5726.334 [4409.500,11144.291]
+ordinary-fast/overload2m | actual_p99_us | 437.938 [410.625,997.042] | 659.771 [428.709,924.250] | 430.521 [404.875,663.541] | 490.230 [409.625,969.625] | 509.458 [399.250,841.292] | 430.604 [404.625,500.000]
+ordinary-fast/overload2m | submit_lag_p99_us | 4871.417 [3419.541,43398.917] | 4990.250 [4016.458,11171.166] | 4274.396 [3060.459,6860.833] | 4742.709 [2647.125,20126.625] | 4519.562 [2746.333,9805.833] | 4630.354 [3437.583,9930.875]
+ordinary-fast/overload2m | dispatch_p99_us | 0.895 [0.583,1.458] | 1.313 [1.000,1.375] | 0.542 [0.542,0.542] | 0.562 [0.542,1.416] | 0.542 [0.542,0.542] | 0.542 [0.542,0.583]
+ordinary-fast/overload2m | dispatch_max_us | 45.417 [16.750,2047.250] | 42.521 [37.125,66.333] | 38.812 [28.167,42.292] | 40.438 [35.750,2141.375] | 41.730 [36.542,52.333] | 41.416 [37.875,50.209]
+ordinary-fast/overload2m | retries | 384528.000 [116926.000,1229386.000] | 599278.000 [254952.000,2063666.000] | 634172.000 [431122.000,910514.000] | 462934.000 [148417.000,2627132.000] | 592316.000 [270847.000,1533283.000] | 416762.000 [377638.000,794276.000]
+ordinary-fast/overload2m | scheduler_yields | 691.000 [155.000,1521.000] | 1286.000 [697.000,3058.000] | 589.000 [94.000,1465.000] | 931.500 [112.000,4140.000] | 405.000 [107.000,1486.000] | 660.500 [154.000,897.000]
+ordinary-fast/overload2m | cpu_percent | 191.447 [189.976,195.143] | 196.135 [194.728,198.541] | 190.904 [190.493,191.551] | 195.435 [194.123,197.542] | 190.348 [189.461,194.409] | 196.001 [194.874,196.616]
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 2/6 trials (descriptive, not a significance test).
+  adaptive/budget64/blocking had lower e2e p99 than adaptive/budget16/blocking in 4/6 trials (descriptive, not a significance test).
+  adaptive/budget64/poll had lower e2e p99 than adaptive/budget16/blocking in 4/6 trials (descriptive, not a significance test).
+  adaptive/budget256/blocking had lower e2e p99 than adaptive/budget16/blocking in 4/6 trials (descriptive, not a significance test).
+  adaptive/budget256/poll had lower e2e p99 than adaptive/budget16/blocking in 3/6 trials (descriptive, not a significance test).

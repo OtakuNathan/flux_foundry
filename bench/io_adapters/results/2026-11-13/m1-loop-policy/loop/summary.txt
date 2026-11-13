@@ -1,0 +1,57 @@
+UV loop/budget/backoff comparison: adaptive=backoff_strategy<>, spin=backoff_strategy<SIZE_MAX>.
+Same binary, interleaved variants, rotating/reversing order; capacity=1024, work=128.
+Variants: adaptive/budget16/blocking, adaptive/budget16/poll
+Policies keep max_loop=1024 and only change the probe retry boundary; budget controls tasks per UV callback.
+blocking drives UV_RUN_DEFAULT; poll repeatedly drives UV_RUN_NOWAIT with a CPU relax between iterations.
+Polling keeps async sends/callbacks and may consume a full owner core; other I/O fairness/power are not measured.
+Counters add per-rejection instrumentation equally to both policies.
+scheduler_yields counts calls, not observed context switches; zero means this mechanism was not exercised.
+cpu_percent is process CPU / wall time: 100% is one core, 200% is two.
+CPU interval includes the 2 ms lead-in and drain fence; excludes setup, sorting and trace output.
+Scheduled throughput is offered-load constrained. p99 columns are medians of per-trial quantiles.
+
+case | metric | adaptive/budget16/blocking median [min,max] | adaptive/budget16/poll median [min,max]
+raw/steady500k | completed_per_s | 499997.307 [499990.073,500000.396] | 499999.838 [499999.656,500000.302]
+raw/steady500k | e2e_p99_us | 42.770 [42.375,44.708] | 23.896 [21.792,25.208]
+raw/steady500k | e2e_p999_us | 55.729 [53.625,59.042] | 46.000 [44.042,52.833]
+raw/steady500k | actual_p99_us | 42.541 [42.125,44.208] | 23.062 [21.166,24.333]
+raw/steady500k | submit_lag_p99_us | 1.292 [1.000,1.667] | 2.729 [1.209,4.167]
+raw/steady500k | dispatch_p99_us | 2.354 [1.625,2.958] | 3.104 [2.417,4.083]
+raw/steady500k | dispatch_max_us | 39.354 [27.750,52.375] | 42.833 [35.541,96.291]
+raw/steady500k | retries | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+raw/steady500k | scheduler_yields | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+raw/steady500k | cpu_percent | 127.347 [126.660,130.232] | 144.597 [144.363,146.983]
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).
+ordinary-fast/steady500k | completed_per_s | 499999.640 [499988.521,499999.865] | 499999.990 [499999.792,500000.260]
+ordinary-fast/steady500k | e2e_p99_us | 42.541 [42.167,43.708] | 24.708 [21.291,26.459]
+ordinary-fast/steady500k | e2e_p999_us | 51.980 [49.667,57.792] | 46.875 [44.000,48.834]
+ordinary-fast/steady500k | actual_p99_us | 42.188 [42.041,43.375] | 23.417 [20.250,24.875]
+ordinary-fast/steady500k | submit_lag_p99_us | 0.895 [0.417,1.125] | 2.791 [1.667,4.792]
+ordinary-fast/steady500k | dispatch_p99_us | 1.438 [1.291,2.125] | 2.521 [2.500,2.875]
+ordinary-fast/steady500k | dispatch_max_us | 36.812 [20.166,40.291] | 37.354 [22.125,41.333]
+ordinary-fast/steady500k | retries | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+ordinary-fast/steady500k | scheduler_yields | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+ordinary-fast/steady500k | cpu_percent | 138.197 [136.211,139.940] | 149.367 [148.693,150.085]
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).
+raw/overload2m | completed_per_s | 1999999.250 [1995425.324,2000000.336] | 1999183.914 [1988847.209,2000000.336]
+raw/overload2m | e2e_p99_us | 1105.833 [39.166,5147.541] | 1328.542 [73.875,2271.917]
+raw/overload2m | e2e_p999_us | 1765.208 [86.375,6075.875] | 1998.042 [123.750,2831.417]
+raw/overload2m | actual_p99_us | 548.229 [37.416,724.834] | 512.270 [73.375,712.417]
+raw/overload2m | submit_lag_p99_us | 613.812 [1.042,4636.458] | 819.041 [1.250,1722.750]
+raw/overload2m | dispatch_p99_us | 0.979 [0.792,1.250] | 0.917 [0.875,1.375]
+raw/overload2m | dispatch_max_us | 37.438 [21.750,51.167] | 44.438 [38.459,100.166]
+raw/overload2m | retries | 38855.000 [0.000,197672.000] | 54018.500 [0.000,172223.000]
+raw/overload2m | scheduler_yields | 37.500 [0.000,825.000] | 137.000 [0.000,326.000]
+raw/overload2m | cpu_percent | 193.913 [193.369,194.598] | 194.246 [193.463,196.584]
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 3/6 trials (descriptive, not a significance test).
+ordinary-fast/overload2m | completed_per_s | 1999981.002 [1969618.796,2000000.168] | 1999993.334 [1995458.667,2000000.000]
+ordinary-fast/overload2m | e2e_p99_us | 4339.729 [2477.208,5672.417] | 4664.125 [2260.500,11360.875]
+ordinary-fast/overload2m | e2e_p999_us | 5105.104 [3178.083,7968.875] | 5453.250 [3091.958,11625.583]
+ordinary-fast/overload2m | actual_p99_us | 405.583 [392.167,801.750] | 506.625 [391.041,801.792]
+ordinary-fast/overload2m | submit_lag_p99_us | 4052.896 [2167.958,5373.917] | 4263.896 [1875.833,10894.125]
+ordinary-fast/overload2m | dispatch_p99_us | 1.146 [0.542,1.375] | 1.042 [0.667,1.375]
+ordinary-fast/overload2m | dispatch_max_us | 34.812 [17.167,40.667] | 38.374 [25.750,3800.166]
+ordinary-fast/overload2m | retries | 275922.000 [81460.000,457902.000] | 184701.000 [49152.000,769928.000]
+ordinary-fast/overload2m | scheduler_yields | 792.000 [430.000,1060.000] | 520.000 [27.000,1096.000]
+ordinary-fast/overload2m | cpu_percent | 190.748 [190.157,192.064] | 195.139 [193.008,197.731]
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 4/6 trials (descriptive, not a significance test).

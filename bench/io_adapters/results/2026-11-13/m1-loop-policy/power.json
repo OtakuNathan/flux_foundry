@@ -1,0 +1,10 @@
+{
+  "remote-loop-budget-20261113-192337.thermal-before.txt": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+  "remote-loop-20261113-192131.power-before.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; finishing charge; (no estimate) present: true\n",
+  "remote-loop-20261113-192131.thermal-after.txt": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+  "remote-loop-budget-20261113-192337.thermal-after.txt": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+  "remote-loop-budget-20261113-192337.power-after.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; finishing charge; 0:44 remaining present: true\n",
+  "remote-loop-20261113-192131.power-after.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; finishing charge; 0:42 remaining present: true\n",
+  "remote-loop-budget-20261113-192337.power-before.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; finishing charge; 0:43 remaining present: true\n",
+  "remote-loop-20261113-192131.thermal-before.txt": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n"
+}
