@@ -165,6 +165,39 @@ single-handle workload does not measure. Report CPU cost and tail variability
 alongside throughput. This experiment does not directly observe OS scheduling;
 the package name remains `backoff-diagnostics.tar.gz` for both comparisons.
 
+To compare a blocking event loop with continuous nonblocking polling, keeping
+backoff and callback budget fixed:
+
+```sh
+python3 bench/io_adapters/compare_backoff.py --policies adaptive --loop-policies blocking poll --trials 6
+```
+
+Both variants use the same executor, async sends, queue and callback budget.
+`blocking` drives `UV_RUN_DEFAULT`; `poll` repeatedly calls `UV_RUN_NOWAIT` with
+the probe's CPU relax instruction between iterations. Both run through the
+executor's close callback. Polling avoids sleeping in the backend poll, but
+still performs backend system calls and can use an entire owner core. It does
+not prevent OS preemption or change thread QoS. The comparison covers raw tasks
+and ordinary awaitable + fast runner at both offered loads; examine CPU use and
+per-trial tails together. It does not measure other I/O handles' fairness or
+power consumption. Existing invocations default to the blocking loop.
+
+This isolates an observed M1 Max scheduling cost. A System Trace of revision
+`f7f996d` (macOS 15.3.2, libuv 1.53.0; raw/500k, 250,000 events) passed the
+capture checks and had continuous, nonoverlapping state coverage for both
+threads throughout the 502.016 ms signpost interval. The consumer spent
+282.106 ms Running, 145.192 ms Runnable, 73.780 ms Blocked, and 0.940 ms
+Interrupted/Preempted. Runnable intervals had p99 27.416 us; 944 lasted at least
+20 us. The producer ran for 499.521 ms; queue-full retries were zero. Both
+threads ran almost entirely on P cores (consumer E-core running time 0.018 ms).
+There were 112,995 producer `kevent` calls through `uv_async_send` and 113,004
+consumer calls through `uv__io_poll` overlapping the interval. Measured e2e p99
+was 41.166 us, versus 44.083/42.042 us in the surrounding unprofiled controls.
+These are one instrumented run's observations: interval quantiles are not task
+latency quantiles, and without aligned per-task timestamps they cannot assign
+every tail event to scheduling. They motivate the loop comparison, not a
+production policy change.
+
 ### Capture macOS scheduling behavior
 
 ```sh

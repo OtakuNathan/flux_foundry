@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare UV callback budgets and production backoff parameters in one binary."""
+"""Compare UV loop policies, callback budgets and backoff in one binary."""
 import argparse
 import csv
 import datetime
@@ -31,6 +31,7 @@ def main():
                         default=["raw", "ordinary-fast"])
     parser.add_argument("--budgets", type=positive, nargs="+", default=[16])
     parser.add_argument("--policies", nargs="+", choices=("adaptive", "spin"), default=["adaptive", "spin"])
+    parser.add_argument("--loop-policies", nargs="+", choices=("blocking", "poll"), default=["blocking"])
     parser.add_argument("--owner-cpu", type=int, default=-1)
     parser.add_argument("--producer-cpu", type=int, default=-1)
     parser.add_argument("--trace", action="store_true", help="also export event timelines (extra disk/time)")
@@ -46,7 +47,8 @@ def main():
     # Deduplicate filters so every trial has exactly one observation per policy/case.
     modes, profiles = list(dict.fromkeys(args.modes)), list(dict.fromkeys(args.profiles))
     budgets, policies = list(dict.fromkeys(args.budgets)), list(dict.fromkeys(args.policies))
-    variants = [(budget, policy) for budget in budgets for policy in policies]
+    loops = list(dict.fromkeys(args.loop_policies))
+    variants = [(budget, policy, loop) for budget in budgets for policy in policies for loop in loops]
     compiler = shlex.split(os.environ.get("CXX", "c++"))
     extra = shlex.split(os.environ.get("EXTRA_CXXFLAGS", ""))
     uvflags = shlex.split(capture(["pkg-config", "--cflags", "libuv"]))
@@ -93,12 +95,13 @@ def main():
                 if ((trial - 1) // len(variants)) % 2:
                     variant_order = variant_order[::-1]
             pending_traces = []
-            for budget, policy in variant_order:
-                name = "%s-%s-budget%d-%s-%d" % (mode, profile, budget, policy, trial)
+            for budget, policy, loop in variant_order:
+                name = "%s-%s-budget%d-%s-%s-%d" % (mode, profile, budget, policy, loop, trial)
                 output = run([binary, mode, profile, str(args.samples), "128", str(budget),
-                              str(args.owner_cpu), str(args.producer_cpu), policy], name, args.trace)
+                              str(args.owner_cpu), str(args.producer_cpu), policy, loop], name, args.trace)
                 measured = [r for r in csv.DictReader(io.StringIO(output)) if r["phase"] == "measured"]
-                if len(measured) != 1 or measured[0]["backoff"] != policy or int(measured[0]["budget"]) != budget:
+                if (len(measured) != 1 or measured[0]["backoff"] != policy or
+                        int(measured[0]["budget"]) != budget or measured[0]["loop_policy"] != loop):
                     raise RuntimeError("unexpected measured rows: " + name)
                 row = dict(trial=trial, **measured[0])
                 if policy == "spin" and int(row["scheduler_yields"]):
@@ -119,11 +122,13 @@ def main():
         writer.writerows(rows)
     metrics = ("completed_per_s", "e2e_p99_us", "e2e_p999_us", "actual_p99_us",
                "submit_lag_p99_us", "dispatch_p99_us", "dispatch_max_us", "retries", "scheduler_yields", "cpu_percent")
-    labels = ["%s/budget%d" % (policy, budget) for budget, policy in variants]
-    summary = ["UV budget/backoff comparison: adaptive=backoff_strategy<>, spin=backoff_strategy<SIZE_MAX>.",
+    labels = ["%s/budget%d/%s" % (policy, budget, loop) for budget, policy, loop in variants]
+    summary = ["UV loop/budget/backoff comparison: adaptive=backoff_strategy<>, spin=backoff_strategy<SIZE_MAX>.",
                "Same binary, interleaved variants, rotating/reversing order; capacity=1024, work=128.",
                "Variants: " + ", ".join(labels),
                "Policies keep max_loop=1024 and only change the probe retry boundary; budget controls tasks per UV callback.",
+               "blocking drives UV_RUN_DEFAULT; poll repeatedly drives UV_RUN_NOWAIT with a CPU relax between iterations.",
+               "Polling keeps async sends/callbacks and may consume a full owner core; other I/O fairness/power are not measured.",
                "Counters add per-rejection instrumentation equally to both policies.",
                "scheduler_yields counts calls, not observed context switches; zero means this mechanism was not exercised.",
                "cpu_percent is process CPU / wall time: 100% is one core, 200% is two.",
@@ -132,7 +137,8 @@ def main():
                "case | metric | " + " | ".join(label + " median [min,max]" for label in labels)]
     for mode, profile in cases:
         groups = [[r for r in rows if r["mode"] == mode and r["profile"] == profile and
-                   r["backoff"] == policy and int(r["budget"]) == budget] for budget, policy in variants]
+                   r["backoff"] == policy and int(r["budget"]) == budget and r["loop_policy"] == loop]
+                  for budget, policy, loop in variants]
         for metric in metrics:
             values = [[float(r[metric]) for r in group] for group in groups]
             cells = ["%.3f [%.3f,%.3f]" % (statistics.median(v), min(v), max(v)) for v in values]

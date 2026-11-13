@@ -46,12 +46,15 @@ load_probe::Ns process_cpu(void*) {
 
 int main(int argc, char** argv) {
     using namespace load_probe;
-    if (argc != 8 && argc != 9) {
-        std::fprintf(stderr, "usage: uv_handoff raw|ordinary-fast|normal PROFILE SAMPLES WORK BUDGET OWNER_CPU PRODUCER_CPU [adaptive|spin]\n");
+    if (argc < 8 || argc > 10) {
+        std::fprintf(stderr, "usage: uv_handoff raw|ordinary-fast|normal PROFILE SAMPLES WORK BUDGET OWNER_CPU PRODUCER_CPU [adaptive|spin [blocking|poll]]\n");
         return 2;
     }
     const char* mode = argv[1];
-    const bool compare = argc == 9;
+    const bool compare = argc >= 9;
+    const bool loop_compare = argc == 10;
+    const bool poll = loop_compare && !std::strcmp(argv[9], "poll");
+    require(!loop_compare || poll || !std::strcmp(argv[9], "blocking"), "invalid loop policy");
     const bool spin = compare && !std::strcmp(argv[8], "spin");
     require(!compare || spin || !std::strcmp(argv[8], "adaptive"), "invalid backoff policy");
     require(!std::strcmp(mode, "raw") || !std::strcmp(mode, "ordinary-fast") ||
@@ -85,7 +88,13 @@ int main(int argc, char** argv) {
             uv_executor ex(&loop, o.capacity, budget);
             executor = &ex;
             ready.store(true, std::memory_order_release);
-            uv_run(&loop, UV_RUN_DEFAULT);
+            if (poll) {
+                // Keep the normal async callback, queue and wake protocol;
+                // change only how the owner drives its borrowed event loop.
+                while (uv_run(&loop, UV_RUN_NOWAIT)) relax();
+            } else {
+                uv_run(&loop, UV_RUN_DEFAULT);
+            }
             require(ex.closed(), "executor did not close");
             // Public object lifetime includes the producer's close() call.
             while (!close_returned.load(std::memory_order_acquire)) relax();
@@ -108,7 +117,9 @@ int main(int argc, char** argv) {
         port = {&stats, spin ? retry_dispatch<spin_limit> : retry_dispatch<adaptive_limit>};
     }
     const CpuMonitor process_monitor{nullptr, process_cpu};
-    print_csv_header("phase,budget,", compare ? ",backoff,retries,scheduler_yields,process_cpu_ms,cpu_percent" : "");
+    print_csv_header("phase,budget,", loop_compare
+        ? ",backoff,retries,scheduler_yields,process_cpu_ms,cpu_percent,loop_policy"
+        : compare ? ",backoff,retries,scheduler_yields,process_cpu_ms,cpu_percent" : "");
     Options warmup = o;
     warmup.samples = std::min<std::size_t>(o.samples, 4096);
     const auto warm_prefix = std::string("warmup,") + std::to_string(budget) + ",";
@@ -117,10 +128,12 @@ int main(int argc, char** argv) {
     auto print_retry_stats = [&](const ProbeTiming& time) {
         require(time.wall_ns > 0 && time.process_cpu_ns >= 0, "invalid process CPU measurement");
         if (spin) require(stats.scheduler_yields == 0, "spin threshold exhausted");
-        std::printf("%s,%llu,%llu,%.3f,%.3f\n", argv[8],
+        std::printf("%s,%llu,%llu,%.3f,%.3f", argv[8],
             static_cast<unsigned long long>(stats.retries),
             static_cast<unsigned long long>(stats.scheduler_yields),
             time.process_cpu_ns / 1e6, 100.0 * time.process_cpu_ns / time.wall_ns);
+        if (loop_compare) std::printf(",%s", argv[9]);
+        std::printf("\n");
     };
     if (compare) print_retry_stats(warm_time);
     stats.retries = stats.scheduler_yields = 0;
