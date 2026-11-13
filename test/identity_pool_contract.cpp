@@ -198,6 +198,179 @@ void mixed_routes() {
     done.store(true, std::memory_order_release);
     for (auto& t : owners) t.join();
 }
+
+template <size_t Routes>
+void interleaved_routes(size_t owner_count, bool explicit_flush) {
+    using routed = identity_pool_allocator<96, 8, 64, 8, 16, 64, Routes>;
+    constexpr size_t blocks_per_owner = 13; // A full batch and a partial batch.
+    std::vector<std::vector<void*>> blocks(owner_count, std::vector<void*>(blocks_per_owner));
+    std::vector<size_t> identities(owner_count);
+    std::atomic<size_t> ready{0}, checked{0};
+    std::atomic<bool> flushed{false};
+    std::vector<std::thread> owners;
+    for (size_t owner = 0; owner < owner_count; ++owner) owners.emplace_back([&, owner] {
+        identities[owner] = routed::current_identity();
+        check(identities[owner] != 0, "interleaved owner registration failed");
+        for (size_t i = 0; i < blocks_per_owner; ++i) {
+            blocks[owner][i] = routed::alloc();
+            fill(blocks[owner][i], static_cast<unsigned char>(owner * blocks_per_owner + i));
+        }
+        ready.fetch_add(1, std::memory_order_acq_rel);
+        while (!flushed.load(std::memory_order_acquire)) std::this_thread::yield();
+        std::vector<void*> reused;
+        for (size_t i = 0; i < blocks_per_owner; ++i) {
+            auto* p = routed::alloc();
+            check(std::find(blocks[owner].begin(), blocks[owner].end(), p) != blocks[owner].end(),
+                "interleaved route did not return every block to its owner");
+            reused.push_back(p);
+        }
+        std::sort(reused.begin(), reused.end(), std::less<void*>{});
+        check(std::adjacent_find(reused.begin(), reused.end()) == reused.end(),
+            "interleaved route returned duplicate live storage");
+        for (auto* p : reused) routed::dealloc(identities[owner], p);
+        checked.fetch_add(1, std::memory_order_release);
+    });
+    while (ready.load(std::memory_order_acquire) != owner_count) std::this_thread::yield();
+    std::thread sender([&] {
+        for (size_t i = 0; i < blocks_per_owner; ++i) {
+            for (size_t owner = 0; owner < owner_count; ++owner) {
+                verify(blocks[owner][i], static_cast<unsigned char>(owner * blocks_per_owner + i));
+                routed::dealloc(identities[owner], blocks[owner][i]);
+            }
+        }
+        if (explicit_flush) {
+            routed::flush_remote_returns();
+            flushed.store(true, std::memory_order_release);
+            // Owners must observe every partial lane before sender TLS exit;
+            // otherwise destruction could hide an incomplete explicit flush.
+            while (checked.load(std::memory_order_acquire) != owner_count) std::this_thread::yield();
+        }
+    });
+    sender.join();
+    if (!explicit_flush) flushed.store(true, std::memory_order_release);
+    for (auto& t : owners) t.join();
+}
+
+void full_route_inboxes() {
+    using routed = identity_pool_allocator<96, 8, 16, 4, 8, 4, 4>;
+    constexpr size_t owner_count = 4, blocks_per_owner = 12;
+    void* blocks[owner_count][blocks_per_owner]{};
+    size_t identities[owner_count]{};
+    std::atomic<size_t> ready{0};
+    std::atomic<bool> sent{false};
+    std::thread owners[owner_count];
+    for (size_t owner = 0; owner < owner_count; ++owner) owners[owner] = std::thread([&, owner] {
+        identities[owner] = routed::current_identity();
+        for (size_t i = 0; i < blocks_per_owner; ++i) {
+            blocks[owner][i] = routed::alloc();
+            fill(blocks[owner][i], static_cast<unsigned char>(owner * blocks_per_owner + i));
+        }
+        ready.fetch_add(1, std::memory_order_acq_rel);
+        while (!sent.load(std::memory_order_acquire)) std::this_thread::yield();
+        void* reused[4]{};
+        for (size_t i = 0; i < 4; ++i) {
+            reused[i] = routed::alloc();
+            check(std::find(blocks[owner], blocks[owner] + 4, reused[i]) != blocks[owner] + 4,
+                "full inbox lost the first admitted batch");
+        }
+        std::sort(reused, reused + 4, std::less<void*>{});
+        check(std::adjacent_find(reused, reused + 4) == reused + 4, "full inbox reused live storage twice");
+        for (auto* p : reused) routed::dealloc(identities[owner], p);
+    });
+    while (ready.load(std::memory_order_acquire) != owner_count) std::this_thread::yield();
+    std::thread sender([&] {
+        for (size_t i = 0; i < blocks_per_owner; ++i) for (size_t owner = 0; owner < owner_count; ++owner) {
+            verify(blocks[owner][i], static_cast<unsigned char>(owner * blocks_per_owner + i));
+            routed::dealloc(identities[owner], blocks[owner][i]);
+        }
+        routed::flush_remote_returns(); // Overflow batches are adopted, not lost.
+    });
+    sender.join();
+    sent.store(true, std::memory_order_release);
+    for (auto& t : owners) t.join();
+}
+
+void stale_route_batches() {
+    using routed = identity_pool_allocator<96, 8, 16, 8, 4, 16, 4>;
+    void* blocks[2]{};
+    size_t identities[2]{}, replacement_identities[2]{};
+    std::atomic<size_t> ready{0}, replacement_ready{0};
+    std::atomic<bool> staged{false}, owners_replaced{false}, adopted{false};
+    std::thread owners[2];
+    for (size_t owner = 0; owner < 2; ++owner) owners[owner] = std::thread([&, owner] {
+        identities[owner] = routed::current_identity();
+        blocks[owner] = routed::alloc(); fill(blocks[owner], static_cast<unsigned char>(owner + 71));
+        ready.fetch_add(1, std::memory_order_acq_rel);
+        while (!staged.load(std::memory_order_acquire)) std::this_thread::yield();
+    });
+    while (ready.load(std::memory_order_acquire) != 2) std::this_thread::yield();
+    std::thread sender([&] {
+        for (size_t owner = 0; owner < 2; ++owner) {
+            verify(blocks[owner], static_cast<unsigned char>(owner + 71));
+            routed::dealloc(identities[owner], blocks[owner]);
+        }
+        staged.store(true, std::memory_order_release);
+        while (!owners_replaced.load(std::memory_order_acquire)) std::this_thread::yield();
+        routed::flush_remote_returns();
+        auto* first = routed::alloc();
+        auto* second = routed::alloc();
+        check(first != second && std::find(blocks, blocks + 2, first) != blocks + 2 &&
+            std::find(blocks, blocks + 2, second) != blocks + 2,
+            "stale outgoing lane reached a replacement owner instead of being adopted");
+        routed::dealloc(routed::current_identity(), first);
+        routed::dealloc(routed::current_identity(), second);
+        adopted.store(true, std::memory_order_release);
+    });
+    // This join must not wait for pending lanes on the still-live sender.
+    for (auto& t : owners) t.join();
+    std::thread replacements[2];
+    for (size_t owner = 0; owner < 2; ++owner) replacements[owner] = std::thread([&, owner] {
+        replacement_identities[owner] = routed::current_identity();
+        replacement_ready.fetch_add(1, std::memory_order_acq_rel);
+        while (!adopted.load(std::memory_order_acquire)) std::this_thread::yield();
+    });
+    while (replacement_ready.load(std::memory_order_acquire) != 2) std::this_thread::yield();
+    for (auto replacement : replacement_identities) {
+        check(replacement != 0 && replacement != identities[0] && replacement != identities[1],
+            "replacement registration did not advance generation");
+        check((replacement & 255) == (identities[0] & 255) ||
+            (replacement & 255) == (identities[1] & 255), "test did not force registry-slot reuse");
+    }
+    owners_replaced.store(true, std::memory_order_release);
+    sender.join();
+    for (auto& t : replacements) t.join();
+}
+
+void close_multiple_routes() {
+    using routed = identity_pool_allocator<96, 8, 16, 8, 16, 16, 4>;
+    constexpr size_t owner_count = 4, sender_count = 4, block_count = 64;
+    for (size_t repeat = 0; repeat < 12; ++repeat) {
+        void* blocks[owner_count][block_count]{};
+        size_t identities[owner_count]{};
+        std::atomic<size_t> ready{0}, started{0};
+        std::thread owners[owner_count], senders[sender_count];
+        for (size_t owner = 0; owner < owner_count; ++owner) owners[owner] = std::thread([&, owner] {
+            identities[owner] = routed::current_identity();
+            for (size_t i = 0; i < block_count; ++i) {
+                blocks[owner][i] = routed::alloc(); fill(blocks[owner][i], static_cast<unsigned char>(i));
+            }
+            ready.fetch_add(1, std::memory_order_acq_rel);
+            while (started.load(std::memory_order_acquire) != sender_count) std::this_thread::yield();
+        });
+        while (ready.load(std::memory_order_acquire) != owner_count) std::this_thread::yield();
+        for (size_t sender = 0; sender < sender_count; ++sender) senders[sender] = std::thread([&, sender] {
+            started.fetch_add(1, std::memory_order_acq_rel);
+            for (size_t i = sender; i < block_count; i += sender_count) {
+                for (size_t owner = 0; owner < owner_count; ++owner) {
+                    verify(blocks[owner][i], static_cast<unsigned char>(i));
+                    routed::dealloc(identities[owner], blocks[owner][i]);
+                }
+            }
+        });
+        for (auto& t : owners) t.join();
+        for (auto& t : senders) t.join();
+    }
+}
 struct object final : identity_pooling_base<object, 32> {
     unsigned char data[96];
     explicit object(bool fail = false) {
@@ -230,11 +403,17 @@ void object_lifetime() {
 int main() {
     const auto before = available();
     round_trip(); stale_identity(); pending_after_exit(); close_race(); late_tls(); over_aligned(); mixed_routes(); object_lifetime();
+    interleaved_routes<1>(2, true);
+    interleaved_routes<4>(2, true);
+    interleaved_routes<4>(4, false);
+    interleaved_routes<4>(8, true); // More destinations than lanes exercises eviction.
+    full_route_inboxes(); stale_route_batches(); close_multiple_routes();
     check(available() == before, "pool storage leaked after owner/sender exit");
     auto held = drain_backing();
     round_trip(); stale_identity(); pending_after_exit();
+    interleaved_routes<4>(4, false); full_route_inboxes(); stale_route_batches();
     check(available() == 0, "malloc fallback was misclassified");
     for (auto p : held) detail::get_pool().deallocate(p);
     check(available() == before, "fallback changed backing ownership");
-    std::puts("PASS: identity routing, batched TLS refill, stale/exhausted slots, adoption, exit races, late TLS and alignment");
+    std::puts("PASS: identity routing, bounded multi-route batches, full inboxes, stale/exhausted slots, adoption, exit races, late TLS and alignment");
 }

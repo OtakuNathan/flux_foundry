@@ -191,6 +191,47 @@ private:
     }
 };
 
+// Opt-in terminal-only lane. Accepted requests keep the fast awaitable's
+// initial reference until the original terminal CQE. Controller cancellation
+// is not registered, so no competing logical completion can release it early.
+// The host must submit/drain accepted SQEs, including after close or a failed
+// flush, exactly as for io_uring_awaitable. Never access self after resume().
+template <typename Operation, typename E = flow_async_agg_err_t>
+struct io_uring_fast_awaitable final
+    : fast_awaitable_base<io_uring_fast_awaitable<Operation, E>, io_uring_result<Operation>, E> {
+    using async_result_type = result_t<io_uring_result<Operation>, E>;
+    using request_type = io_uring_request<Operation>;
+    static_assert(std::is_object<Operation>::value
+            && !std::is_const<Operation>::value && !std::is_volatile<Operation>::value,
+        "io_uring operation requirement: Operation must be an unqualified object type owned by the awaitable.");
+    static_assert(detail::uring_prepare_prob<Operation>::value,
+        "io_uring operation requirement: provide void prepare(io_uring_sqe*) noexcept, callable on an lvalue.");
+    static_assert(std::is_nothrow_destructible<Operation>::value,
+        "io_uring operation requirement: Operation must be nothrow destructible.");
+    static_assert(std::is_nothrow_move_constructible<Operation>::value,
+        "io_uring operation requirement: Operation must be nothrow move constructible.");
+    static_assert(detail::io_error_prob<E>::value,
+        "I/O awaitable requirement: specialize extension::detail::io_error<E> with static E make(int) noexcept.");
+
+    explicit io_uring_fast_awaitable(result_t<request_type, E>&& input) noexcept
+        : request(std::move(input).value()) {}
+    bool available() const noexcept { return request.context != nullptr; }
+    int submit() noexcept {
+        return available() ? request.context->enqueue(request.operation, &on_complete, this) : -EINVAL;
+    }
+
+private:
+    request_type request;
+    static void on_complete(void* data, int result, unsigned flags) noexcept {
+        auto* self = static_cast<io_uring_fast_awaitable*>(data);
+        if (result < 0)
+            self->resume(async_result_type(error_tag, detail::io_error<E>::make(-result)));
+        else
+            self->resume(async_result_type(value_tag,
+                io_uring_result<Operation>{std::move(self->request.operation), result, flags}));
+    }
+};
+
 } // namespace extension
 
 template <typename Operation, typename E = flow_async_agg_err_t>
@@ -199,6 +240,14 @@ auto await_io_uring() noexcept { return await<extension::io_uring_awaitable<Oper
 template <typename Operation, typename E = flow_async_agg_err_t, typename Executor>
 auto await_io_uring(Executor&& executor) noexcept {
     return await<extension::io_uring_awaitable<Operation, E>>(std::forward<Executor>(executor));
+}
+
+template <typename Operation, typename E = flow_async_agg_err_t>
+auto await_io_uring_fast() noexcept { return await<extension::io_uring_fast_awaitable<Operation, E>>(); }
+
+template <typename Operation, typename E = flow_async_agg_err_t, typename Executor>
+auto await_io_uring_fast(Executor&& executor) noexcept {
+    return await<extension::io_uring_fast_awaitable<Operation, E>>(std::forward<Executor>(executor));
 }
 } // namespace flux_foundry
 #endif

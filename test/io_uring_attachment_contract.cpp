@@ -71,13 +71,14 @@ request make_request(io_uring_context& ctx, int& destroyed, int fd = -2) {
     return {&ctx, operation{std::unique_ptr<payload>(new payload{&destroyed, 0}), fd}};
 }
 
+template <typename Awaitable = io_uring_awaitable<operation, E>>
 void flow_case(bool cancel_first, int result, bool fast) {
     staged_ring ring;
     io_uring_context ctx(ring.ring, 0xff10, 1);
     observed seen;
     int destroyed = 0;
     auto control = make_lite_ptr<flow_controller>();
-    auto bp = make_blueprint<request, E>() | await_io_uring<operation>() | end();
+    auto bp = make_blueprint<request, E>() | await<Awaitable>() | end();
     auto drive = [&](auto& runner) {
         runner(make_request(ctx, destroyed));
         check(ctx.pending() == 1 && !seen.calls && !destroyed, "staging retains operation; no premature completion");
@@ -104,12 +105,13 @@ void flow_case(bool cancel_first, int result, bool fast) {
     }
 }
 
+template <typename Awaitable = io_uring_awaitable<operation, E>>
 void admission_case() {
     staged_ring ring;
     io_uring_context ctx(ring.ring, 0xff11, 1);
     int destroyed = 0;
     observed first, rejected;
-    auto bp = make_blueprint<request, E>() | await_io_uring<operation>() | end();
+    auto bp = make_blueprint<request, E>() | await<Awaitable>() | end();
     auto shared = make_lite_ptr<decltype(bp)>(std::move(bp));
     auto runner = make_runner(shared, receiver{&first});
     auto other = make_runner(shared, receiver{&rejected});
@@ -132,6 +134,99 @@ void admission_case() {
     auto closed = make_runner(shared, receiver{&rejected});
     closed(make_request(ctx, destroyed));
     check(rejected.calls == 3 && ctx.closed() && destroyed == 5, "close rejects new requests");
+}
+
+void terminal_cancel_waits_for_cqe() {
+    staged_ring ring;
+    io_uring_context ctx(ring.ring, 0xff15, 1);
+    int destroyed = 0;
+    observed seen;
+    auto control = make_lite_ptr<flow_controller>();
+    auto bp = make_blueprint<request, E>() | await_io_uring_fast<operation, E>() | end();
+    flow_runner<decltype(bp), receiver> runner(make_lite_ptr<decltype(bp)>(std::move(bp)), control, receiver{&seen});
+    runner(make_request(ctx, destroyed));
+    control->cancel();
+    check(ctx.pending() == 1 && !destroyed && !seen.calls,
+          "fast node has no early controller cancellation; terminal CQE owns buffer lifetime");
+    ctx.close();
+    check(ctx.complete(ring.last_token(), 0, 0) && seen.calls == 1 && destroyed == 1 && ctx.closed(),
+          "fast node drains original CQE after close and controller request");
+}
+
+template <typename F>
+struct callback_receiver {
+    using value_type = output;
+    F callback;
+    void emplace(output&& out) noexcept { callback(std::move(out)); }
+};
+template <typename F>
+callback_receiver<F> make_callback_receiver(F f) noexcept { return {std::move(f)}; }
+
+void terminal_reentrant_and_lifetime() {
+    staged_ring ring;
+    std::unique_ptr<io_uring_context> ctx(new io_uring_context(ring.ring, 0xff16, 1));
+    int destroyed = 0;
+    observed second;
+    std::unique_ptr<payload> held;
+    auto bp = make_blueprint<request, E>() | await_io_uring_fast<operation, E>() | end();
+    auto first_receiver = make_callback_receiver([&](output&& out) noexcept {
+        check(out.has_value() && !ctx->pending(), "fast CQE frees registry slot before continuation");
+        held = std::move(out.value().operation.buffer);
+        auto next = make_fast_runner_view(bp, receiver{&second});
+        next(make_request(*ctx, destroyed));
+    });
+    auto first = make_fast_runner_view(bp, first_receiver);
+    first(make_request(*ctx, destroyed));
+    const auto first_token = ring.last_token();
+    check(ctx->complete(first_token, 0, 0) && held && !destroyed && ctx->pending() == 1,
+          "fast continuation can resubmit into capacity-one registry and retain result buffers");
+    check(!ctx->complete(first_token, 0, 0), "reentrant fast node rejects stale original token");
+    check(ctx->complete(ring.last_token(), 0, 0) && second.calls == 1 && destroyed == 1,
+          "reentrant fast request completes and releases its own buffer once");
+    held.reset();
+    check(destroyed == 2, "result owner controls retained buffer lifetime");
+
+    auto destroy_receiver = make_callback_receiver([&](output&& out) noexcept {
+        check(out.has_value() && !ctx->pending(), "terminal callback sees drained attachment");
+        held = std::move(out.value().operation.buffer);
+        ctx.reset();
+    });
+    auto last = make_fast_runner_view(bp, destroy_receiver);
+    last(make_request(*ctx, destroyed));
+    auto* attachment = ctx.get();
+    check(attachment->complete(ring.last_token(), 0, 0) && !ctx && held && destroyed == 2,
+          "fast callback may destroy drained attachment while keeping owned result alive");
+    held.reset();
+    check(destroyed == 3, "destruction from fast callback leaves no backend ownership");
+}
+
+void terminal_deferred_receiver() {
+    struct queued_executor {
+        task_wrapper_sbo pending;
+        void dispatch(task_wrapper_sbo&& task) noexcept { pending = std::move(task); }
+    } executor;
+    staged_ring ring;
+    observed seen;
+    int destroyed = 0;
+    auto bp = make_blueprint<request, E>() | await_io_uring_fast<operation, E>(&executor) | end();
+    {
+        io_uring_context ctx(ring.ring, 0xff17, 1);
+        auto runner = make_fast_runner_view(bp, receiver{&seen});
+        runner(make_request(ctx, destroyed));
+        check(ctx.complete(ring.last_token(), 0, 0) && executor.pending && !seen.calls && !destroyed,
+              "fast completion transfers owned buffer into deferred continuation");
+        check(ctx.try_detach(), "backend attachment may detach before selected executor resumes");
+    }
+    executor.pending();
+    executor.pending = task_wrapper_sbo{};
+    check(seen.calls == 1 && seen.values == 1 && destroyed == 1,
+          "deferred fast continuation completes after attachment destruction");
+    auto runner = make_fast_runner_view(bp, receiver{&seen});
+    runner(request{nullptr, operation{std::unique_ptr<payload>(new payload{&destroyed, 0}), -2}});
+    check(executor.pending && destroyed == 2, "null fast attachment fails without leaking owned buffer");
+    executor.pending();
+    executor.pending = task_wrapper_sbo{};
+    check(seen.calls == 2 && seen.values == 1, "null attachment delivers one error on selected executor");
 }
 
 void reentrant_case() {
@@ -183,6 +278,7 @@ void close_during_prepare() {
           "terminal CQE returns the final close ticket");
 }
 
+template <typename Awaitable = io_uring_awaitable<operation, E>>
 int kernel_case() {
     io_uring ring{};
     const int rc = io_uring_queue_init(8, &ring, 0);
@@ -195,7 +291,7 @@ int kernel_case() {
         io_uring_context ctx(ring, 0xff13, 4);
         int destroyed = 0;
         observed seen;
-        auto bp = make_blueprint<request, E>() | await_io_uring<operation>() | end();
+        auto bp = make_blueprint<request, E>() | await<Awaitable>() | end();
         auto runner = make_runner(make_lite_ptr<decltype(bp)>(std::move(bp)), receiver{&seen});
         // A real file read exercises buffer retention and actual data transfer.
         FILE* file = std::tmpfile();
@@ -228,12 +324,23 @@ int kernel_case() {
 } // namespace
 
 int main(int argc, char** argv) {
-    if (argc == 2 && std::strcmp(argv[1], "--kernel") == 0) return kernel_case();
+    if (argc == 2 && std::strcmp(argv[1], "--kernel") == 0) {
+        const int ordinary = kernel_case();
+        if (ordinary) return ordinary;
+        return kernel_case<io_uring_fast_awaitable<operation, E>>();
+    }
     flow_case(false, 42, false);
     flow_case(false, -EBADF, false);
     flow_case(true, 0, false);
     flow_case(false, 42, true);
     admission_case();
+    flow_case<io_uring_fast_awaitable<operation, E>>(false, 42, true);
+    flow_case<io_uring_fast_awaitable<operation, E>>(false, -EBADF, true);
+    flow_case<io_uring_fast_awaitable<operation, E>>(false, 42, false);
+    admission_case<io_uring_fast_awaitable<operation, E>>();
+    terminal_cancel_waits_for_cqe();
+    terminal_reentrant_and_lifetime();
+    terminal_deferred_receiver();
     reentrant_case();
     close_during_prepare();
     return failures ? 1 : 0;
