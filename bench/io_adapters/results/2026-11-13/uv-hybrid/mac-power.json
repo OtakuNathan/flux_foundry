@@ -1,0 +1,8 @@
+{
+  "remote-hybrid-sparse-20261113-205026.power-after.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; charged; 0:00 remaining present: true\n",
+  "remote-hybrid-sparse-20261113-205026.power-before.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; charged; 0:00 remaining present: true\n",
+  "remote-hybrid-20261113-204652.power-before.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; charged; 0:00 remaining present: true\n",
+  "remote-hybrid-confirm-20261113-204813.power-after.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; charged; 0:00 remaining present: true\n",
+  "remote-hybrid-20261113-204652.power-after.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; charged; 0:00 remaining present: true\n",
+  "remote-hybrid-confirm-20261113-204813.power-before.txt": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=7929955)\t100%; charged; 0:00 remaining present: true\n"
+}

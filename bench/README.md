@@ -217,6 +217,13 @@ process, including setup, warmup and teardown. Those counts are not measured
 phase wakeup counts. No hybrid window is a production default or a guaranteed
 latency/CPU improvement.
 
+The [386-process hybrid study](io_adapters/results/2026-11-13/uv-hybrid/README.md)
+identifies 2 us as a useful starting window for the tested Linux same-L3
+high-rate/bursty workload: near-polling 500k/s p99 and near-blocking CPU use
+between bursts. Sparse 100k/s traffic gains no latency benefit, and the Mac's
+2 us long-run comparison regresses under pressure. Keep this workload-specific
+and opt-in; the short screens alone did not justify a universal setting.
+
 This isolates an observed M1 Max scheduling cost. A System Trace of revision
 `f7f996d` (macOS 15.3.2, libuv 1.53.0; raw/500k, 250,000 events) passed the
 capture checks and had continuous, nonoverlapping state coverage for both

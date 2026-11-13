@@ -1,0 +1,38 @@
+[
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-1.stderr",
+    "poll": 94523,
+    "wait": 502,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-2.stderr",
+    "poll": 96046,
+    "wait": 280,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-3.stderr",
+    "poll": 96807,
+    "wait": 386,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-4.stderr",
+    "poll": 97084,
+    "wait": 394,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-5.stderr",
+    "poll": 97328,
+    "wait": 371,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-6.stderr",
+    "poll": 97880,
+    "wait": 313,
+    "idle_ns": 2000
+  }
+]

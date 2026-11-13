@@ -1,0 +1,272 @@
+[
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-2000-1.stderr",
+    "poll": 32513,
+    "wait": 35,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-2000-2.stderr",
+    "poll": 32145,
+    "wait": 42,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-2000-3.stderr",
+    "poll": 32440,
+    "wait": 41,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-2000-4.stderr",
+    "poll": 32062,
+    "wait": 36,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-2000-5.stderr",
+    "poll": 32343,
+    "wait": 39,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-500-1.stderr",
+    "poll": 22077,
+    "wait": 2573,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-500-2.stderr",
+    "poll": 22059,
+    "wait": 2524,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-500-3.stderr",
+    "poll": 22027,
+    "wait": 2563,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-500-4.stderr",
+    "poll": 21955,
+    "wait": 2543,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-500-5.stderr",
+    "poll": 21942,
+    "wait": 2454,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-8000-1.stderr",
+    "poll": 33259,
+    "wait": 34,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-8000-2.stderr",
+    "poll": 32883,
+    "wait": 35,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-8000-3.stderr",
+    "poll": 33032,
+    "wait": 34,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-8000-4.stderr",
+    "poll": 32896,
+    "wait": 35,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-burst8192-budget16-adaptive-hybrid-8000-5.stderr",
+    "poll": 32582,
+    "wait": 35,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-2000-1.stderr",
+    "poll": 47382,
+    "wait": 12,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-2000-2.stderr",
+    "poll": 39759,
+    "wait": 13,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-2000-3.stderr",
+    "poll": 89087,
+    "wait": 13,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-2000-4.stderr",
+    "poll": 44353,
+    "wait": 15,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-2000-5.stderr",
+    "poll": 58503,
+    "wait": 6,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-500-1.stderr",
+    "poll": 59817,
+    "wait": 2446,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-500-2.stderr",
+    "poll": 30219,
+    "wait": 2535,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-500-3.stderr",
+    "poll": 40676,
+    "wait": 2565,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-500-4.stderr",
+    "poll": 40172,
+    "wait": 2568,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-500-5.stderr",
+    "poll": 65079,
+    "wait": 2398,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-8000-1.stderr",
+    "poll": 45481,
+    "wait": 4,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-8000-2.stderr",
+    "poll": 46782,
+    "wait": 6,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-8000-3.stderr",
+    "poll": 70519,
+    "wait": 4,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-8000-4.stderr",
+    "poll": 43809,
+    "wait": 4,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-overload2m-budget16-adaptive-hybrid-8000-5.stderr",
+    "poll": 37143,
+    "wait": 6,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-2000-1.stderr",
+    "poll": 1239173,
+    "wait": 56,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-2000-2.stderr",
+    "poll": 1023617,
+    "wait": 13,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-2000-3.stderr",
+    "poll": 1401788,
+    "wait": 512,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-2000-4.stderr",
+    "poll": 1357002,
+    "wait": 21,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-2000-5.stderr",
+    "poll": 1386474,
+    "wait": 497,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-500-1.stderr",
+    "poll": 269929,
+    "wait": 133485,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-500-2.stderr",
+    "poll": 358234,
+    "wait": 166905,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-500-3.stderr",
+    "poll": 298406,
+    "wait": 133878,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-500-4.stderr",
+    "poll": 284960,
+    "wait": 132810,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-500-5.stderr",
+    "poll": 280671,
+    "wait": 131414,
+    "idle_ns": 500
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-8000-1.stderr",
+    "poll": 1029491,
+    "wait": 13,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-8000-2.stderr",
+    "poll": 1221168,
+    "wait": 5,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-8000-3.stderr",
+    "poll": 1415572,
+    "wait": 7,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-8000-4.stderr",
+    "poll": 1055795,
+    "wait": 6,
+    "idle_ns": 8000
+  },
+  {
+    "file": "ordinary-fast-steady500k-budget16-adaptive-hybrid-8000-5.stderr",
+    "poll": 1406736,
+    "wait": 5,
+    "idle_ns": 8000
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "desktop-screen": {
+    "rows": 75,
+    "bundle_sha256": "2642a492c90ff83c38e17bca3d78c57f7982f8c24f8aa3aa25653332243e2f78"
+  },
+  "desktop-refine": {
+    "rows": 36,
+    "bundle_sha256": "f180b0de418208571764eb07646ca98007e65ca23b100163e9252fa060bc502e"
+  },
+  "desktop-confirm": {
+    "rows": 96,
+    "bundle_sha256": "04edd71fb842f0f60785e033bd9afa4299d133bfc6d3d654b93266c09a96f02a"
+  },
+  "desktop-sparse": {
+    "rows": 32,
+    "bundle_sha256": "22010e35a47f28ffe4a58f777698532806685372537518c54c536b2c39f707fa"
+  },
+  "mac-screen": {
+    "rows": 75,
+    "bundle_sha256": "e0e52afcc21e3b4b957cf5277c56ea0ef80acf32a65b4082ec615c5f1314ade0"
+  },
+  "mac-confirm": {
+    "rows": 54,
+    "bundle_sha256": "c347bcb92467aca7ffb6117d4ba790652afedb5580589d04405bc967cda6938d"
+  },
+  "mac-sparse": {
+    "rows": 18,
+    "bundle_sha256": "1044ba9a313cf8844967b5654ea4f56406ecff62392bacaa3b5d90b307a56458"
+  }
+}

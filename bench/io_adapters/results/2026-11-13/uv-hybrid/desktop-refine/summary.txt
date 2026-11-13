@@ -1,0 +1,29 @@
+UV loop/budget/backoff comparison: adaptive=backoff_strategy<>, spin=backoff_strategy<SIZE_MAX>.
+Same binary, interleaved variants, rotating/reversing order; capacity=1024, work=128.
+Variants: adaptive/budget16/blocking, adaptive/budget16/hybrid-750, adaptive/budget16/hybrid-1000, adaptive/budget16/hybrid-1500, adaptive/budget16/hybrid-2000, adaptive/budget16/poll
+Policies keep max_loop=1024 and only change the probe retry boundary; budget controls tasks per UV callback.
+blocking drives UV_RUN_DEFAULT; poll repeatedly drives UV_RUN_NOWAIT with a CPU relax between iterations.
+hybrid-N polls until N ns without a processed backend event, then uses UV_RUN_ONCE; metrics/clock reads add overhead.
+Polling keeps async sends/callbacks and may consume a full owner core; other I/O fairness/power are not measured.
+Counters add per-rejection instrumentation equally to both policies.
+scheduler_yields counts calls, not observed context switches; zero means this mechanism was not exercised.
+cpu_percent is process CPU / wall time: 100% is one core, 200% is two.
+CPU interval includes the 2 ms lead-in and drain fence; excludes setup, sorting and trace output.
+Scheduled throughput is offered-load constrained. p99 columns are medians of per-trial quantiles.
+
+case | metric | adaptive/budget16/blocking median [min,max] | adaptive/budget16/hybrid-750 median [min,max] | adaptive/budget16/hybrid-1000 median [min,max] | adaptive/budget16/hybrid-1500 median [min,max] | adaptive/budget16/hybrid-2000 median [min,max] | adaptive/budget16/poll median [min,max]
+ordinary-fast/steady500k | completed_per_s | 500000.238 [499998.880,500001.380] | 499999.323 [499999.224,500000.986] | 500000.785 [499999.261,500000.924] | 500000.737 [500000.701,500000.927] | 500000.775 [500000.643,500000.899] | 500000.892 [500000.833,500000.933]
+ordinary-fast/steady500k | e2e_p99_us | 3.651 [3.447,3.676] | 3.002 [2.982,3.277] | 3.026 [3.014,3.319] | 1.474 [1.451,1.579] | 1.466 [1.459,1.644] | 1.343 [1.322,1.395]
+ordinary-fast/steady500k | e2e_p999_us | 4.552 [4.421,5.274] | 4.740 [4.372,4.901] | 4.444 [3.702,4.904] | 3.208 [3.077,4.626] | 3.436 [3.120,4.468] | 2.862 [2.698,3.398]
+ordinary-fast/steady500k | actual_p99_us | 3.605 [3.380,3.620] | 2.940 [2.920,3.220] | 2.975 [2.960,3.250] | 1.415 [1.390,1.520] | 1.410 [1.400,1.580] | 1.280 [1.270,1.340]
+ordinary-fast/steady500k | submit_lag_p99_us | 0.080 [0.069,0.083] | 0.059 [0.059,0.069] | 0.059 [0.059,0.069] | 0.059 [0.059,0.059] | 0.059 [0.059,0.059] | 0.059 [0.059,0.059]
+ordinary-fast/steady500k | dispatch_p99_us | 1.190 [0.720,1.200] | 1.295 [1.290,1.420] | 1.335 [1.330,1.350] | 0.490 [0.470,0.510] | 0.510 [0.470,0.530] | 0.490 [0.460,0.530]
+ordinary-fast/steady500k | dispatch_max_us | 7.050 [3.140,16.290] | 9.105 [2.490,27.230] | 8.230 [3.420,37.600] | 2.030 [1.750,24.730] | 2.585 [1.500,35.830] | 2.065 [0.640,24.540]
+ordinary-fast/steady500k | retries | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+ordinary-fast/steady500k | scheduler_yields | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+ordinary-fast/steady500k | cpu_percent | 154.481 [153.762,158.983] | 170.414 [169.570,185.014] | 190.267 [188.456,198.442] | 199.189 [199.106,199.252] | 199.178 [199.049,199.265] | 199.611 [199.601,199.799]
+  adaptive/budget16/hybrid-750 had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).
+  adaptive/budget16/hybrid-1000 had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).
+  adaptive/budget16/hybrid-1500 had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).
+  adaptive/budget16/hybrid-2000 had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 6/6 trials (descriptive, not a significance test).

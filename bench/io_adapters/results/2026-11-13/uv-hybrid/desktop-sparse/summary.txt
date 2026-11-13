@@ -1,0 +1,27 @@
+UV loop/budget/backoff comparison: adaptive=backoff_strategy<>, spin=backoff_strategy<SIZE_MAX>.
+Same binary, interleaved variants, rotating/reversing order; capacity=1024, work=128.
+Variants: adaptive/budget16/blocking, adaptive/budget16/hybrid-750, adaptive/budget16/hybrid-2000, adaptive/budget16/poll
+Policies keep max_loop=1024 and only change the probe retry boundary; budget controls tasks per UV callback.
+blocking drives UV_RUN_DEFAULT; poll repeatedly drives UV_RUN_NOWAIT with a CPU relax between iterations.
+hybrid-N polls until N ns without a processed backend event, then uses UV_RUN_ONCE; metrics/clock reads add overhead.
+Polling keeps async sends/callbacks and may consume a full owner core; other I/O fairness/power are not measured.
+Counters add per-rejection instrumentation equally to both policies.
+scheduler_yields counts calls, not observed context switches; zero means this mechanism was not exercised.
+cpu_percent is process CPU / wall time: 100% is one core, 200% is two.
+CPU interval includes the 2 ms lead-in and drain fence; excludes setup, sorting and trace output.
+Scheduled throughput is offered-load constrained. p99 columns are medians of per-trial quantiles.
+
+case | metric | adaptive/budget16/blocking median [min,max] | adaptive/budget16/hybrid-750 median [min,max] | adaptive/budget16/hybrid-2000 median [min,max] | adaptive/budget16/poll median [min,max]
+ordinary-fast/steady100k | completed_per_s | 100000.701 [100000.696,100000.727] | 100000.699 [100000.694,100000.703] | 100000.698 [100000.689,100000.705] | 100000.886 [100000.869,100000.892]
+ordinary-fast/steady100k | e2e_p99_us | 3.550 [3.038,4.871] | 3.623 [3.477,4.899] | 3.639 [3.541,4.778] | 1.516 [1.505,1.544]
+ordinary-fast/steady100k | e2e_p999_us | 4.611 [3.626,6.249] | 5.201 [3.661,580.108] | 4.598 [3.668,6.839] | 1.683 [1.658,1.705]
+ordinary-fast/steady100k | actual_p99_us | 3.470 [2.980,4.770] | 3.545 [3.410,4.850] | 3.495 [3.490,4.710] | 1.470 [1.460,1.500]
+ordinary-fast/steady100k | submit_lag_p99_us | 0.062 [0.059,0.560] | 0.060 [0.059,0.077] | 0.059 [0.059,1.504] | 0.059 [0.059,0.059]
+ordinary-fast/steady100k | dispatch_p99_us | 0.690 [0.670,0.700] | 0.720 [0.690,0.720] | 0.720 [0.710,0.720] | 0.530 [0.520,0.530]
+ordinary-fast/steady100k | dispatch_max_us | 1.905 [1.040,5.660] | 2.440 [1.010,18.400] | 1.545 [1.020,23.350] | 1.045 [0.750,2.130]
+ordinary-fast/steady100k | retries | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+ordinary-fast/steady100k | scheduler_yields | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000] | 0.000 [0.000,0.000]
+ordinary-fast/steady100k | cpu_percent | 122.857 [120.202,123.008] | 133.837 [130.688,134.016] | 144.119 [143.069,144.733] | 199.627 [199.617,199.634]
+  adaptive/budget16/hybrid-750 had lower e2e p99 than adaptive/budget16/blocking in 2/8 trials (descriptive, not a significance test).
+  adaptive/budget16/hybrid-2000 had lower e2e p99 than adaptive/budget16/blocking in 3/8 trials (descriptive, not a significance test).
+  adaptive/budget16/poll had lower e2e p99 than adaptive/budget16/blocking in 8/8 trials (descriptive, not a significance test).

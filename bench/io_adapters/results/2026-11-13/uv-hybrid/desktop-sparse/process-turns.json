@@ -1,0 +1,98 @@
+[
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-1.stderr",
+    "poll": 614322,
+    "wait": 100004,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-2.stderr",
+    "poll": 613774,
+    "wait": 99988,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-3.stderr",
+    "poll": 614203,
+    "wait": 100002,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-4.stderr",
+    "poll": 613894,
+    "wait": 99998,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-5.stderr",
+    "poll": 701168,
+    "wait": 100007,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-6.stderr",
+    "poll": 614110,
+    "wait": 99985,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-7.stderr",
+    "poll": 614227,
+    "wait": 99997,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-2000-8.stderr",
+    "poll": 612697,
+    "wait": 100003,
+    "idle_ns": 2000
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-1.stderr",
+    "poll": 296283,
+    "wait": 102686,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-2.stderr",
+    "poll": 292500,
+    "wait": 101929,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-3.stderr",
+    "poll": 301315,
+    "wait": 103646,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-4.stderr",
+    "poll": 310279,
+    "wait": 103679,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-5.stderr",
+    "poll": 308979,
+    "wait": 103563,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-6.stderr",
+    "poll": 302925,
+    "wait": 103644,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-7.stderr",
+    "poll": 288593,
+    "wait": 103407,
+    "idle_ns": 750
+  },
+  {
+    "file": "ordinary-fast-steady100k-budget16-adaptive-hybrid-750-8.stderr",
+    "poll": 304842,
+    "wait": 103742,
+    "idle_ns": 750
+  }
+]
