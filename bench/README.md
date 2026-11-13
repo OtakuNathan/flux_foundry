@@ -190,6 +190,33 @@ retains 144 trials across same-L3, cross-L3 and unpinned placements. Polling
 improved 500k/s p99 in every paired trial but used nearly two cores; some
 2M/s p99 and p99.9 cases regressed. The default remains blocking.
 
+An experimental bounded idle window can be compared with both endpoints:
+
+```sh
+python3 bench/io_adapters/compare_backoff.py --policies adaptive \
+  --loop-policies blocking hybrid-500 hybrid-2000 hybrid-8000 poll \
+  --profiles steady500k overload2m burst8192 --modes ordinary-fast --trials 5
+```
+
+`hybrid-N` uses an idle window of N nanoseconds (1..1,000,000). After each
+nonblocking loop turn, it reads `uv_metrics_info().events` and a monotonic
+clock. A processed backend event renews the window. Once the window expires
+without an event, the next turn uses `UV_RUN_ONCE`; a new event can wake it
+through the existing async notification path. All observations are on the
+loop owner after `uv_run` returns. Hybrid mode requires libuv >= 1.45.0 and
+adds metrics/clock overhead; it does not change the executor's queue, send or
+close protocol. An active stream may keep renewing the window indefinitely,
+so this is not a CPU quota. Existing modes keep their original implementation.
+
+The sweep also accepts `steady100k` and `burst8192` from the shared probe.
+The latter schedules 8,192 tasks every 20 ms and helps expose idle CPU cost;
+its p99 largely describes tasks within bursts, not the first task after sleep.
+The producer still busy-waits for planned arrivals. Nonempty stderr logs are
+bundled: hybrid logs count blocking/nonblocking `uv_run` calls over the entire
+process, including setup, warmup and teardown. Those counts are not measured
+phase wakeup counts. No hybrid window is a production default or a guaranteed
+latency/CPU improvement.
+
 This isolates an observed M1 Max scheduling cost. A System Trace of revision
 `f7f996d` (macOS 15.3.2, libuv 1.53.0; raw/500k, 250,000 events) passed the
 capture checks and had continuous, nonoverlapping state coverage for both

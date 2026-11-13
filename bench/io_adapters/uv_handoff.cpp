@@ -42,19 +42,55 @@ load_probe::Ns process_cpu(void*) {
     load_probe::require(ticks != std::clock_t(-1), "process CPU clock unavailable");
     return static_cast<load_probe::Ns>(static_cast<long double>(ticks) * 1000000000 / CLOCKS_PER_SEC);
 }
+// Owner-only experiment. Activity is sampled after uv_run returns; no other
+// thread reads these metrics and no executor queue/close protocol is changed.
+void run_hybrid(uv_loop_t* loop, load_probe::Ns idle_ns) {
+    using namespace load_probe;
+    static_assert(Clock::is_steady, "hybrid idle deadlines require a monotonic clock");
+    static_assert(std::numeric_limits<Ns>::is_signed && std::numeric_limits<Ns>::digits >= 63,
+                  "hybrid idle durations require signed 64-bit nanoseconds");
+#if UV_VERSION_HEX >= 0x012d00
+    uv_metrics_t metrics{};
+    require(uv_metrics_info(loop, &metrics) == 0, "uv_metrics_info failed");
+    auto events = metrics.events;
+    auto last_activity = now_ns();
+    auto mode = UV_RUN_NOWAIT;
+    std::uint64_t polls = 0, waits = 0;
+    for (;;) {
+        if (mode == UV_RUN_NOWAIT) ++polls; else ++waits;
+        if (!uv_run(loop, mode)) break;
+        require(uv_metrics_info(loop, &metrics) == 0, "uv_metrics_info failed");
+        const auto now = now_ns();
+        if (metrics.events != events) last_activity = now;
+        events = metrics.events;
+        mode = now - last_activity < idle_ns ? UV_RUN_NOWAIT : UV_RUN_ONCE;
+        if (mode == UV_RUN_NOWAIT) relax();
+    }
+    // Whole-process diagnostics, including startup, warmup and teardown.
+    std::fprintf(stderr, "hybrid_process_turns poll=%llu wait=%llu idle_ns=%lld\n",
+        static_cast<unsigned long long>(polls), static_cast<unsigned long long>(waits),
+        static_cast<long long>(idle_ns));
+#else
+    (void)loop; (void)idle_ns;
+    require(false, "hybrid loop requires libuv >= 1.45.0");
+#endif
+}
 }
 
 int main(int argc, char** argv) {
     using namespace load_probe;
     if (argc < 8 || argc > 10) {
-        std::fprintf(stderr, "usage: uv_handoff raw|ordinary-fast|normal PROFILE SAMPLES WORK BUDGET OWNER_CPU PRODUCER_CPU [adaptive|spin [blocking|poll]]\n");
+        std::fprintf(stderr, "usage: uv_handoff raw|ordinary-fast|normal PROFILE SAMPLES WORK BUDGET OWNER_CPU PRODUCER_CPU [adaptive|spin [blocking|poll|hybrid-NANOSECONDS]]\n");
         return 2;
     }
     const char* mode = argv[1];
     const bool compare = argc >= 9;
     const bool loop_compare = argc == 10;
     const bool poll = loop_compare && !std::strcmp(argv[9], "poll");
-    require(!loop_compare || poll || !std::strcmp(argv[9], "blocking"), "invalid loop policy");
+    const bool hybrid = loop_compare && !std::strncmp(argv[9], "hybrid-", 7);
+    const auto idle_ns = hybrid ? number(argv[9] + 7) : 0;
+    require(!hybrid || (idle_ns > 0 && idle_ns <= 1000000), "hybrid idle window must be 1..1000000 ns");
+    require(!loop_compare || poll || hybrid || !std::strcmp(argv[9], "blocking"), "invalid loop policy");
     const bool spin = compare && !std::strcmp(argv[8], "spin");
     require(!compare || spin || !std::strcmp(argv[8], "adaptive"), "invalid backoff policy");
     require(!std::strcmp(mode, "raw") || !std::strcmp(mode, "ordinary-fast") ||
@@ -88,7 +124,9 @@ int main(int argc, char** argv) {
             uv_executor ex(&loop, o.capacity, budget);
             executor = &ex;
             ready.store(true, std::memory_order_release);
-            if (poll) {
+            if (hybrid) {
+                run_hybrid(&loop, static_cast<Ns>(idle_ns));
+            } else if (poll) {
                 // Keep the normal async callback, queue and wake protocol;
                 // change only how the owner drives its borrowed event loop.
                 while (uv_run(&loop, UV_RUN_NOWAIT)) relax();

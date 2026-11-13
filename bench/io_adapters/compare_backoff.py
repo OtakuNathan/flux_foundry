@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import statistics
 import subprocess
@@ -20,18 +21,27 @@ from run import ROOT, capture, positive
 from trace_samples import summarize as summarize_trace
 
 
+def loop_policy(value):
+    if value in ("blocking", "poll"):
+        return value
+    match = re.fullmatch(r"hybrid-([1-9][0-9]*)", value)
+    if match and int(match[1]) <= 1000000:
+        return value
+    raise argparse.ArgumentTypeError("use blocking, poll, or hybrid-N with N=1..1000000 idle nanoseconds")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--trials", type=positive, default=5)
     parser.add_argument("--samples", type=positive, default=1000000)
-    parser.add_argument("--profiles", nargs="+", choices=("steady500k", "overload2m"),
+    parser.add_argument("--profiles", nargs="+", choices=("steady100k", "steady500k", "overload2m", "burst8192"),
                         default=["steady500k", "overload2m"])
     parser.add_argument("--modes", nargs="+", choices=("raw", "ordinary-fast", "normal"),
                         default=["raw", "ordinary-fast"])
     parser.add_argument("--budgets", type=positive, nargs="+", default=[16])
     parser.add_argument("--policies", nargs="+", choices=("adaptive", "spin"), default=["adaptive", "spin"])
-    parser.add_argument("--loop-policies", nargs="+", choices=("blocking", "poll"), default=["blocking"])
+    parser.add_argument("--loop-policies", nargs="+", type=loop_policy, default=["blocking"])
     parser.add_argument("--owner-cpu", type=int, default=-1)
     parser.add_argument("--producer-cpu", type=int, default=-1)
     parser.add_argument("--trace", action="store_true", help="also export event timelines (extra disk/time)")
@@ -61,7 +71,7 @@ def main():
         arguments={**vars(args), "out": str(out)}, commands=[], trace_prefixes={},
         source_sha256={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in
             [ROOT / name for name in ("bench/io_adapters/uv_handoff.cpp", "bench/load_probe.h",
-                                     "utility/back_off.h", "executor/uv_executor.h")]})
+                                     "utility/back_off.h", "executor/uv_executor.h", "bench/io_adapters/compare_backoff.py")]})
     if platform.system() == "Darwin":
         metadata["hardware"] = capture(["sysctl", "-n", "machdep.cpu.brand_string"])
 
@@ -128,6 +138,7 @@ def main():
                "Variants: " + ", ".join(labels),
                "Policies keep max_loop=1024 and only change the probe retry boundary; budget controls tasks per UV callback.",
                "blocking drives UV_RUN_DEFAULT; poll repeatedly drives UV_RUN_NOWAIT with a CPU relax between iterations.",
+               "hybrid-N polls until N ns without a processed backend event, then uses UV_RUN_ONCE; metrics/clock reads add overhead.",
                "Polling keeps async sends/callbacks and may consume a full owner core; other I/O fairness/power are not measured.",
                "Counters add per-rejection instrumentation equally to both policies.",
                "scheduler_yields counts calls, not observed context switches; zero means this mechanism was not exercised.",
@@ -156,6 +167,7 @@ def main():
         files = [out / n for n in ("summary.txt", "results.csv", "environment.json")]
         if traces:
             files += [out / "trace-summary.txt"] + sorted(out.glob("*.timeline.csv")) + sorted(out.glob("*.spikes.csv"))
+        files += [path for path in sorted(out.glob("*.stderr")) if path.stat().st_size]
         for path in files:
             archive.add(path, arcname=path.name)
     print("\n" + report)
