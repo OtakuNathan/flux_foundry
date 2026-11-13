@@ -1,0 +1,27 @@
+{
+  "benchmark_revision": "6811a5d6a8efa560858288c3f2373eae638bca3f",
+  "processes": 1056,
+  "trials_per_case": 6,
+  "hosts": {
+    "desktop": {
+      "bundle_sha256": "f563c5f62dc77113633b6d2f571ce7fca63e63e778b9aefd30f67d663c3c8e06",
+      "files": {
+        "environment.json": "61ad7106bd6b5ec342e9eb8d6b6947a24cbbfa04034a4f3a56cc4ed6f1ac7ad5",
+        "results.csv": "b30cdf34665f7bd097e3f04c9a6f73461e954f20b7a47193ed010eff1354cdf7",
+        "summary.csv": "4dd29fde94ebdd00c1a077479108e6c85b77bd8cf9e59d3055488659f44afe4e",
+        "summary.txt": "7c7091ff6c12e19ccb6a37489d90b922fe64a0c3e4442ba86e83b10386dc4631"
+      },
+      "raw_location": "/home/nathan/ff-asio-20261113-X1vf8L/results/raw"
+    },
+    "mac": {
+      "bundle_sha256": "c10c48f4a9bd88c29c10c696674775554461fb8677229c5b5b89217f3f2da472",
+      "files": {
+        "environment.json": "168398e4ef14a476a25c20d77439e325c16bb5ea40015261361462e9a736f5ef",
+        "results.csv": "92f654b3100427a6fc76b39eebfa2fa7f9c01dca5d13150a86cec4487c95d3ed",
+        "summary.csv": "943830836c339a2e546e3fe58464e5f926c165912b49eb0e46362a2c0146866a",
+        "summary.txt": "76dc6ae5860f180f0d0d6dfcbe25f7d752801a6ffd4c312bf6be371bfd493671"
+      },
+      "raw_location": "/Users/nathan/Documents/coding/flux_foundry/build/asio-battle-mac-20261113/raw"
+    }
+  }
+}

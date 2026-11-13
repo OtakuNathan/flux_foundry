@@ -1,0 +1,21 @@
+{
+  "revision": "6811a5d6a8efa560858288c3f2373eae638bca3f",
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "processes": 66,
+  "samples": 4096,
+  "capacity": 1024,
+  "work": 8,
+  "status": "passed",
+  "local_ubsan": {
+    "processes": 66,
+    "samples": 2048,
+    "capacity": 1024,
+    "work": 8,
+    "status": "passed"
+  },
+  "local_asan": "Could not initialize its shadow allocator on the ARM64 development host; ASan+UBSan matrix was run successfully on desktop instead.",
+  "result_audit": "1056 rows; 88 cases per host; exactly six trials each; commands, source hashes, finite ordered quantiles, credit bounds, revisions and recomputed summaries checked."
+}

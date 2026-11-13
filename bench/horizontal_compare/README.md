@@ -2,6 +2,10 @@
 
 ## Current bounded-concurrency battle
 
+[2026-11-13 results: Ryzen 3700X and M1 Max](results/2026-11-13/README.md)
+contain 1,056 independent process trials with matched logical work, real Asio
+coroutines, per-case variability, tail latency and CPU measurements.
+
 Run from the repository root with Python 3, a C++20 compiler, git, libuv and
 pkg-config installed:
 

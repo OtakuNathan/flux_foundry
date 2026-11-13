@@ -2,6 +2,26 @@
 
 This document keeps the microbenchmark material out of the root `README`.
 
+## Updated Asio / FF comparison
+
+The [2026-11-13 matched-workload battle](horizontal_compare/results/2026-11-13/README.md)
+compares native callbacks, real Asio C++20 coroutines and FF flows on a common
+Asio backend, plus a separate Asio/UV cross-thread handoff comparison. Across
+six trials per case on a Ryzen 3700X and M1 Max, the fast awaitable + fast runner
+with a borrowed blueprint has higher saturated throughput than Asio coroutines
+in all eight host/chain-length/wait-policy comparisons. The report retains
+raw-callback baselines, normal-runner results, tail-latency regressions and CPU
+costs; this is successful in-memory execution, not network I/O or full feature
+equivalence. Existing serial Asio tables below remain historical snapshots.
+
+```sh
+python3 bench/horizontal_compare/battle.py
+```
+
+Requires C++20, Python 3, git, libuv and pkg-config. The runner fetches a pinned
+Asio 1.39.0 checkout into a new output directory. See the
+[methodology and filters](horizontal_compare/README.md).
+
 ## One-command macOS / Linux suite
 
 From the repository root, with Python 3 and a C++14 compiler:
