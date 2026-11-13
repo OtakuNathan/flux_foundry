@@ -165,6 +165,60 @@ single-handle workload does not measure. Report CPU cost and tail variability
 alongside throughput. This experiment does not directly observe OS scheduling;
 the package name remains `backoff-diagnostics.tar.gz` for both comparisons.
 
+### Capture macOS scheduling behavior
+
+```sh
+python3 bench/io_adapters/capture_macos.py
+```
+
+Run this on the Mac with full Xcode selected and libuv/pkg-config available.
+The script checks the installed `xctrace` help and templates before recording.
+It uses [System Trace](https://developer.apple.com/videos/play/wwdc2016/411/)
+to investigate runnable/running/blocked thread states, rather than inferring
+preemption from average CPU use or counts of `std::this_thread::yield()` calls.
+Any native developer-tool permission dialogs remain visible; the script does
+not invoke sudo or change system settings, QoS, affinity, or power policy.
+
+The default isolates the repeatable low-load tail: raw tasks, 500k/s, one million
+events, budget 16, queue capacity 1024, work 128 and adaptive backoff. It builds
+one `-O3 -g -fno-omit-frame-pointer` binary, then runs an unprofiled control,
+one System Trace capture, and another unprofiled control. Use these controls to
+assess profiler disturbance; the debug/frame-pointer-enabled binary can differ
+from earlier performance builds. No per-event logging or new per-event clocks
+are added. Trace capture itself has overhead.
+
+The diagnostic-only `FF_BENCH_SYSTEM_TRACE=1` build names the threads
+`ff-producer` and `ff-uv-consumer`. It emits an
+[`FF measured` signpost interval](https://developer.apple.com/documentation/os/os_signpost_interval_begin)
+covering the arrival lead-in, submission and completion fence, excluding setup,
+warmup and sorting. Signpost visibility depends on the instruments in the
+installed System Trace template. The separate `*.phase.csv` files retain the
+producer PID/TID, planned origin, adjacent steady/wall/Mach clock readings and
+Mach timebase. These readings are alignment anchors, not simultaneous samples;
+wall-clock adjustments must be considered when aligning exported timestamps.
+Ordinary builds compile out this instrumentation.
+
+The script discovers exportable scheduling/thread/signpost/syscall schemas from
+the trace table of contents and attempts each matching export. Schema names and
+export support vary across Xcode versions. An exported table is not by itself
+proof that it contains the relevant thread states; inspect it alongside the
+measured interval. Missing/failed exports are recorded. Native recordings and
+symbols remain under `capture.trace` and `uv-handoff.dSYM` for Instruments GUI
+inspection if portable tables are insufficient.
+
+Send `build/system-trace-TIMESTAMP/system-trace-diagnostics.tar.gz`. It contains
+the controls, measured result, clock anchors, environment, tool logs, TOC and
+compressed table exports; native traces and binaries stay local. Recording
+failures also produce a diagnostic bundle with the error and logs. A recording
+that hits the time limit before producing its measured row/clock anchors is
+rejected as incomplete; `--limit-seconds` adjusts the default 30-second limit.
+The script does not automatically switch to a less informative template when
+System Trace fails.
+
+For a later pressure investigation, keep the other variables fixed and run
+`--mode ordinary-fast --profile overload2m`. This is a separate diagnostic,
+not evidence that a single cause explains both the 42-us tail and all ms spikes.
+
 For actual UV executor old/new comparisons and io_uring/DPDK awaitable costs,
 see [`bench/io_adapters/README.md`](io_adapters/README.md).
 

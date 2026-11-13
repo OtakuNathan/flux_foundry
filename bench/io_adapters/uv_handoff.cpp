@@ -70,10 +70,12 @@ int main(int argc, char** argv) {
             (o.producer_cpu < 0 || o.consumer_cpu < 0 || o.producer_cpu != o.consumer_cpu),
             "positive samples/budget and distinct CPUs required");
     pin(o.producer_cpu);
+    ff_bench::name_trace_thread("ff-producer");
 
     uv_executor* executor = nullptr;
     std::atomic<bool> ready{false}, close_returned{false};
     std::thread owner([&] {
+        ff_bench::name_trace_thread("ff-uv-consumer");
         pin(o.consumer_cpu);
         uv_loop_t loop{};
         require(uv_loop_init(&loop) == 0, "uv_loop_init failed");

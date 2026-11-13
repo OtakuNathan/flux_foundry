@@ -34,6 +34,7 @@ template<> struct async_submission_failed_error<std::error_code> {
 #include "executor/simple_executor.h"
 #include "memory/aligned_alloc.h"
 #include "bench/sample_trace.h"
+#include "bench/system_trace.h"
 
 namespace load_probe {
 using namespace flux_foundry;
@@ -237,10 +238,12 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
     auto np = make_lite_ptr<decltype(nb)>(std::move(nb));
     auto fb = make_blueprint<Event,E>() | await<Fast>() | end();
     std::size_t peak_outstanding = 0;
+    ff_bench::SystemTraceRegion trace_region(repeat != 0);
     const Ns cpu_start = monitor ? monitor->snapshot(monitor->state) : 0;
     const Ns process_start = process_monitor ? process_monitor->snapshot(process_monitor->state) : 0;
     const Ns monitor_start = now_ns();
     const Ns origin = monitor_start + 2000000;
+    trace_region.begin(origin);
     Ns last_submit = origin;
     for (std::size_t i = 0; i < o.samples; ++i) {
         auto& s = samples[i];
@@ -278,6 +281,7 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
     const Ns monitor_end = now_ns();
     const Ns process_end = process_monitor ? process_monitor->snapshot(process_monitor->state) : 0;
     const Ns cpu_end = monitor ? monitor->snapshot(monitor->state) : 0;
+    trace_region.end();
     std::vector<Ns> e2e, actual, lag, dispatch, service;
     e2e.reserve(o.samples); actual.reserve(o.samples); lag.reserve(o.samples);
     dispatch.reserve(o.samples); service.reserve(o.samples);
@@ -315,6 +319,7 @@ static ProbeTiming measured_run(Port port, std::size_t capacity, const Options& 
         drain_last_submit/1000000.0,drain_schedule/1000000.0,sizeof(Sample)*o.samples/1048576.0,newline ? "\n" : ",");
     std::fflush(stdout);
     ff_bench::export_samples(samples, origin, capacity, mode, p.name, repeat);
+    trace_region.report();
     return {monitor_end-monitor_start,cpu_end-cpu_start,process_end-process_start};
 }
 static void print_csv_header(const char* prefix = "", const char* suffix = "") {
