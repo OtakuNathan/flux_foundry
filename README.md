@@ -10,6 +10,7 @@
 - 🔁 Flow DSL operators (`transform`, `then`, `on_error`, `catch_exception`, `via`, `await`, `await_when_all`, `await_when_any`, `await_when_all_fast`, `await_when_any_fast`)
 - 🧠 Memory/data primitives (`result_t`, `either_t`, `flat_storage`, `lite_ptr`, `inplace_t`, `pooling allocator`)
 - 🧵 Queue/executor infrastructure (`spsc/mpsc/mpmc/spmc`, `simple_executor`, `gsource_executor`, `uv_executor`)
+- 🔌 Optional awaitable adapters for application-owned io_uring rings and DPDK RX queues
 
 The project is tuned for predictable behavior and explicit contracts under concurrency.
 
@@ -19,6 +20,7 @@ The project is tuned for predictable behavior and explicit contracts under concu
 | --- | --- |
 | A flow needs cancellation | `make_runner` and the normal awaitable contracts; cancellation is cooperative, not synchronous callback preemption. |
 | A synchronous calculation needs no cancellation | `make_fast_runner_view` for a borrowed blueprint, or `make_fast_runner` to own it. Fast runners omit the cancellation controller. |
+| An async flow needs no cancellation | Fast runners also support async steps. Choose ordinary or fast awaitables according to the backend's lifecycle guarantees; see the [fast async contracts](#fast-async-lane). |
 | Map a successful value | `transform`: nonthrowing callback; upstream errors pass through. |
 | Return a result or adapt a throwing operation | `then`: receives a `result` **on success only**; upstream errors pass through. Use `on_error` / `catch_exception` for recovery. |
 | Use status codes without exceptions | Choose an explicit error type, nonthrowing callbacks, and a consistent no-exception build. Compiler-enabled `then` exception adaptation needs an exception-compatible error type. |
@@ -39,7 +41,7 @@ permissions, see the [Portal + FF + lease replay example](https://github.com/Ota
 
 - `flux_foundry` is built for low-latency C++ systems where predictable behavior, explicit concurrency contracts, and composable flow semantics matter more than beginner ergonomics.
 - Best-fit scenarios: systems infrastructure, trading/market-data style pipelines, and custom backend integration (for example io_uring/DPDK-style poll loops via awaitable + executor contracts).
-- Hot-path focus: `fast_runner` + sync/inline execution targets near hand-written overhead in benchmarked scenarios.
+- Hot-path focus: fast runners support both inline computation and asynchronous flows; [measured callback/coroutine comparisons](#-benchmark-snapshots) cover throughput, tail latency, and CPU cost.
 - Tradeoff: the library expects strong C++ template/concurrency fluency; it is a power-user DSL, not a beginner abstraction layer.
 
 ## 🧩 Components
@@ -47,7 +49,7 @@ permissions, see the [Portal + FF + lease replay example](https://github.com/Ota
 | Module | Main files                                                                                                               | What it provides |
 |---|--------------------------------------------------------------------------------------------------------------------------|---|
 | `flow/` | `flow_node.h`, `flow_blueprint.h`, `flow_runner.h`, `flow_async_aggregator.h`, `flow_awaitable.h`                        | Pipeline DSL (`transform/then/on_error/catch_exception/via/await`), node graph flattening, async steps, `when_all/when_any`, cancel/error propagation |
-| `extension/` | `external_async_awaitable.h`, `cuda_awaitable.h`                                                                      | Generic external-async awaitable contract (`await_external_async`); CUDA naming kept as compatibility alias |
+| `extension/` | `external_async_awaitable.h`, `cuda_awaitable.h`, `io_uring_awaitable.h`, `dpdk_awaitable.h` | Generic external-async contract, CUDA compatibility alias, and awaitables attached to application-owned io_uring / DPDK resources |
 | `executor/` | `simple_executor.h`, `gsource_executor.h`, `uv_executor.h` | MPSC single-consumer executor, GLib source-backed executor, bounded libuv loop executor |
 | `utility/` | `concurrent_queues.h`, `callable_wrapper.h`, `back_off.h`                                                                | Lock-free queues, callable type-erasure with SBO, backoff policies |
 | `task/` | `task_wrapper.h`, `future_task.h`                                                                                        | Task wrappers and future-related task abstraction |
@@ -351,7 +353,7 @@ flowchart TB
   end
 
   subgraph EXT["External Integration"]
-    X0["external executor:<br/>simple_executor / gsource_executor / custom"]
+    X0["external executor:<br/>simple_executor / gsource_executor / uv_executor / custom"]
     X1["result sink:<br/>receiver.emplace(result_t(T, E))"]
     X2["optional fork template:<br/>flow/flow_fork_receiver_tmp.h<br/>fork_receiver&lt;Derived, FromBP, To...&gt; + forward(copy result_t)"]
   end
@@ -477,16 +479,47 @@ sequenceDiagram
 
 ## 📊 Benchmark snapshots
 
-Microbenchmark tables and run notes now live in [`bench/README.md`](bench/README.md) to keep this `README` focused.
+The [2026-11-13 Asio / FF comparison](bench/horizontal_compare/results/2026-11-13/README.md)
+uses the same Asio backend for native callbacks, real `asio::awaitable` /
+`co_spawn` coroutines, and FF flows. Every request performs the same arithmetic
+and logical asynchronous steps, with the same outstanding-request limit.
 
-That document includes:
-- `flow_perf` snapshots
-- `flux_foundry` vs standalone Asio horizontal compare
-- real-backend async overhead snapshots
-- [matched native / typed CUDA measurements on RTX 2080 Ti](bench/cuda/README.md)
-- macOS / Windows / Linux host notes and command blocks
+Selected **saturated throughput**, in million completed requests/s, using
+native blocking waits (median of six independent processes per case):
 
-For the standalone horizontal-compare harness itself, see [`bench/horizontal_compare/README.md`](bench/horizontal_compare/README.md).
+| Host | Async work steps | Asio coroutine | FF fast awaitable + fast runner | FF throughput advantage |
+|---|---:|---:|---:|---:|
+| Ryzen 3700X / Linux | 1 | 1.259 | 1.992 | +58.2% |
+| Ryzen 3700X / Linux | 4 | 0.540 | 0.653 | +21.0% |
+| M1 Max / macOS | 1 | 1.708 | 2.227 | +30.4% |
+| M1 Max / macOS | 4 | 0.701 | 0.784 | +11.9% |
+
+Each chain has an initial consumer envelope before its work steps. Work=128
+unsigned arithmetic iterations per step; capacity=1,024. FF creates a fresh
+runner per request over a borrowed immutable blueprint. This measures
+successful in-memory execution; cancellation/error behavior and network I/O
+are outside the comparison. Native callbacks remain faster in these four
+cases. Throughput gains do not imply the same latency gains: on Mac, single-step
+blocking p99 at a fixed 500k requests/s is about 45 us for both FF fast and Asio
+coroutines, and polling can worsen p99.9 while increasing CPU use.
+
+The full report retains all **1,056 process trials**, variability, ordinary
+FF runner/awaitable paths, polling results, and a separate Asio/UV cross-thread
+handoff comparison. Reproduce it with:
+
+```sh
+python3 bench/horizontal_compare/battle.py
+```
+
+This comparison requires Python 3, git, a C++20 compiler, libuv and pkg-config;
+it fetches pinned Asio 1.39.0 into a new output directory. **FF remains a C++14
+library**; C++20 is used here to include Asio coroutines. See the
+[methodology and runner options](bench/horizontal_compare/README.md).
+
+For the general macOS/Linux suite, run `python3 bench/run.py`. The
+[benchmark index](bench/README.md) also contains inline-flow snapshots, I/O
+adapter probes, historical serial Asio results, and
+[native / typed CUDA measurements on RTX 2080 Ti](bench/cuda/README.md).
 
 ## 🧪 Stress validation snapshot
 
