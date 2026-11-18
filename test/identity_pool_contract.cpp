@@ -192,11 +192,91 @@ void mixed_routes() {
     while (ready.load(std::memory_order_acquire) != 2) std::this_thread::yield();
     std::thread sender([&] {
         routed::dealloc(identities[0], pointers[0]);
-        routed::dealloc(identities[1], pointers[1]); // Flushes the first route.
+        routed::dealloc(identities[1], pointers[1]); // Both routes remain partial.
     });
-    sender.join(); // Flushes the second route.
+    sender.join(); // TLS exit publishes both routes.
     done.store(true, std::memory_order_release);
     for (auto& t : owners) t.join();
+}
+// With A=3 and B=1, only A becomes visible: either A is full or the sender
+// reaches its budget and selects the larger partial batch.
+template<size_t Batch, size_t Remote>
+void bucket_limits() {
+    using routed = identity_pool_allocator<96, 8, 8, Batch, 4, Remote>;
+    size_t ids[2]{};
+    void* blocks[2][3]{};
+    std::atomic<unsigned> ready{0}, phase{0}, checked{0};
+    std::thread owners[2];
+    for (unsigned k = 0; k < 2; ++k) owners[k] = std::thread([&, k] {
+        ids[k] = routed::current_identity();
+        const unsigned n = k == 0 ? 3 : 1;
+        for (unsigned i = 0; i < n; ++i) blocks[k][i] = routed::alloc();
+        ready.fetch_add(1, std::memory_order_acq_rel);
+        while (phase.load(std::memory_order_acquire) < 1) std::this_thread::yield();
+        auto* fresh = routed::alloc();
+        check(std::find(blocks[k], blocks[k] + n, fresh) == blocks[k] + n,
+              "switching destinations prematurely published a partial batch");
+        checked.fetch_add(1, std::memory_order_acq_rel);
+        while (phase.load(std::memory_order_acquire) < 2) std::this_thread::yield();
+        if (k == 0) {
+            void* received[3] = {routed::alloc(), routed::alloc(), routed::alloc()};
+            check(std::is_permutation(blocks[k], blocks[k] + n, received),
+                  "expected complete or budget-selected batch");
+            for (auto* p : received) routed::dealloc(ids[k], p);
+        } else {
+            auto* held = routed::alloc();
+            check(held != blocks[k][0], "publishing A also flushed B");
+            checked.fetch_add(1, std::memory_order_acq_rel);
+            while (phase.load(std::memory_order_acquire) < 3) std::this_thread::yield();
+            auto* returned = routed::alloc();
+            check(returned == blocks[k][0], "explicit flush lost the smaller bucket");
+            routed::dealloc(ids[k], returned);
+            routed::dealloc(ids[k], held);
+        }
+        routed::dealloc(ids[k], fresh);
+    });
+    while (ready.load(std::memory_order_acquire) != 2) std::this_thread::yield();
+    routed::dealloc(ids[0], blocks[0][0]);
+    routed::dealloc(ids[0], blocks[0][1]);
+    routed::dealloc(ids[1], blocks[1][0]);
+    phase.store(1, std::memory_order_release);
+    while (checked.load(std::memory_order_acquire) != 2) std::this_thread::yield();
+    routed::dealloc(ids[0], blocks[0][2]);
+    phase.store(2, std::memory_order_release);
+    while (checked.load(std::memory_order_acquire) != 3) std::this_thread::yield();
+    routed::flush_remote_returns();
+    phase.store(3, std::memory_order_release);
+    for (auto& owner : owners) owner.join();
+}
+// One registry slot forces reuse while the unregistered sender holds a
+// partial batch for the previous generation of that same slot.
+void generation_collision() {
+    using routed = identity_pool_allocator<96, 8, 16, 4, 1>;
+    void* old; size_t old_id;
+    std::thread first([&] { old_id = routed::current_identity(); old = routed::alloc(); });
+    first.join();
+    std::atomic<bool> ready{false}, done{false};
+    void* next; size_t next_id;
+    std::thread replacement([&] {
+        next_id = routed::current_identity(); next = routed::alloc();
+        ready.store(true, std::memory_order_release);
+        while (!done.load(std::memory_order_acquire)) std::this_thread::yield();
+        auto* reused = routed::alloc();
+        check(reused == next, "replacement received wrong generation");
+        routed::dealloc(next_id, reused);
+    });
+    while (!ready.load(std::memory_order_acquire)) std::this_thread::yield();
+    std::thread sender([&] {
+        check(old_id && next_id && old_id != next_id, "missing generation change");
+        routed::dealloc(old_id, old);
+        routed::dealloc(next_id, next);
+        auto* adopted = routed::alloc();
+        check(adopted == old, "generation collision lost stale partial batch");
+        routed::dealloc(0, adopted);
+    });
+    sender.join();
+    done.store(true, std::memory_order_release);
+    replacement.join();
 }
 struct object final : identity_pooling_base<object, 32> {
     unsigned char data[96];
@@ -229,7 +309,8 @@ void object_lifetime() {
 
 int main() {
     const auto before = available();
-    round_trip(); stale_identity(); pending_after_exit(); close_race(); late_tls(); over_aligned(); mixed_routes(); object_lifetime();
+    round_trip(); stale_identity(); pending_after_exit(); close_race(); late_tls(); over_aligned(); mixed_routes();
+    bucket_limits<3, 8>(); bucket_limits<4, 4>(); generation_collision(); object_lifetime();
     check(available() == before, "pool storage leaked after owner/sender exit");
     auto held = drain_backing();
     round_trip(); stale_identity(); pending_after_exit();

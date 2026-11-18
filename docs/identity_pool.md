@@ -20,8 +20,8 @@ header attached to the raw allocation. Generic `flux_foundry_allocator`,
 ## Ownership and batching
 
 Each allocator specialization has a stable table of 64 registration slots.
-Each participating thread has a TLS local cache, bounded MPSC inbox, and one
-outgoing batch. The identity names a slot plus its generation, not a TLS
+Each participating thread has a TLS local cache, bounded MPSC inbox, and a TLS array of
+outgoing batches indexed by registration slot. The identity names a slot plus its generation, not a TLS
 address or OS thread ID. The current generation, close bit and publisher
 count share a single atomic CAS domain.
 
@@ -30,18 +30,29 @@ count share a single atomic CAS domain.
   storage. If still empty, it uses FF's shared size-class pool or heap fallback.
 - Same-owner deallocation goes directly to the TLS cache, without registry or
   shared atomic operations while there is room.
-- Remote deallocation builds an intrusive list in **already destroyed**
-  object storage. Sixteen blocks for the same identity are published together.
-  Switching destinations flushes the previous partial batch.
-- Publication acquires one registry ticket for the batch, reserves bounded
+- Remote deallocation appends a block pointer to the destination's TLS array.
+  With the default batch size, the write cursor reaches the end after sixteen
+  returns for the same identity, triggering publication.
+  Returns for A, A, B, C leave three independent partial batches. Each bucket
+  records the full identity. On slot reuse the sender processes the old
+  generation before adding a block for the replacement owner.
+- Publication links the staged blocks in arrival order using their freed
+  storage, acquires one registry ticket for the batch, reserves bounded
   inbox capacity, CAS-pushes the whole list, and releases the ticket. It never
   dereferences the previous inbox head. Only the owner removes inbox lists.
 - A closed/stale identity, exhausted admission count or full inbox transfers
   the free blocks into the sender's compatible local cache; excess blocks go
   to backing storage. A subsequent allocation records its new owner's identity.
 
-An idle live sender can retain up to 15 unflushed blocks per allocator
-specialization. It holds **no publisher ticket** while accumulating a batch.
+A sender retains at most 15 blocks per destination with the default batch size.
+The existing remote capacity (256 by default) also caps total outgoing blocks
+per allocator specialization. On reaching that limit it publishes the largest
+partial batch. After a return, at most 255 blocks remain pending across all
+destinations. The sender holds **no publisher ticket** while accumulating a batch.
+Each bucket stores `Batch` block pointers, a write cursor and an identity.
+On LP64 with the defaults, each bucket uses 144 bytes. The 64 outgoing
+buckets occupy 9 KiB per thread per allocator specialization, plus an
+8-byte total count.
 For a processing boundary that must release a partial batch, call:
 
 ```cpp
@@ -53,7 +64,7 @@ TLS exit flushes automatically. This policy has no timer, executor dependency,
 or background collection thread. Owner inbox capacity equals its local cache
 capacity, which defaults to the awaitable cache setting, 256. Each TLS pool
 can retain up to 256 local blocks, 256 incoming blocks (including publication
-reservations), and 15 outgoing blocks. This is a limit, not eager preallocation.
+reservations), and 255 outgoing blocks. This is a limit, not eager preallocation.
 The legacy `pooling_base` currently does not forward the cache setting to its
 allocator, whose actual capacity is 512. Policy-only comparisons use 512
 on both builds; capacity screens explicitly record the candidate's capacity.
@@ -101,8 +112,8 @@ invalid sizes, capacities and alignments are rejected by `static_assert`.
 
 ## Validation
 
-`identity_pool_contract` covers origin reuse, partial batches, multiple routes,
-bounded-inbox pressure, concurrent owner/publisher exit, stale generations,
+`identity_pool_contract` covers origin reuse, partial batches, multiple simultaneous partial routes, sender budget pressure, pending batches
+across slot reuse, bounded-inbox pressure, concurrent owner/publisher exit, stale generations,
 registry exhaustion, adoption, late TLS destruction, constructor failure,
 explicit delete, heap fallback and over-alignment. It checks complete backing
 pool reclamation after thread exit. The existing awaitable lifecycle and

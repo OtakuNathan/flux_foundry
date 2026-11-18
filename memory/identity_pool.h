@@ -109,9 +109,15 @@ class identity_pool_allocator {
         size_t top = 0;
         std::atomic<node*> incoming{nullptr};
         std::atomic<size_t> incoming_count{0}; // Includes unpublished reservations.
-        node* outgoing = nullptr;
-        node* outgoing_tail = nullptr;
-        size_t outgoing_count = 0, outgoing_identity = 0;
+        // Stage pointers in TLS. Only publication writes links into the free blocks.
+        struct batch {
+            void* items[Batch];
+            void** next = items;
+            size_t origin = 0;
+            size_t size() const noexcept { return static_cast<size_t>(next - items); }
+        };
+        batch outgoing[Slots];
+        size_t pending = 0;
         size_t identity;
 
         cache() noexcept : identity(register_pool(this)) {
@@ -139,14 +145,15 @@ class identity_pool_allocator {
             const auto count = adopt(list, keep);
             if (count) incoming_count.fetch_sub(count, std::memory_order_release);
         }
-        void flush(bool keep = true) noexcept {
-            if (!outgoing) return;
-            auto* first = outgoing;
-            auto* last = outgoing_tail;
-            const auto count = outgoing_count;
-            const auto origin = outgoing_identity;
-            outgoing = outgoing_tail = nullptr;
-            outgoing_count = 0;
+        void publish(batch& b, bool keep) noexcept {
+            const auto count = b.size();
+            auto* last = ::new (b.items[count - 1]) node{nullptr};
+            auto* first = last;
+            for (auto i = count - 1; i; --i)
+                first = ::new (b.items[i - 1]) node{first};
+            const auto origin = b.origin;
+            pending -= count;
+            b.next = b.items;
             auto* entry = acquire(origin);
             if (entry) {
                 auto* owner = entry->target;
@@ -170,14 +177,30 @@ class identity_pool_allocator {
             // thread. A future allocation stamps this thread's identity.
             adopt(first, keep);
         }
+        void flush(bool keep = true) noexcept {
+            if (!pending) return;
+            for (auto& b : outgoing)
+                if (b.next != b.items) publish(b, keep);
+        }
         void remote_free(size_t origin, void* p) noexcept {
-            if (outgoing && origin != outgoing_identity) flush();
-            auto* link = ::new (p) node{nullptr};
-            if (outgoing_tail) outgoing_tail->next = link;
-            else outgoing = link;
-            outgoing_tail = link;
-            outgoing_identity = origin;
-            if (++outgoing_count == Batch) flush();
+            const size_t index = origin & 255;
+            if (!index || index > Slots) { put(p); return; }
+            auto& b = outgoing[index - 1];
+            if (b.origin != origin) {
+                if (b.next != b.items) publish(b, true);
+                b.origin = origin;
+            }
+            *b.next++ = p;
+            ++pending;
+            if (b.next == b.items + Batch) {
+                publish(b, true);
+            } else if (pending == Remote) {
+                // Bound retention across destinations. Scan only under pressure.
+                auto* largest = &b;
+                for (auto& candidate : outgoing)
+                    if (candidate.size() > largest->size()) largest = &candidate;
+                publish(*largest, true);
+            }
         }
         ~cache() noexcept {
             // Later TLS destructors cannot resurrect or access this cache.
@@ -235,7 +258,7 @@ public:
         } else backing_free(p);
     }
     // Optional processing-boundary flush for partial batches. TLS exit also
-    // flushes; an idle live sender otherwise retains at most Batch-1 blocks.
+    // flushes; an idle sender retains fewer than Remote blocks across all destinations.
     static void flush_remote_returns() noexcept {
         if (auto* c = view().current) c->flush();
     }
