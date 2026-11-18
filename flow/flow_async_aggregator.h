@@ -206,6 +206,8 @@ namespace detail {
 
         using async_result_type = result_type;
 
+        // Per-submission ownership: each launched child takes its blueprint
+        // handle from this pack; the reusable factory keeps its own handles.
         bp_pack_storage_t packs;
         state_t state_;
 
@@ -241,7 +243,7 @@ namespace detail {
                 auto controller = &state_.controllers[I];
 
                 using runner_t = flow_runner<bp_t, receiver_t, decltype(controller)>;
-                runner_t runner(get<I>(this->packs).first(), controller, receiver_t(this));
+                runner_t runner(std::move(get<I>(this->packs).first()), controller, receiver_t(this));
                 runner(std::move(get<I>(this->packs).second()));
                 return 0;
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -430,6 +432,8 @@ namespace detail {
         using async_result_type = result_type;
         using bp_pack_storage_t = flat_storage<compressed_pair<lite_ptr<BPs>, std::decay_t<typename BPs::I_t::value_type>>...>;
 
+        // Per-submission ownership: each launched child takes its blueprint
+        // handle from this pack; the reusable factory keeps its own handles.
         bp_pack_storage_t packs;
         state_t state_;
 
@@ -451,7 +455,7 @@ namespace detail {
                 state_.fired.get().fetch_add(detail::epoch, std::memory_order_release);
 
                 using receiver_t = typename state_t::template delegate<I>;
-                auto runner = make_fast_runner(get<I>(this->packs).first(), receiver_t(this));
+                auto runner = make_fast_runner(std::move(get<I>(this->packs).first()), receiver_t(this));
                 runner(std::move(get<I>(this->packs).second()));
                 return 0;
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -743,6 +747,8 @@ namespace detail {
         using async_result_type = result_type;
         using bp_pack_storage_t = flat_storage<compressed_pair<lite_ptr<BPs>, std::decay_t<typename BPs::I_t::value_type>>...>;
 
+        // Per-submission ownership: each launched child takes its blueprint
+        // handle from this pack; the reusable factory keeps its own handles.
         bp_pack_storage_t packs;
         state_t state_;
 
@@ -760,7 +766,7 @@ namespace detail {
                 state_.fired.get().fetch_add(detail::epoch, std::memory_order_release);
 
                 using receiver_t = typename state_t::template delegate<I>;
-                auto runner = make_fast_runner(bp, receiver_t(this));
+                auto runner = make_fast_runner(std::move(bp), receiver_t(this));
                 runner(std::move(get<I>(this->packs).second()));
                 return 0;
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
@@ -846,6 +852,8 @@ namespace detail {
         using async_result_type = result_type;
         using bp_pack_storage_t = flat_storage<compressed_pair<lite_ptr<BPs>, std::decay_t<typename BPs::I_t::value_type>>...>;
 
+        // Per-submission ownership: each launched child takes its blueprint
+        // handle from this pack; the reusable factory keeps its own handles.
         bp_pack_storage_t packs;
         state_t state_;
 
@@ -869,7 +877,7 @@ namespace detail {
                 auto controller = &state_.controllers[I];
 
                 using runner_t = flow_runner<bp_t, receiver_t, decltype(controller)>;
-                runner_t runner(bp, controller, receiver_t(this));
+                runner_t runner(std::move(bp), controller, receiver_t(this));
                 runner(std::move(get<I>(this->packs).second()));
                 return 0;
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS

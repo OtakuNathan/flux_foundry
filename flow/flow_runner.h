@@ -466,13 +466,18 @@ namespace flux_foundry {
             }
 
             // Keep the concrete closure until the delegate stores it, avoiding
-            // an intermediate type-erased callback and its payload move.
+            // an intermediate type-erased callback and its payload move. Compress
+            // empty adaptors with the owned state: a lambda's ordinary empty
+            // member can otherwise push a continuation past the SBO boundary.
+            // Keep copying the active runner's state until submission returns.
             // no cancel
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
             static auto make_async_next_step(const bp_ptr& data, const dispatcher_t&,
                 const adaptor_t& adaptor, controller_t&& controller, std::true_type) noexcept {
-                return [data = data, adaptor = adaptor,
+                return [continuation = make_compressed_pair(data, adaptor),
                         controller = std::forward<controller_t>(controller)](resume_param_t&& in) mutable noexcept {
+                    auto& data = continuation.first();
+                    auto& adaptor = continuation.second();
                     flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
                     ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
                 };
@@ -481,12 +486,13 @@ namespace flux_foundry {
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
             static auto make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
                 const adaptor_t& adaptor, controller_t&& controller, std::false_type) noexcept {
-                return [data = data, dispatcher = dispatcher,
-                        adaptor = adaptor, controller = std::forward<controller_t>(controller)] (resume_param_t&& in) mutable noexcept {
-                    dispatcher(task_wrapper_sbo([data = std::move(data),
+                return [continuation = make_compressed_pair(data, adaptor), dispatcher = dispatcher,
+                        controller = std::forward<controller_t>(controller)](resume_param_t&& in) mutable noexcept {
+                    dispatcher(task_wrapper_sbo([continuation = std::move(continuation),
                                          controller = std::move(controller),
-                                         adaptor = std::move(adaptor),
                                          in = std::move(in)]() mutable noexcept {
+                            auto& data = continuation.first();
+                            auto& adaptor = continuation.second();
                             flow_runner next_runner(std::move(data.first()), std::move(controller), std::move(data.second()));
                             ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
                         })
@@ -516,9 +522,11 @@ namespace flux_foundry {
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
             static auto make_async_next_step(const bp_ptr& data, const dispatcher_t&,
                 const adaptor_t& adaptor, controller_t&& controller, size_t token, std::true_type) noexcept {
-                return [data = data, adaptor = adaptor, state = token,
+                return [continuation = make_compressed_pair(data, adaptor), state = token,
                         controller = std::forward<controller_t>(controller)]
                         (resume_param_t&& in) mutable noexcept {
+                    auto& data = continuation.first();
+                    auto& adaptor = continuation.second();
                     auto& cs = controller->state_.get();
                     auto exp = state;
                         
@@ -541,14 +549,15 @@ namespace flux_foundry {
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t, typename controller_t>
             static auto make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
                 const adaptor_t& adaptor, controller_t&& controller, size_t token, std::false_type) noexcept {
-                return [data = data, state = token, adaptor = adaptor, 
-                        controller = std::forward<controller_t>(controller), dispatcher = dispatcher] 
+                return [continuation = make_compressed_pair(data, adaptor), state = token,
+                        controller = std::forward<controller_t>(controller), dispatcher = dispatcher]
                         (resume_param_t&& in) mutable noexcept {
-                    dispatcher(task_wrapper_sbo([data = std::move(data),
+                    dispatcher(task_wrapper_sbo([continuation = std::move(continuation),
                                              controller = std::move(controller),
-                                             adaptor = std::move(adaptor),
                                              state = state,
                                              in = std::move(in)]() mutable noexcept {
+                            auto& data = continuation.first();
+                            auto& adaptor = continuation.second();
                             auto& cs = controller->state_.get();
                             auto exp = state;
                             // am I still have the lock?
@@ -1023,12 +1032,17 @@ namespace flux_foundry {
             }
 
             // Keep the concrete closure until the delegate stores it, avoiding
-            // an intermediate type-erased callback and its payload move.
+            // an intermediate type-erased callback and its payload move. Compress
+            // empty adaptors with the owned state: a lambda's ordinary empty
+            // member can otherwise push a continuation past the SBO boundary.
+            // Keep copying the active runner's state until submission returns.
             // no cancel
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
             static auto make_async_next_step(const bp_ptr& data, const dispatcher_t&,
                 const adaptor_t& adaptor, std::true_type) noexcept {
-                return [data = data, adaptor = adaptor](resume_param_t&& in) mutable noexcept {
+                return [continuation = make_compressed_pair(data, adaptor)](resume_param_t&& in) mutable noexcept {
+                    auto& data = continuation.first();
+                    auto& adaptor = continuation.second();
                     flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
                     ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
                 };
@@ -1037,10 +1051,11 @@ namespace flux_foundry {
             template <typename resume_param_t, typename bp_ptr, typename dispatcher_t, typename adaptor_t>
             static auto make_async_next_step(const bp_ptr& data, const dispatcher_t& dispatcher,
                 const adaptor_t& adaptor, std::false_type) noexcept {
-                return [data = data, dispatcher = dispatcher, adaptor = adaptor] (resume_param_t&& in) mutable noexcept {
-                    dispatcher(task_wrapper_sbo([data = std::move(data),
-                                         adaptor = std::move(adaptor),
+                return [continuation = make_compressed_pair(data, adaptor), dispatcher = dispatcher](resume_param_t&& in) mutable noexcept {
+                    dispatcher(task_wrapper_sbo([continuation = std::move(continuation),
                                          in = std::move(in)]() mutable noexcept {
+                            auto& data = continuation.first();
+                            auto& adaptor = continuation.second();
                             flow_fast_runner next_runner(std::move(data.first()), std::move(data.second()));
                             ipc<I - 1>::run(next_runner, adaptor(std::move(in)));
                         })

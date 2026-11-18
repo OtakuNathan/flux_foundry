@@ -65,7 +65,9 @@ using namespace flux_foundry;
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #x); std::abort(); } } while (false)
 
 static std::atomic<bool> pause_send{false}, send_entered{false}, release_send{false};
+static std::atomic<unsigned> send_count{0};
 static int observed_async_send(uv_async_t* handle) noexcept {
+    send_count.fetch_add(1, std::memory_order_relaxed);
     const int rc = uv_async_send(handle);
     if (pause_send.exchange(false, std::memory_order_acq_rel)) {
         send_entered.store(true, std::memory_order_release);
@@ -94,6 +96,28 @@ void outstanding_send(bool closer) {
     CHECK(uv_loop_close(&loop) == 0);
 }
 
+void outstanding_batch_send() {
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    uv_executor ex(&loop, 2, 1);
+    int calls = 0;
+    send_entered = false; release_send = false; pause_send = true;
+    std::thread sender([&] {
+        uv_executor::task_t tasks[]{
+            uv_executor::task_t([&]() noexcept { ++calls; }),
+            uv_executor::task_t([&]() noexcept { ++calls; })};
+        CHECK(ex.try_dispatch_batch(tasks, 2) == 2);
+        CHECK(!tasks[0] && !tasks[1]);
+    });
+    while (!send_entered.load(std::memory_order_acquire)) std::this_thread::yield();
+    ex.close();
+    for (int i = 0; i < 4; ++i) uv_run(&loop, UV_RUN_NOWAIT);
+    CHECK(calls == 2 && !ex.closed());
+    release_send.store(true, std::memory_order_release);
+    sender.join();
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0 && ex.closed());
+    CHECK(uv_loop_close(&loop) == 0);
+}
+
 struct publication_barrier {
     std::atomic<bool> pause{false}, entered{false}, release{false};
     int calls = 0;
@@ -109,7 +133,7 @@ struct delayed_move {
     }
     void operator()() noexcept { CHECK(barrier->calls == 0); ++barrier->calls; }
 };
-void unpublished_reservation() {
+void unpublished_reservation(bool batch = false) {
     static_assert(sizeof(delayed_move) <= task_wrapper_sbo::sbo_size, "must move inside queue publication");
     uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
     uv_executor ex(&loop, 3, 1); // Arbitrary capacities, including non-powers of two.
@@ -117,7 +141,8 @@ void unpublished_reservation() {
     std::thread producer([&] {
         task_wrapper_sbo task(delayed_move{&barrier});
         barrier.pause = true;
-        CHECK(ex.try_dispatch(std::move(task)));
+        if (batch) CHECK(ex.try_dispatch_batch(&task, 1) == 1);
+        else CHECK(ex.try_dispatch(std::move(task)));
     });
     while (!barrier.entered.load(std::memory_order_acquire)) std::this_thread::yield();
     CHECK(ex.try_dispatch(task_wrapper_sbo([&]() noexcept { CHECK(barrier.calls == 1); ++barrier.calls; })));
@@ -127,6 +152,53 @@ void unpublished_reservation() {
     barrier.release.store(true, std::memory_order_release);
     producer.join();
     CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0 && ex.closed() && barrier.calls == 2);
+    CHECK(uv_loop_close(&loop) == 0);
+}
+
+void batch_prefix(uv_executor::wake_fence_policy fence) {
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    uv_executor ex(&loop, 3, 1, fence);
+    int calls = 0;
+    uv_executor::task_t tasks[5];
+    for (int i = 0; i < 5; ++i) tasks[i] = uv_executor::task_t([&, i]() noexcept {
+        CHECK(calls == i); ++calls;
+    });
+    const auto sends = send_count.load();
+    CHECK(ex.try_dispatch_batch(nullptr, 5) == 0);
+    CHECK(ex.try_dispatch_batch(tasks, 0) == 0);
+    CHECK(ex.try_dispatch_batch(tasks, 5) == 3);
+    CHECK(calls == 0 && !tasks[0] && !tasks[1] && !tasks[2] && tasks[3] && tasks[4]);
+    CHECK(send_count.load() == sends + 1); // Enqueue-only, one native send per batch.
+    CHECK(ex.try_dispatch_batch(tasks + 3, 2) == 0 && tasks[3] && tasks[4]);
+    while (calls != 3) uv_run(&loop, UV_RUN_NOWAIT);
+    CHECK(ex.try_dispatch_batch(tasks + 3, 2) == 2 && !tasks[3] && !tasks[4]);
+    while (calls != 5) uv_run(&loop, UV_RUN_NOWAIT);
+    uv_executor::task_t hole[3];
+    hole[0] = uv_executor::task_t([&]() noexcept { ++calls; });
+    hole[2] = uv_executor::task_t([&]() noexcept { ++calls; });
+    CHECK(ex.try_dispatch_batch(hole, 3) == 1 && !hole[0] && !hole[1] && hole[2]);
+    ex.close();
+    CHECK(ex.try_dispatch_batch(hole + 2, 1) == 0 && hole[2]);
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0 && calls == 6 && ex.closed());
+    hole[2]();
+    CHECK(calls == 7 && uv_loop_close(&loop) == 0);
+}
+
+void batch_reentrancy_and_lifetime() {
+    uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
+    std::unique_ptr<uv_executor> ex(new uv_executor(&loop, 4, 1));
+    int calls = 0;
+    uv_executor::task_t initial[]{
+        uv_executor::task_t([&]() noexcept {
+            CHECK(calls++ == 0);
+            uv_executor::task_t nested[]{
+                uv_executor::task_t([&]() noexcept { CHECK(calls++ == 2); }),
+                uv_executor::task_t([&]() noexcept { CHECK(calls++ == 3); })};
+            CHECK(ex->try_dispatch_batch(nested, 2) == 2 && calls == 1);
+        }),
+        uv_executor::task_t([&]() noexcept { CHECK(calls++ == 1); ex.reset(); })};
+    CHECK(ex->try_dispatch_batch(initial, 2) == 2 && !calls);
+    CHECK(uv_run(&loop, UV_RUN_DEFAULT) == 0 && !ex && calls == 4);
     CHECK(uv_loop_close(&loop) == 0);
 }
 
@@ -208,8 +280,9 @@ void inline_lifetime(bool nested) {
     CHECK(uv_loop_close(&loop) == 0);
 }
 
-void allocation_failure() {
+void allocation_failure(bool batch = false) {
 #if FLUX_FOUNDRY_WITH_TSAN
+    (void)batch;
     std::puts("SKIP: allocation replacement under TSan (covered by regular build)");
 #else
     uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
@@ -218,9 +291,20 @@ void allocation_failure() {
     std::thread producer([&] {
         fail_allocations = true;
         for (;;) {
-            task_wrapper_sbo task([&]() noexcept { ++executed; });
-            if (!ex.try_dispatch(std::move(task))) { CHECK(task); break; }
-            ++accepted;
+            if (batch) {
+                uv_executor::task_t tasks[17];
+                for (auto& task : tasks) task = uv_executor::task_t([&]() noexcept { ++executed; });
+                const auto n = ex.try_dispatch_batch(tasks, 17);
+                accepted += static_cast<int>(n);
+                if (n != 17) {
+                    for (auto i = n; i < 17; ++i) CHECK(tasks[i]);
+                    break;
+                }
+            } else {
+                task_wrapper_sbo task([&]() noexcept { ++executed; });
+                if (!ex.try_dispatch(std::move(task))) { CHECK(task); break; }
+                ++accepted;
+            }
         }
         fail_allocations = false;
         CHECK(accepted == 1024); // Preallocated ring: only capacity rejects; no allocation.
@@ -232,7 +316,7 @@ void allocation_failure() {
 #endif
 }
 
-void race_close() {
+void race_close(bool batch = false) {
     // Multiple producers keep using the live executor after close is requested
     // and after its loop exits. No async_send may race uv_close/deallocation.
     for (int iteration = 0; iteration < 40; ++iteration) {
@@ -244,9 +328,17 @@ void race_close() {
         for (int p = 0; p < 4; ++p) producers.emplace_back([&] {
             while (!go.load()) std::this_thread::yield();
             for (int i = 0; i < 1000; ++i) {
-                task_wrapper_sbo task([&]() noexcept { ++executed; });
-                if (ex.try_dispatch(std::move(task))) ++accepted;
-                else CHECK(task);
+                if (batch) {
+                    uv_executor::task_t tasks[4];
+                    for (auto& task : tasks) task = uv_executor::task_t([&]() noexcept { ++executed; });
+                    const auto n = ex.try_dispatch_batch(tasks, 4);
+                    accepted.fetch_add(static_cast<int>(n));
+                    for (std::size_t j = 0; j < 4; ++j) CHECK(bool(tasks[j]) == (j >= n));
+                } else {
+                    task_wrapper_sbo task([&]() noexcept { ++executed; });
+                    if (ex.try_dispatch(std::move(task))) ++accepted;
+                    else CHECK(task);
+                }
                 ++attempts;
             }
         });
@@ -263,7 +355,7 @@ void race_close() {
     }
 }
 
-void concurrent_waves(std::size_t budget, std::size_t capacity = 64) {
+void concurrent_waves(std::size_t budget, std::size_t capacity = 64, bool batch = false) {
     uv_loop_t loop{}; CHECK(uv_loop_init(&loop) == 0);
     uv_executor ex(&loop, capacity, budget);
     constexpr int producers = 4, waves = 100, per_wave = 31;
@@ -272,15 +364,32 @@ void concurrent_waves(std::size_t budget, std::size_t capacity = 64) {
     std::vector<std::thread> workers;
     for (int p = 0; p < producers; ++p) workers.emplace_back([&, p] {
         for (int wave = 0; wave < waves; ++wave) {
-            for (int i = 0; i < per_wave; ++i) {
-                const int value = wave * per_wave + i;
-                task_wrapper_sbo task([&, p, value]() noexcept {
-                    CHECK(expected[p]++ == value);
-                    delivered.fetch_add(1, std::memory_order_release);
-                });
-                while (!ex.try_dispatch(std::move(task))) {
-                    CHECK(task);
-                    std::this_thread::yield();
+            if (batch) {
+                uv_executor::task_t tasks[per_wave];
+                for (int i = 0; i < per_wave; ++i) {
+                    const int value = wave * per_wave + i;
+                    tasks[i] = uv_executor::task_t([&, p, value]() noexcept {
+                        CHECK(expected[p]++ == value);
+                        delivered.fetch_add(1, std::memory_order_release);
+                    });
+                }
+                std::size_t accepted = 0;
+                while (accepted != per_wave) {
+                    accepted += ex.try_dispatch_batch(tasks + accepted, per_wave - accepted);
+                    for (auto i = accepted; i < per_wave; ++i) CHECK(tasks[i]);
+                    if (accepted != per_wave) std::this_thread::yield();
+                }
+            } else {
+                for (int i = 0; i < per_wave; ++i) {
+                    const int value = wave * per_wave + i;
+                    task_wrapper_sbo task([&, p, value]() noexcept {
+                        CHECK(expected[p]++ == value);
+                        delivered.fetch_add(1, std::memory_order_release);
+                    });
+                    while (!ex.try_dispatch(std::move(task))) {
+                        CHECK(task);
+                        std::this_thread::yield();
+                    }
                 }
             }
             while (delivered.load(std::memory_order_acquire) < (wave + 1) * per_wave * producers)
@@ -324,6 +433,7 @@ int main() {
     CHECK(invalid.error()==UV_EINVAL && invalid.closed() && !invalid.loop());
     task_wrapper_sbo retained([]() noexcept {});
     CHECK(!invalid.try_dispatch(std::move(retained)) && retained);
+    CHECK(invalid.try_dispatch_batch(&retained, 1) == 0 && retained);
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
     bool failed=false;
     try {uv_executor legacy(nullptr);} catch(const std::invalid_argument&) {failed=true;}
@@ -333,9 +443,14 @@ int main() {
     owner_backpressure();
     independent_lifetime(false); independent_lifetime(true);
     inline_lifetime(false); inline_lifetime(true);
-    allocation_failure(); race_close(); runners();
+    allocation_failure(); allocation_failure(true); race_close(); race_close(true); runners();
     outstanding_send(false); outstanding_send(true); unpublished_reservation();
+    outstanding_batch_send(); unpublished_reservation(true);
+    batch_prefix(uv_executor::wake_fence_policy::runtime_compatible);
+    batch_prefix(uv_executor::wake_fence_policy::always_fence);
+    batch_reentrancy_and_lifetime();
     for (auto budget : {1u, 3u, 16u, 64u}) concurrent_waves(budget);
     for (auto capacity : {1u, 2u, 3u, 7u}) concurrent_waves(3, capacity);
-    std::puts("PASS: libuv bounds, retained rejection, owner affinity/inline, coalesced wakeups, budget rearm, close drain/races, independent handle lifetime, normal/fast runners");
+    for (auto capacity : {1u, 2u, 3u, 7u, 64u}) concurrent_waves(3, capacity, true);
+    std::puts("PASS: libuv bounds, retained rejection, batch prefixes/reentrancy, owner affinity/inline, coalesced wakeups, budget rearm, close drain/races, independent handle lifetime, normal/fast runners");
 }

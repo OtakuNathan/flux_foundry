@@ -117,7 +117,7 @@ namespace flux_foundry {
 
             assert(current() == nullptr && "simple_executor::run() must not be nested/re-entered on the same thread");
             current() = this;
-            for (backoff_strategy<> backoff;; backoff.yield()) {
+            for (backoff_strategy<> backoff;;) {
                 auto p = q.try_pop();
                 if (p) {
                     p.get()();
@@ -133,6 +133,9 @@ namespace flux_foundry {
                 if (is_shutdown(state) && pending_count(state) == 0) {
                     break;
                 }
+                // A successful pop makes progress; only an empty observation
+                // should advance the idle backoff.
+                backoff.yield();
             }
 
             current() = nullptr;

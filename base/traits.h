@@ -104,6 +104,13 @@
 #define FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT 256
 #endif
 
+// Registry slots fit in eight bits. This value selects a pointer array per owner
+// instead of a fixed number of intrusive lanes. Keep TU configuration consistent.
+#define FLUX_FOUNDRY_POOL_PER_OWNER_ROUTES 256
+#ifndef FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT
+#define FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT FLUX_FOUNDRY_POOL_PER_OWNER_ROUTES
+#endif
+
 // Identity-routed awaitable pooling. Keep consistent across translation units.
 #ifndef FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL
 #define FLUX_FOUNDRY_AWAITABLE_IDENTITY_POOL 1

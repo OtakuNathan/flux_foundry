@@ -12,7 +12,7 @@ namespace flux_foundry {
 // Only dead storage is used for intrusive remote-return links. Each TLS pool
 // owns its inbox; stable registry slots admit publishers before exposing it.
 template <size_t Size, size_t Align, size_t Cache = detail::flux_foundry_default_cache_cap, size_t Batch = 16,
-          size_t Slots = 64, size_t Remote = Cache>
+          size_t Slots = 64, size_t Remote = Cache, size_t Routes = FLUX_FOUNDRY_POOL_PER_OWNER_ROUTES>
 class identity_pool_allocator {
     struct node { node* next; };
     struct cache;
@@ -23,6 +23,9 @@ class identity_pool_allocator {
         "identity pool allocation size must not overflow");
     static_assert(Cache > 0 && Batch > 0 && Slots > 0 && Slots < 256 && Remote >= Batch,
         "identity pool requires nonzero cache/batch/slots, slots < 256 and remote capacity >= batch");
+    static constexpr bool per_owner = Routes == FLUX_FOUNDRY_POOL_PER_OWNER_ROUTES;
+    static_assert(per_owner || (Routes > 0 && Routes <= Slots),
+        "identity pool requires nonzero outgoing routes no greater than registry slots");
     static constexpr int counter_lock_free =
         std::is_same<size_t, unsigned int>::value ? ATOMIC_INT_LOCK_FREE :
         std::is_same<size_t, unsigned long>::value ? ATOMIC_LONG_LOCK_FREE :
@@ -104,20 +107,34 @@ class identity_pool_allocator {
         entry->state.fetch_sub(ticket, std::memory_order_release);
     }
 
+    struct outgoing_batch {
+        node* first = nullptr;
+        node* last = nullptr;
+        size_t count = 0;
+        size_t identity = 0;
+    };
+
+    struct lane_routes {
+        outgoing_batch lanes[Routes];
+        size_t next_victim = 0;
+    };
+    struct array_batch {
+        void* items[Batch];
+        void** next = items;
+        size_t origin = 0;
+        size_t size() const noexcept { return static_cast<size_t>(next - items); }
+    };
+    struct owner_routes {
+        array_batch buckets[Slots];
+        size_t pending = 0;
+    };
+
     struct cache {
         void* local[Cache];
         size_t top = 0;
         std::atomic<node*> incoming{nullptr};
         std::atomic<size_t> incoming_count{0}; // Includes unpublished reservations.
-        // Stage pointers in TLS. Only publication writes links into the free blocks.
-        struct batch {
-            void* items[Batch];
-            void** next = items;
-            size_t origin = 0;
-            size_t size() const noexcept { return static_cast<size_t>(next - items); }
-        };
-        batch outgoing[Slots];
-        size_t pending = 0;
+        typename std::conditional<per_owner, owner_routes, lane_routes>::type outgoing;
         size_t identity;
 
         cache() noexcept : identity(register_pool(this)) {
@@ -145,15 +162,17 @@ class identity_pool_allocator {
             const auto count = adopt(list, keep);
             if (count) incoming_count.fetch_sub(count, std::memory_order_release);
         }
-        void publish(batch& b, bool keep) noexcept {
-            const auto count = b.size();
-            auto* last = ::new (b.items[count - 1]) node{nullptr};
-            auto* first = last;
-            for (auto i = count - 1; i; --i)
-                first = ::new (b.items[i - 1]) node{first};
-            const auto origin = b.origin;
-            pending -= count;
-            b.next = b.items;
+        void flush_batch(outgoing_batch& batch, bool keep = true) noexcept {
+            if (!batch.first) return;
+            auto* first = batch.first;
+            auto* last = batch.last;
+            const auto count = batch.count;
+            const auto origin = batch.identity;
+            batch.first = batch.last = nullptr;
+            batch.count = 0;
+            publish(first, last, count, origin, keep);
+        }
+        void publish(node* first, node* last, size_t count, size_t origin, bool keep) noexcept {
             auto* entry = acquire(origin);
             if (entry) {
                 auto* owner = entry->target;
@@ -168,6 +187,9 @@ class identity_pool_allocator {
                         // Published nodes may already be reused. Only the
                         // stable slot may be touched after publication.
                         release(entry);
+#ifdef FLUX_FOUNDRY_IDENTITY_POOL_TRACE_BATCH
+                        FLUX_FOUNDRY_IDENTITY_POOL_TRACE_BATCH(origin, count, true);
+#endif
                         return;
                     }
                 }
@@ -176,30 +198,86 @@ class identity_pool_allocator {
             // Closed/stale/full destinations transfer free storage to this
             // thread. A future allocation stamps this thread's identity.
             adopt(first, keep);
+#ifdef FLUX_FOUNDRY_IDENTITY_POOL_TRACE_BATCH
+            FLUX_FOUNDRY_IDENTITY_POOL_TRACE_BATCH(origin, count, false);
+#endif
         }
         void flush(bool keep = true) noexcept {
-            if (!pending) return;
-            for (auto& b : outgoing)
-                if (b.next != b.items) publish(b, keep);
+            flush_routes(outgoing, keep);
+        }
+        void flush_routes(lane_routes& routes, bool keep) noexcept {
+            for (auto& batch : routes.lanes) flush_batch(batch, keep);
+        }
+        outgoing_batch& route_for(lane_routes& routes, size_t origin) noexcept {
+            // Preserve the single-destination policy without a route search.
+            // Routes is a compile-time constant in both paths.
+            if (Routes == 1) {
+                auto& batch = routes.lanes[0];
+                if (batch.first && batch.identity != origin) flush_batch(batch);
+                return batch;
+            }
+
+            size_t empty = Routes;
+            for (size_t i = 0; i < Routes; ++i) {
+                auto& batch = routes.lanes[i];
+                if (batch.first && batch.identity == origin) return batch;
+                if (!batch.first && empty == Routes) empty = i;
+            }
+            if (empty != Routes) return routes.lanes[empty];
+
+            // All lanes are occupied. Evict one complete partial list without
+            // holding a ticket for any of the other pending destinations.
+            auto& victim = routes.lanes[routes.next_victim];
+            routes.next_victim = (routes.next_victim + 1) % Routes;
+            flush_batch(victim);
+            return victim;
         }
         void remote_free(size_t origin, void* p) noexcept {
+            stage(outgoing, origin, p);
+        }
+        void stage(lane_routes& routes, size_t origin, void* p) noexcept {
+            auto& batch = route_for(routes, origin);
+            auto* link = ::new (p) node{nullptr};
+            if (batch.last) batch.last->next = link;
+            else batch.first = link;
+            batch.last = link;
+            batch.identity = origin;
+            if (++batch.count == Batch) flush_batch(batch);
+        }
+        void flush_batch(owner_routes& routes, array_batch& b, bool keep) noexcept {
+            const auto count = b.size();
+            auto* last = ::new (b.items[count - 1]) node{nullptr};
+            auto* first = last;
+            for (auto i = count - 1; i; --i)
+                first = ::new (b.items[i - 1]) node{first};
+            const auto origin = b.origin;
+            routes.pending -= count;
+            b.next = b.items;
+            publish(first, last, count, origin, keep);
+        }
+        void flush_routes(owner_routes& routes, bool keep) noexcept {
+            if (!routes.pending) return;
+            for (auto& b : routes.buckets)
+                if (b.next != b.items) flush_batch(routes, b, keep);
+        }
+        void stage(owner_routes& routes, size_t origin, void* p) noexcept {
             const size_t index = origin & 255;
             if (!index || index > Slots) { put(p); return; }
-            auto& b = outgoing[index - 1];
+            auto& b = routes.buckets[index - 1];
             if (b.origin != origin) {
-                if (b.next != b.items) publish(b, true);
+                if (b.next != b.items) flush_batch(routes, b, true);
                 b.origin = origin;
             }
             *b.next++ = p;
-            ++pending;
+            ++routes.pending;
             if (b.next == b.items + Batch) {
-                publish(b, true);
-            } else if (pending == Remote) {
+                flush_batch(routes, b, true);
+            } else if (routes.pending == Remote) {
                 // Bound retention across destinations. Scan only under pressure.
                 auto* largest = &b;
-                for (auto& candidate : outgoing)
+                for (auto& candidate : routes.buckets)
                     if (candidate.size() > largest->size()) largest = &candidate;
-                publish(*largest, true);
+                flush_batch(routes, *largest, true);
             }
         }
         ~cache() noexcept {
@@ -258,19 +336,20 @@ public:
         } else backing_free(p);
     }
     // Optional processing-boundary flush for partial batches. TLS exit also
-    // flushes; an idle sender retains fewer than Remote blocks across all destinations.
+    // flushes every route. Pending batches hold no publisher ticket.
     static void flush_remote_returns() noexcept {
         if (auto* c = view().current) c->flush();
     }
 };
 
-template <typename T, size_t Cache = FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT>
+template <typename T, size_t Cache = FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT,
+          size_t Routes = FLUX_FOUNDRY_AWAITABLE_POOL_ROUTE_COUNT>
 struct identity_pooling_base {
 private:
     // The identity belongs to the live object, never to an allocation header.
     size_t origin_;
     template <typename U>
-    using allocator_for = identity_pool_allocator<sizeof(U), alignof(U), Cache>;
+    using allocator_for = identity_pool_allocator<sizeof(U), alignof(U), Cache, 16, 64, Cache, Routes>;
 public:
     identity_pooling_base() noexcept : origin_(allocator_for<T>::current_identity()) {}
     identity_pooling_base(const identity_pooling_base&) = delete;

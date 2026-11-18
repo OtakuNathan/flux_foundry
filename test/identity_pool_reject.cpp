@@ -17,6 +17,10 @@ using pool = identity_pool_allocator<96, 8, 32, 16, 256>;
 using pool = identity_pool_allocator<96, 8, 32, 16, 64, 8>;
 #elif FF_IDENTITY_CASE == 7
 using pool = identity_pool_allocator<std::numeric_limits<size_t>::max(), 8>;
+#elif FF_IDENTITY_CASE == 11
+using pool = identity_pool_allocator<96, 8, 32, 16, 4, 32, 0>;
+#elif FF_IDENTITY_CASE == 12
+using pool = identity_pool_allocator<96, 8, 32, 16, 4, 32, 5>;
 #else
 using pool = identity_pool_allocator<96, 8>;
 #endif

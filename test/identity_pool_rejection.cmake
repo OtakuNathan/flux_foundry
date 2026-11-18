@@ -1,4 +1,4 @@
-foreach(case RANGE 0 10)
+foreach(case RANGE 0 12)
     execute_process(COMMAND "${FF_CXX_COMPILER}" -std=c++14 -fsyntax-only
         -I${FF_SOURCE_DIR} -DFF_IDENTITY_CASE=${case}
         "${FF_SOURCE_DIR}/test/identity_pool_reject.cpp"
@@ -8,7 +8,9 @@ foreach(case RANGE 0 10)
             message(FATAL_ERROR "identity pool positive control failed\n${output}\n${errors}")
         endif()
     else()
-        if(case LESS 8)
+        if(case GREATER 10)
+            set(expected "identity pool requires nonzero outgoing routes")
+        elseif(case LESS 8)
             set(expected "identity pool")
         else()
             set(expected "identity-pooled awaitables must use the inherited")
@@ -19,4 +21,4 @@ foreach(case RANGE 0 10)
         endif()
     endif()
 endforeach()
-message(STATUS "identity pool: positive control and 10 intended rejections passed")
+message(STATUS "identity pool: positive control and 12 intended rejections passed")
