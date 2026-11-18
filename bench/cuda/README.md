@@ -74,6 +74,14 @@ per-operation parameter updates. On the same hardware, pooling accounts for
 mode near 12,700 images/s. Run-to-run spread at 128x128 window 8 is roughly
 +/-10%, so single-digit differences between modes are noise.
 
+`payload_probe.cu` and `completion_probe.cu` price the two remaining candidates:
+returning fewer bytes, and amortising completion detection. The
+[second snapshot](results/rtx2080ti-20261118-payload/README.md) records that one
+byte per pixel instead of RGBA is worth about 3.4x at 512x512 and 25% at 128x128
+with nothing above the 256 KiB/32 KiB budget, while dropping the per-image event
+or batching four images per completion changes nothing beyond noise (the batch
+variant is 7% slower).
+
 ## Reproduce
 
 The current sources use Portal's renamed API. Use the FF and Portal revisions
