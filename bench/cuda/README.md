@@ -82,6 +82,14 @@ with nothing above the 256 KiB/32 KiB budget, while dropping the per-image event
 or batching four images per completion changes nothing beyond noise (the batch
 variant is 7% slower).
 
+`kick_probe.cu` answers the next question — whether the GPU should wake the
+pipeline instead of being polled — and the
+[kick snapshot](results/rtx2080ti-20261119-kick/README.md) shows it depends
+entirely on payload: at 128x128 a `cudaLaunchHostFunc` callback costs 19-49%
+throughput for no CPU refund, while at 512x512 it costs 2% and returns 85% of a
+saturated core. Poll when the image is small or the window is 1-2; kick when the
+transfer dominates and the core has other work.
+
 ## Reproduce
 
 The current sources use Portal's renamed API. Use the FF and Portal revisions
