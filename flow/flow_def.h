@@ -24,6 +24,57 @@ enum class cancel_kind {
     hard,
 };
 
+// Classification of errors synthesized by the library.
+enum class flow_error_code : uint8_t {
+    cancel_soft,
+    cancel_hard,
+    awaitable_create_failed,
+    async_submission_failed,
+    all_async_failed,
+    any_async_failed,
+};
+
+inline const char* flow_error_code_message(flow_error_code code) noexcept {
+    switch (code) {
+        case flow_error_code::cancel_soft:             return "flow soft-canceled";
+        case flow_error_code::cancel_hard:             return "flow hard-canceled";
+        case flow_error_code::awaitable_create_failed: return "failed to create awaitable";
+        case flow_error_code::async_submission_failed: return "failed to submit async operation";
+        case flow_error_code::all_async_failed:        return "all async operations are failed.";
+        case flow_error_code::any_async_failed:        return "async operation failed";
+    }
+    return "flow error";
+}
+
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+class flow_error : public std::logic_error {
+public:
+    flow_error(flow_error_code code, size_t index = 0, int submit_code = 0)
+        : std::logic_error(make_message(code, index)),
+          code_(code),
+          submit_code_(submit_code),
+          index_(index) {}
+
+    flow_error_code code() const noexcept { return code_; }
+    size_t index() const noexcept { return index_; }
+    int submit_code() const noexcept { return submit_code_; }
+
+private:
+    static std::logic_error make_message(flow_error_code code, size_t index) {
+        if (code == flow_error_code::any_async_failed) {
+            char message[256];
+            std::snprintf(message, sizeof(message), "async operation #%zu failed", index);
+            return std::logic_error(message);
+        }
+        return std::logic_error(flow_error_code_message(code));
+    }
+
+    flow_error_code code_;
+    int submit_code_;
+    size_t index_;
+};
+#endif
+
 template <typename E>
 struct cancel_error {
     static E make(cancel_kind) {
@@ -38,11 +89,11 @@ struct cancel_error {
 template <>
 struct cancel_error<std::exception_ptr> {
     static std::exception_ptr make(cancel_kind kind) noexcept {
-        const char* msg = (kind == cancel_kind::hard)
-            ? "flow hard-canceled"
-            : "flow soft-canceled";
+        const flow_error_code code = (kind == cancel_kind::hard)
+            ? flow_error_code::cancel_hard
+            : flow_error_code::cancel_soft;
         try {
-            return std::make_exception_ptr(std::logic_error(msg));
+            return std::make_exception_ptr(flow_error(code));
         } catch (...) {
             return std::current_exception();
         }
@@ -65,7 +116,7 @@ template <>
 struct awaitable_creating_error<std::exception_ptr> {
     static std::exception_ptr make() noexcept {
         try {
-            return std::make_exception_ptr(std::logic_error("failed to create awaitable"));
+            return std::make_exception_ptr(flow_error(flow_error_code::awaitable_create_failed));
         } catch (...) {
             return std::current_exception();
         }
@@ -79,19 +130,23 @@ struct async_submission_failed_error {
         static_assert(sizeof(E) == 0,
             "flux_foundry::async_submission_failed_error<E> is not specialized for this error type E. "
             "Please provide `template<> struct flux_foundry::async_submission_failed_error<E>` "
-            "with a static `E make()` member.");
+            "with a static `E make(int)` or `E make()` member.");
     }
 };
 
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct async_submission_failed_error<std::exception_ptr> {
-    static std::exception_ptr make() noexcept {
+    static std::exception_ptr make(int submit_code) noexcept {
         try {
-            return std::make_exception_ptr(std::logic_error("failed to submit async operation"));
+            return std::make_exception_ptr(flow_error(flow_error_code::async_submission_failed, 0, submit_code));
         } catch (...) {
             return std::current_exception();
         }
+    }
+
+    static std::exception_ptr make() noexcept {
+        return make(0);
     }
 };
 #endif
@@ -111,7 +166,7 @@ template <>
 struct async_all_failed_error<std::exception_ptr> {
     static std::exception_ptr make() {
         try {
-            return std::make_exception_ptr(std::logic_error("all async operations are failed."));
+            return std::make_exception_ptr(flow_error(flow_error_code::all_async_failed));
         } catch (...) {
             return std::current_exception();
         }
@@ -134,9 +189,8 @@ struct async_any_failed_error {
     struct async_any_failed_error<std::exception_ptr> {
         static std::exception_ptr make(size_t i) {
             try {
-                char buff[256]{};
-                snprintf(buff, sizeof(buff), "async operation #%zu failed", i);
-                return std::make_exception_ptr(std::logic_error(buff));
+                return std::make_exception_ptr(
+                    flow_error(flow_error_code::any_async_failed, i));
             } catch (...) {
                 return std::current_exception();
             }

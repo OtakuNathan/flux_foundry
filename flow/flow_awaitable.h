@@ -28,6 +28,13 @@ namespace flux_foundry {
         template <typename T>
         using awaitable_pool = pooling_base<T, FLUX_FOUNDRY_AWAITABLE_POOL_SLOT_COUNT>;
 #endif
+        template <typename E, typename Awaitable>
+        E make_awaitable_submit_error(Awaitable& op, int code) noexcept {
+            static_assert(std::is_same<decltype(op.make_submit_error(code)), E>::value,
+                "make_submit_error(int) must return the awaitable's error type.");
+            static_assert(noexcept(op.make_submit_error(code)), "make_submit_error(int) must be noexcept.");
+            return op.make_submit_error(code);
+        }
     }
     // Opt-in contract for awaitables which always call resume() from submit()
     // before returning success. The default is deliberately conservative: an
@@ -151,6 +158,12 @@ namespace flux_foundry {
                 self->retain();
             }
 
+            // Called only after a rejected submit while the runner still owns the awaitable.
+            template <typename A = derived, typename = decltype(std::declval<A&>().make_submit_error(0))>
+            E make_submit_error(int code) const noexcept {
+                return detail::make_awaitable_submit_error<E>(*static_cast<derived*>(self), code);
+            }
+
             void release() noexcept {
                 self->release();
             }
@@ -272,6 +285,12 @@ namespace flux_foundry {
                 auto code = static_cast<derived*>(self)->submit();
                 self->release();
                 return code;
+            }
+
+            // Called only after a rejected submit while the runner still owns the awaitable.
+            template <typename A = derived, typename = decltype(std::declval<A&>().make_submit_error(0))>
+            E make_submit_error(int code) const noexcept {
+                return detail::make_awaitable_submit_error<E>(*static_cast<derived*>(self), code);
             }
 
             void release() noexcept {

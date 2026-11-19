@@ -8,6 +8,7 @@
 #include "../memory/lite_ptr.h"
 #include "../memory/result_t.h"
 #include "flow_def.h"
+#include "request_context.h"
 #include "flow_blueprint.h"
 #include "flow_aggregator.h"
 #include "flow_awaitable.h"

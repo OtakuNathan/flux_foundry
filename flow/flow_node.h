@@ -434,62 +434,51 @@ namespace flux_foundry {
         }
 
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-        // exception catch
+        template <typename F, typename Exception, typename I, typename T>
+        struct exception_handler_wrapper {
+            using O = result_t<T, std::exception_ptr>;
+            F f;
+
+            template <typename Handler>
+            static O run(Handler& handler, I&& in) noexcept {
+                LIKELY_IF (in.has_value()) {
+                    return on_error_step::forward_success<O>(std::move(in), std::is_void<typename I::value_type>{});
+                }
+
+                try {
+                    std::rethrow_exception(in.error());
+                } catch (const Exception& e) {
+                    try {
+                        return call<T, std::exception_ptr, Handler>(std::is_void<T>{}, std::false_type{}, handler, e);
+                    } catch (...) {
+                        return O(error_tag, std::current_exception());
+                    }
+                } catch (...) {
+                    // Preserve the original exception_ptr when the handler does not match.
+                    return O(error_tag, in.error());
+                }
+            }
+
+            O operator()(I&& in) noexcept {
+                return run(f, std::move(in));
+            }
+
+            template <typename Q = F,
+                std::enable_if_t<const_result_handler_compatible<Q, const Exception&, T>::value, int> = 0>
+            O operator()(I&& in) const noexcept {
+                return run(f, std::move(in));
+            }
+        };
+
         template <typename F, typename Exception>
         struct exception_catch_node {
             F f;
 
-            template <typename F_I, typename F_O,
-                std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
+            template <typename I, typename T>
             static constexpr auto make(exception_catch_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
-                using R = result_t<F_O, std::exception_ptr>;
-                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
-                    LIKELY_IF (in.has_value()) {
-                        return R(value_tag, std::move(in).value());
-                    }
-
-                    try {
-                        std::rethrow_exception(in.error());
-                    } catch (const Exception& e) {
-                        try {
-                            return call<F_O, std::exception_ptr, F>(std::is_void<F_O>{}, std::false_type{}, f, e);
-                        } catch (...) {
-                            return R(error_tag, std::current_exception());
-                        }
-                    } catch (...) {
-                        // Preserve the original exception_ptr: recapturing may
-                        // create a distinct exception object (for example on MSVC).
-                        return R(error_tag, in.error());
-                    }
-                };
-                return flow_calc_node<F_I, R, decltype(wrapper)>(std::move(wrapper));
-            }
-
-            template <typename F_I, typename F_O,
-                std::enable_if_t<std::is_void<typename F_I::value_type>::value>* = nullptr>
-            static constexpr auto make(exception_catch_node&& self)
-                noexcept(std::is_nothrow_move_constructible<F>::value) {
-                using R = result_t<F_O, std::exception_ptr>;
-                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
-                    LIKELY_IF (in.has_value()) {
-                        return R(value_tag);
-                    }
-
-                    try {
-                        std::rethrow_exception(in.error());
-                    } catch (const Exception& e) {
-                        try {
-                            return call<F_O, std::exception_ptr, F>(std::is_void<F_O>{}, std::false_type{}, f, e);
-                        } catch (...) {
-                            return R(error_tag, std::current_exception());
-                        }
-                    } catch (...) {
-                        // This exception did not match the handler; forward it unchanged.
-                        return R(error_tag, in.error());
-                    }
-                };
-                return flow_calc_node<F_I, R, decltype(wrapper)>(std::move(wrapper));
+                using wrapper = exception_handler_wrapper<F, Exception, I, T>;
+                return flow_calc_node<I, typename wrapper::O, wrapper>(wrapper{std::move(self.f)});
             }
         };
 

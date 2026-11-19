@@ -43,6 +43,28 @@ namespace flux_foundry {
     }
 
     namespace runner_impl {
+        template <typename E>
+        auto submit_error_from_factory(int code, int) -> decltype(async_submission_failed_error<E>::make(code)) {
+            return async_submission_failed_error<E>::make(code);
+        }
+
+        template <typename E>
+        E submit_error_from_factory(int, long) {
+            return async_submission_failed_error<E>::make();
+        }
+
+        template <typename E, typename Delegate>
+        auto make_submit_error(Delegate& awaitable, int code, int)
+            -> std::enable_if_t<std::is_same<decltype(awaitable.make_submit_error(code)), E>::value, E> {
+            static_assert(noexcept(awaitable.make_submit_error(code)), "make_submit_error(int) must be noexcept.");
+            return awaitable.make_submit_error(code);
+        }
+
+        template <typename E, typename Delegate>
+        E make_submit_error(Delegate&, int code, long) {
+            return submit_error_from_factory<E>(code, 0);
+        }
+
         // Calculation and end nodes invoke their stored callable directly on the borrowed BP.
         template <typename Node, typename = void>
         struct const_handler_compatible : std::true_type {};
@@ -706,11 +728,13 @@ namespace flux_foundry {
                 );
 
                 prepare_submit(self, completes_inline_t{});
-                UNLIKELY_IF (awaitable.submit_async() != 0) {
+                const int submit_code = awaitable.submit_async();
+                UNLIKELY_IF (submit_code != 0) {
                     restore_after_failed_submit(self, is_inline_executor_t{});
+                    node_output_t failure(error_tag,
+                        runner_impl::make_submit_error<typename node_output_t::error_type>(awaitable, submit_code, 0));
                     awaitable.release();
-                    dispatch_impl(dispatcher, self, 
-                        node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()), is_inline_executor_t{});
+                    dispatch_impl(dispatcher, self, std::move(failure), is_inline_executor_t{});
                 }
             }
 
@@ -769,15 +793,17 @@ namespace flux_foundry {
 
                 // failed to submit the io.
                 prepare_submit(self, completes_inline_t{});
-                UNLIKELY_IF (awaitable.submit_async() != 0) {
+                const int submit_code = awaitable.submit_async();
+                UNLIKELY_IF (submit_code != 0) {
                     restore_after_failed_submit(self, is_inline_executor_t{});
                     self.controller->reset_cancel_handler_when_locked();
                     g.controller->unlock(state);
                     g.controller = nullptr;
 
+                    node_output_t failure(error_tag,
+                        runner_impl::make_submit_error<typename node_output_t::error_type>(awaitable, submit_code, 0));
                     awaitable.release();
-                    dispatch_impl(dispatcher, self, 
-                        node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()), is_inline_executor_t{});
+                    dispatch_impl(dispatcher, self, std::move(failure), is_inline_executor_t{});
                 }
             }
 
@@ -1085,12 +1111,13 @@ namespace flux_foundry {
 
                 // failed to submit the io.
                 prepare_submit(self, completes_inline_t{});
-                UNLIKELY_IF (awaitable.submit_async() != 0) {
+                const int submit_code = awaitable.submit_async();
+                UNLIKELY_IF (submit_code != 0) {
                     restore_after_failed_submit(self, is_inline_executor_t{});
+                    node_output_t failure(error_tag,
+                        runner_impl::make_submit_error<typename node_output_t::error_type>(awaitable, submit_code, 0));
                     awaitable.release();
-                    dispatch_impl(dispatcher, self, 
-                        node_output_t(error_tag, async_submission_failed_error<typename node_output_t::error_type>::make()), 
-                        is_inline_executor_t{});
+                    dispatch_impl(dispatcher, self, std::move(failure), is_inline_executor_t{});
                 }
             }
 

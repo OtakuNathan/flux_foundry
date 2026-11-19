@@ -467,6 +467,52 @@ sequenceDiagram
 - Once execution is handed off to an asynchronous executor or event loop, that runner instance reports `is_consumed() == true`; invoking it again is rejected (and asserts in debug builds). Create a new runner from the shared blueprint for another operation.
 - Awaitables are conservatively treated as asynchronous. An awaitable that guarantees every successful `submit()` calls `resume()` before returning may declare `static constexpr bool completes_inline = true`; an `awaitable_base` type must also declare `static constexpr bool support_cancel = false`, because concurrent cancellation can resume on another thread. With those guarantees and an inline executor, the runner remains reusable.
 
+### Library-synthesized errors
+
+With exceptions enabled, the default error channel carries FF's cancellation,
+submission and aggregation errors as `std::exception_ptr` to a `flow_error`.
+The exception derives from `std::logic_error` and preserves its historical
+`what()` text. Use `code()` to classify the error, `index()` for the failing
+aggregate branch, and `submit_code()` for the original nonzero submit status.
+The latter two accessors return zero when their detail is absent. Exceptions
+thrown during awaitable creation or by user callbacks retain their own types.
+
+A rejected submission can carry request state through an optional awaitable
+member `E make_submit_error(int submit_code) noexcept`. The runner invokes it
+while the awaitable is alive and delivers the error after releasing the awaitable.
+Use the hook when the awaitable and node output have the same error type.
+The fallback tries `async_submission_failed_error<E>::make(int)` followed by the
+legacy `make()` overload. Each factory receives the backend's signed status
+when its signature accepts it.
+
+For a no-exception pipeline, define the business data as `request_payload` and
+use FF's single-pointer error handle. The request stores its payload first and
+keeps a private submit code after it.
+
+```cpp
+using context = ff::request_context<request_payload>;
+using error = context::error_type;
+using result = ff::result_t<context*, error>;
+
+// Member of the awaitable. context_ points to the current request.
+error make_submit_error(int submit_code) noexcept {
+    return context_->fail(submit_code);
+}
+```
+
+Success steps access their data through `context::payload()`. In `on_error`,
+a nonempty error gives access to `submit_code()` and `context()` for recovery.
+Keep the request at a stable address through queued delivery and recovery. Each
+handle reads the request's current slot, so reuse the slot after earlier
+recovery has finished. A default-constructed handle is empty. Applications
+can provide an empty error from custom factories for paths where no request is
+available and check the handle before recovering.
+
+In exception builds the hook can return a `std::exception_ptr` to a user
+exception containing the same handle. A matching `catch_exception<T>` receives
+the exception by const reference. Const-callable recovery handlers work in a
+borrowed `constexpr` blueprint.
+
 ### Fork pattern (template reference)
 
 - `flux_foundry` does not enforce a single fork topology API because downstream start/join strategy is user-defined.

@@ -479,7 +479,7 @@ endif()
 # Constant construction is optional; retain the existing C++14 runtime baseline.
 foreach(std 14 17 20)
     if("cxx_std_${std}" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-        foreach(probe constexpr_blueprint_demo const_transform_contract)
+        foreach(probe constexpr_blueprint_demo const_transform_contract flow_error_context)
             set(target flux_foundry_${probe}_cxx${std})
             flux_foundry_add_probe(${target} ${probe}.cpp)
             flux_foundry_add_noexc_probe(${target}_noexc ${probe}.cpp)
