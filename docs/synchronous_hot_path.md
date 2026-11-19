@@ -9,6 +9,7 @@ inside a calculation node; it does not need an executor or an awaitable.
 | Need | Entry point | Contract |
 | --- | --- | --- |
 | Cancellation of an in-flight flow | `make_runner(lite_ptr<Blueprint>, receiver)` | Uses `flow_controller`; cancellation is observed at runner/awaitable boundaries and follows the awaitable's cancellation contract. It cannot preempt an arbitrary synchronous callback. |
+| Cancellation with a borrowed blueprint | `make_runner_view(blueprint, receiver)` | The caller keeps the blueprint alive through completion. Each runner has its own controller. |
 | No controller-driven cancellation; own the blueprint | `make_fast_runner(std::move(blueprint), receiver)` | Stores the blueprint by value; no `flow_controller` or its cancellation-handler registration. |
 | No controller-driven cancellation; share blueprint ownership | `make_fast_runner(lite_ptr<Blueprint>, receiver)` | Retains the shared blueprint handle. |
 | No controller-driven cancellation; borrow an existing blueprint | `make_fast_runner_view(blueprint, receiver)` | Caller keeps the blueprint and everything its callbacks reference alive until completion. |

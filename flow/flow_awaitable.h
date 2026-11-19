@@ -393,7 +393,7 @@ namespace flux_foundry {
             std::enable_if_t<std::is_nothrow_constructible<A, Args&&...>::value>* = nullptr
 #endif
         >
-        result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) noexcept {
+        result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) const noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
             try {
                 auto aw = new awaitable(std::forward<Args>(param)...);

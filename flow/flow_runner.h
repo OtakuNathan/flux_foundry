@@ -42,9 +42,97 @@ namespace flux_foundry {
         constexpr bool is_inline_dispatcher_v = is_inline_dispatcher<Dispatcher>::value;
     }
 
+    namespace runner_impl {
+        // Calculation and end nodes invoke their stored callable directly on the borrowed BP.
+        template <typename Node, typename = void>
+        struct const_handler_compatible : std::true_type {};
+
+        template <typename Node>
+        struct const_handler_compatible<Node, void_t<typename Node::F_t>>
+            : std::integral_constant<bool, flow_impl::is_invocable_with<
+                  const typename Node::F_t, typename Node::I_t&&>::value> {};
+
+        template <typename Pointer>
+        struct view_handlers_compatible : std::true_type {};
+
+        template <typename I, typename O, typename... Nodes>
+        struct view_handlers_compatible<const flow_impl::flow_blueprint<I, O, Nodes...>*>
+            : conjunction<const_handler_compatible<Nodes>...> {};
+
+        template <typename Pointer>
+        constexpr bool check_view_handlers() {
+            static_assert(view_handlers_compatible<Pointer>::value,
+                "A const blueprint (including a constexpr variable) is borrowed as const, but a node "
+                "cannot be called through const. Remove mutable from a handler that needs no mutable "
+                "state, or provide a compatible const overload. For then/on_error, the const overload must "
+                "return the same result type as the non-const call and be noexcept in strict no-exception "
+                "mode. For stateful handlers, build a non-const "
+                "blueprint using auto (or C++20 constinit auto for static storage).");
+            return true;
+        }
+
+        template <typename BP>
+        struct blueprint_storage_types {
+            using bp_t = std::decay_t<BP>;
+            using I_t = typename bp_t::I_t;
+            using O_t = typename bp_t::O_t;
+            using storage_t = typename bp_t::storage_t;
+            static constexpr std::size_t node_count = bp_t::node_count;
+            static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
+            static_assert(node_count > 0, "attempting to run an empty blueprint");
+        };
+
+        template <typename Source>
+        struct bp_storage;
+
+        template <typename BP>
+        struct bp_storage<BP*> : blueprint_storage_types<BP> {
+            BP* p;
+            explicit bp_storage(BP* bp) noexcept : p(bp) {}
+            BP* operator->() const noexcept { return p; }
+            explicit operator bool() const noexcept { return p != nullptr; }
+        };
+
+        template <typename BP>
+        struct bp_storage<BP&> : blueprint_storage_types<BP> {
+            BP& p;
+            explicit bp_storage(BP& bp) noexcept : p(bp) {}
+            BP* operator->() const noexcept { return &p; }
+            explicit operator bool() const noexcept { return true; }
+        };
+
+        template <typename BP>
+        struct bp_storage<lite_ptr<BP>> : blueprint_storage_types<BP> {
+            lite_ptr<BP> p;
+            explicit bp_storage(lite_ptr<BP> bp) noexcept : p(std::move(bp)) {}
+            BP* operator->() const noexcept { return p.get(); }
+            explicit operator bool() const noexcept { return static_cast<bool>(p); }
+        };
+
+        template <typename BP>
+        struct bp_storage<BP&&> : bp_storage<lite_ptr<BP>> {
+            explicit bp_storage(BP&& bp)
+                : bp_storage<lite_ptr<BP>>(make_lite_ptr<BP>(std::move(bp))) {}
+        };
+
+        template <typename BP, std::enable_if_t<flow_impl::is_blueprint_v<BP>, int> = 0>
+        bp_storage<BP&> borrow_blueprint(BP& bp) noexcept { return bp_storage<BP&>(bp); }
+
+        template <typename BP, std::enable_if_t<flow_impl::is_blueprint_v<BP>, int> = 0>
+        bp_storage<BP*> borrow_blueprint(BP* bp) noexcept { return bp_storage<BP*>(bp); }
+
+        template <typename BP, std::enable_if_t<flow_impl::is_blueprint_v<BP>, int> = 0>
+        void borrow_blueprint(BP&&) = delete;
+
+        template <typename Source>
+        using borrowed_storage_t = decltype(borrow_blueprint(std::declval<Source>()));
+    }
+
+    namespace fast_runner_impl = runner_impl;
+
     struct flow_controller;
 
-    template <typename flow_bp, typename receiver_t, typename controller_ptr_t>
+    template <typename flow_bp, typename receiver_t, typename controller_ptr_t, typename blueprint_handle>
     struct flow_runner;
 
     enum runner_cancel {
@@ -61,7 +149,7 @@ namespace flux_foundry {
 #else
     struct flow_controller {
 #endif
-        template <typename flow_bp, typename receiver_t, typename controller_ptr_t>
+        template <typename flow_bp, typename receiver_t, typename controller_ptr_t, typename blueprint_handle>
         friend struct flow_runner;
     private:
         padded_t<std::atomic<size_t>, CACHE_LINE_SIZE> state_{ runner_cancel::none };
@@ -200,7 +288,8 @@ namespace flux_foundry {
     // - after execution is handed off asynchronously, treat the original runner as consumed.
     // - async/via steps transfer execution by move-capturing runner state into continuations.
     // - flow_controller::cancel() may be invoked concurrently from other threads.
-    template <typename flow_bp, typename receiver_type, typename controller_ptr_t = lite_ptr<flow_controller>>
+    template <typename flow_bp, typename receiver_type, typename controller_ptr_t = lite_ptr<flow_controller>,
+              typename blueprint_handle = lite_ptr<std::decay_t<flow_bp>>>
     struct flow_runner {
         static constexpr std::size_t node_count = flow_bp::node_count;
         static_assert(node_count > 0, "attempting to run an empty blueprint");
@@ -227,7 +316,9 @@ namespace flux_foundry {
         static_assert(std::is_same<typename first_node_t::tag, flow_impl::node_tag_end>::value,
             "A valid blueprint must end with an end");
 
-        using bp_ptr = lite_ptr<bp_t>;
+        using bp_ptr = blueprint_handle;
+        static_assert(runner_impl::check_view_handlers<decltype(std::declval<bp_ptr&>().operator->())>(),
+            "invalid blueprint view");
         using controller_ptr = std::decay_t<controller_ptr_t>;
 
     private:
@@ -723,148 +814,22 @@ namespace flux_foundry {
 
     template <typename bp_t, typename receiver_t>
     auto make_runner(lite_ptr<bp_t> bp, receiver_t receiver) {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(check_receiver_v<receiver_t>,
-            "a valid receiver should:\n"
-            "1. be nothrow move constructible.\n"
-            "2. be nothrow copy constructible.\n"
-            "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
-            "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
-            "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
-            "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
         return flow_runner<bp_t, receiver_t>(std::move(bp), lite_ptr<flow_controller>(), std::move(receiver));
     }
 
-    // one-short runner.
-    namespace fast_runner_impl {
-        // Calculation and end nodes invoke their stored callable directly on the borrowed BP.
-        template <typename Node, typename = void>
-        struct const_handler_compatible : std::true_type {};
+    // The caller keeps the borrowed blueprint alive through every continuation.
+    template <typename Source, typename Storage = runner_impl::borrowed_storage_t<Source>>
+    auto make_runner_view(Source&& source) {
+        using receiver = stub_receiver<typename Storage::O_t>;
+        using runner = flow_runner<typename Storage::bp_t, receiver, lite_ptr<flow_controller>, Storage>;
+        return runner(runner_impl::borrow_blueprint(std::forward<Source>(source)), make_lite_ptr<flow_controller>());
+    }
 
-        template <typename Node>
-        struct const_handler_compatible<Node, void_t<typename Node::F_t>>
-            : std::integral_constant<bool, flow_impl::is_invocable_with<
-                  const typename Node::F_t, typename Node::I_t&&>::value> {};
-
-        template <typename Pointer>
-        struct view_handlers_compatible : std::true_type {};
-
-        template <typename I, typename O, typename... Nodes>
-        struct view_handlers_compatible<const flow_impl::flow_blueprint<I, O, Nodes...>*>
-            : conjunction<const_handler_compatible<Nodes>...> {};
-
-        template <typename flow_bp>
-        struct bp_storage {
-            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
-            static_assert(sizeof(flow_bp) == 0, "a flat bp storage should have a raw pointer or a unique_ptr or a shared_ptr or a reference.");
-        };
-
-        template <typename flow_bp>
-        struct bp_storage <flow_bp*> {
-            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
-
-            static constexpr std::size_t node_count = flow_bp::node_count;
-            static_assert(node_count > 0, "attempting to run an empty blueprint");
-
-            using bp_t = std::decay_t<flow_bp>;
-            using I_t = typename bp_t::I_t;
-            using O_t = typename bp_t::O_t;
-            using storage_t = typename bp_t::storage_t;
-
-            flow_bp* p;
-            explicit bp_storage(flow_bp* p_)
-                noexcept : p(p_) {
-            }
-
-            FORCE_INLINE flow_bp* operator->() const {
-                return p;
-            }
-
-            explicit operator bool() const noexcept {
-                return p;
-            }
-        };
-
-        template <typename flow_bp>
-        struct bp_storage <lite_ptr<flow_bp>> {
-            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
-
-            static constexpr std::size_t node_count = flow_bp::node_count;
-            static_assert(node_count > 0, "attempting to run an empty blueprint");
-
-            using bp_t = std::decay_t<flow_bp>;
-            using I_t = typename bp_t::I_t;
-            using O_t = typename bp_t::O_t;
-            using storage_t = typename bp_t::storage_t;
-
-            lite_ptr<flow_bp> p;
-            explicit bp_storage(lite_ptr<flow_bp> p_)
-                noexcept : p(std::move(p_)) {
-            }
-
-            FORCE_INLINE flow_bp* operator->() const {
-                return p.get();
-            }
-
-            explicit operator bool() const noexcept {
-                return static_cast<bool>(p);
-            }
-        };
-
-        template <typename flow_bp>
-        struct bp_storage <flow_bp&> {
-            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
-
-            static constexpr std::size_t node_count = flow_bp::node_count;
-            static_assert(node_count > 0, "attempting to run an empty blueprint");
-
-            using bp_t = std::decay_t<flow_bp>;
-            using I_t = typename bp_t::I_t;
-            using O_t = typename bp_t::O_t;
-            using storage_t = typename bp_t::storage_t;
-
-            flow_bp& p;
-
-            explicit bp_storage(flow_bp& p_)
-                noexcept : p(p_) {
-            }
-
-            FORCE_INLINE flow_bp* operator->() const {
-                return &p;
-            }
-
-            explicit operator bool() const noexcept {
-                return true;
-            }
-        };
-
-        template <typename flow_bp>
-        struct bp_storage <flow_bp&&> {
-            static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
-
-            static constexpr std::size_t node_count = flow_bp::node_count;
-            static_assert(node_count > 0, "attempting to run an empty blueprint");
-
-            using bp_t = std::decay_t<flow_bp>;
-            using I_t = typename bp_t::I_t;
-            using O_t = typename bp_t::O_t;
-            using storage_t = typename bp_t::storage_t;
-
-            lite_ptr<flow_bp> p;
-
-            explicit bp_storage(flow_bp&& p_)
-                : p(make_lite_ptr<flow_bp>(std::move(p_))) {
-            }
-
-            FORCE_INLINE flow_bp* operator->() const {
-                return p.get();
-            }
-
-            explicit operator bool() const noexcept {
-                return static_cast<bool>(p);
-            }
-        };
+    template <typename Source, typename Receiver,
+              typename Storage = runner_impl::borrowed_storage_t<Source>>
+    auto make_runner_view(Source&& source, Receiver receiver) {
+        using runner = flow_runner<typename Storage::bp_t, Receiver, lite_ptr<flow_controller>, Storage>;
+        return runner(runner_impl::borrow_blueprint(std::forward<Source>(source)), {}, std::move(receiver));
     }
 
     template <typename flow_bp_storage, typename receiver_type>
@@ -876,13 +841,7 @@ namespace flux_foundry {
         using receiver_t = std::decay_t<receiver_type>;
 
         using bp_pointer = decltype(std::declval<flow_bp_storage&>().operator->());
-        static_assert(fast_runner_impl::view_handlers_compatible<bp_pointer>::value,
-            "A const blueprint (including a constexpr variable) is borrowed as const, but a node "
-            "cannot be called through const. Remove mutable from a handler that needs no mutable "
-            "state, or provide a compatible const overload. For then/on_error, the const overload must "
-            "return the same result type as the non-const call and be noexcept in strict no-exception "
-            "mode. For stateful handlers, build a non-const "
-            "blueprint using auto (or C++20 constinit auto for static storage).");
+        static_assert(runner_impl::check_view_handlers<bp_pointer>(), "invalid blueprint view");
 
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         static_assert(check_receiver_v<receiver_t>,
@@ -890,12 +849,6 @@ namespace flux_foundry {
             "1. be nothrow move constructible.\n"
             "2. be nothrow copy constructible.\n"
             "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
-            "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
-            "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
-            "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
-
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
             "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
             "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
@@ -1164,7 +1117,7 @@ namespace flux_foundry {
         >, int> = 0>
     auto make_fast_runner(bp_t&& bp) noexcept {
         using bp_decay = std::decay_t<bp_t>;
-        using bp_storage = fast_runner_impl::bp_storage<bp_decay&&>;
+        using bp_storage = runner_impl::bp_storage<bp_decay&&>;
         return flow_fast_runner<bp_storage, stub_receiver<typename bp_decay::O_t>>(bp_storage(std::move(bp)));
     }
 
@@ -1175,22 +1128,8 @@ namespace flux_foundry {
     template <typename bp_t>
     auto make_fast_runner(lite_ptr<bp_t> bp) noexcept {
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        using bp_storage = fast_runner_impl::bp_storage<lite_ptr<bp_t>>;
+        using bp_storage = runner_impl::bp_storage<lite_ptr<bp_t>>;
         return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(std::move(bp)));
-    }
-
-    template <typename bp_t>
-    auto make_fast_runner_view(bp_t* bp) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        using bp_storage = fast_runner_impl::bp_storage<bp_t*>;
-        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
-    }
-
-    template <typename bp_t>
-    auto make_fast_runner_view(bp_t& bp) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        using bp_storage = fast_runner_impl::bp_storage<bp_t&>;
-        return flow_fast_runner<bp_storage, stub_receiver<typename bp_t::O_t>>(bp_storage(bp));
     }
 
     template <typename bp_t, typename receiver_t,
@@ -1200,17 +1139,7 @@ namespace flux_foundry {
         >, int> = 0>
     auto make_fast_runner(bp_t&& bp, receiver_t receiver) noexcept {
         using bp_decay = std::decay_t<bp_t>;
-        static_assert(flow_impl::is_blueprint_v<bp_decay>, "bp_t must be a flow_blueprint");
-        static_assert(check_receiver_v<receiver_t>,
-            "a valid receiver should:\n"
-            "1. be nothrow move constructible.\n"
-            "2. be nothrow copy constructible.\n"
-            "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(is_receiver_compatible<typename bp_decay::O_t, receiver_t>::value,
-            "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
-            "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
-            "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
-        using bp_storage = fast_runner_impl::bp_storage<bp_decay&&>;
+        using bp_storage = runner_impl::bp_storage<bp_decay&&>;
         return flow_fast_runner<bp_storage, receiver_t>(bp_storage(std::move(bp)), std::move(receiver));
     }
 
@@ -1220,51 +1149,25 @@ namespace flux_foundry {
 
     template <typename bp_t, typename receiver_t>
     auto make_fast_runner(lite_ptr<bp_t> bp, receiver_t receiver) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(check_receiver_v<receiver_t>,
-            "a valid receiver should:\n"
-            "1. be nothrow move constructible.\n"
-            "2. be nothrow copy constructible.\n"
-            "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
-            "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
-            "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
-            "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
-        using bp_storage = fast_runner_impl::bp_storage<lite_ptr<bp_t>>;
+        using bp_storage = runner_impl::bp_storage<lite_ptr<bp_t>>;
         return flow_fast_runner<bp_storage, receiver_t>(bp_storage(std::move(bp)), std::move(receiver));
     }
 
-    template <typename bp_t, typename receiver_t>
-    auto make_fast_runner_view(bp_t* bp, receiver_t receiver) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(check_receiver_v<receiver_t>,
-            "a valid receiver should:\n"
-            "1. be nothrow move constructible.\n"
-            "2. be nothrow copy constructible.\n"
-            "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
-            "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
-            "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
-            "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
-        using bp_storage = fast_runner_impl::bp_storage<bp_t*>;
-        return flow_fast_runner<bp_storage, receiver_t>(bp_storage(bp), std::move(receiver));
+    template <typename BP, typename Receiver = stub_receiver<typename BP::O_t>>
+    auto make_fast_runner_view(BP* bp, Receiver receiver = Receiver{}) noexcept {
+        using storage = runner_impl::bp_storage<BP*>;
+        return flow_fast_runner<storage, Receiver>(runner_impl::borrow_blueprint(bp), std::move(receiver));
     }
 
-    template <typename bp_t, typename receiver_t>
-    auto make_fast_runner_view(bp_t& bp, receiver_t receiver) noexcept {
-        static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
-        static_assert(check_receiver_v<receiver_t>,
-            "a valid receiver should:\n"
-            "1. be nothrow move constructible.\n"
-            "2. be nothrow copy constructible.\n"
-            "in order to fully enable non-alloc in pipeline running, please make your receiver shared handle");
-        static_assert(is_receiver_compatible<typename bp_t::O_t, receiver_t>::value,
-            "the provided receiver isn't compatible with the current bp's output, A valid receiver should: "
-            "1. has member:: typename value_type, which should be a result_t<T, E>, represents the result it receives\n"
-            "2. has member function, whose signature is [ void emplace(result_t<T, E>&&) noexcept ]\n");
-        using bp_storage = fast_runner_impl::bp_storage<bp_t&>;
-        return flow_fast_runner<bp_storage, receiver_t>(bp_storage(bp), std::move(receiver));
+    template <typename BP, typename Receiver = stub_receiver<typename BP::O_t>,
+              std::enable_if_t<flow_impl::is_blueprint_v<BP>, int> = 0>
+    auto make_fast_runner_view(BP& bp, Receiver receiver = Receiver{}) noexcept {
+        using storage = runner_impl::bp_storage<BP&>;
+        return flow_fast_runner<storage, Receiver>(runner_impl::borrow_blueprint(bp), std::move(receiver));
     }
+
+    template <typename BP, typename Receiver = stub_receiver<typename BP::O_t>>
+    void make_fast_runner_view(const BP&&, Receiver = Receiver{}) = delete;
 } // namespace flux_foundry
 
 #endif // FLUX_FOUNDRY_FLOW_RUNNER_H

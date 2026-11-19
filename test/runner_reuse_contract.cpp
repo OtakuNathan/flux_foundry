@@ -375,6 +375,35 @@ int test_via_consumes_runner() {
         "non-inline via continuation still completes", failures);
     return failures;
 }
+int test_borrowed_async_lifetime() {
+    static queued_executor queue;
+#if FLUX_FOUNDRY_CPP_VER >= 201703L
+    static constexpr
+#else
+    static const
+#endif
+    auto bp = make_blueprint<int>() | await<held_awaitable>(&queue)
+        | transform([](int value) noexcept { return value + 1; }) | end();
+    int failures = 0;
+    for (bool cancel : {false, true}) {
+        observation out;
+        lite_ptr<flow_controller> controller;
+        {
+            auto runner = make_runner_view(bp, receiver{&out});
+            runner(20);
+            controller = runner.get_controller();
+            check(runner.is_consumed() && controller && held_awaitable::pending && !out.calls,
+                "borrowed async runner suspended", failures);
+        }
+        if (cancel) controller->cancel(true);
+        controller = {};
+        held_awaitable::complete();
+        queue.run_one();
+        check(out.calls == 1 && (cancel ? !out.has_value : (out.has_value && out.value == 22)),
+            "borrowed continuation retains its controller after runner destruction", failures);
+    }
+    return failures;
+}
 } // namespace
 
 int main() {
@@ -386,6 +415,7 @@ int main() {
     failures += test_failed_submission_does_not_consume_runner();
     failures += test_inline_prefix_propagates_later_handoff();
     failures += test_via_consumes_runner();
+    failures += test_borrowed_async_lifetime();
 
     if (failures == 0) {
         std::printf("[PASS] runner reuse contract\n");

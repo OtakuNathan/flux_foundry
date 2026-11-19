@@ -1,4 +1,4 @@
-#include "flow/flow.h"
+#include "lifecycle_test_support.h"
 
 #include <memory>
 #include <system_error>
@@ -89,6 +89,20 @@ static_assert(!ff::flow_impl::is_invocable_with<const then_wrapper<DifferentHand
 static_assert(ff::flow_impl::is_invocable_with<const then_wrapper<MayThrowHandler>, result_type&&>::value ==
     bool(FLUX_FOUNDRY_HAS_EXCEPTIONS), "the const handler must respect the active exception policy");
 
+template <typename Source, typename = void>
+struct can_borrow_normal : std::false_type {};
+template <typename Source>
+struct can_borrow_normal<Source, ff::void_t<decltype(ff::make_runner_view(std::declval<Source>()))>> : std::true_type {};
+template <typename Source, typename = void>
+struct can_borrow_fast : std::false_type {};
+template <typename Source>
+struct can_borrow_fast<Source, ff::void_t<decltype(ff::make_fast_runner_view(std::declval<Source>()))>> : std::true_type {};
+using demo_bp = decltype(ff::make_blueprint<int, error_type>() | ff::end());
+static_assert(!can_borrow_normal<demo_bp&&>::value && !can_borrow_normal<const demo_bp&&>::value,
+    "a borrowed normal runner requires a live blueprint");
+static_assert(!can_borrow_fast<demo_bp&&>::value && !can_borrow_fast<const demo_bp&&>::value,
+    "a borrowed fast runner requires a live blueprint");
+
 struct Receiver {
     using value_type = result_type;
     int* p;
@@ -144,6 +158,15 @@ int main() {
     const_view(0); CHECK(result == 2);
     const_view(result_type(ff::error_tag, error_type{})); CHECK(result == 4);
 
+    auto normal_mutable = ff::make_runner_view(handlers, Receiver{&result});
+    normal_mutable(0); CHECK(result == 1);
+    normal_mutable(result_type(ff::error_tag, error_type{})); CHECK(result == 3);
+    auto normal_const = ff::make_runner_view(&const_handlers, Receiver{&result});
+    normal_const(0); CHECK(result == 2);
+    normal_const(result_type(ff::error_tag, error_type{})); CHECK(result == 4);
+    const auto* empty = static_cast<const decltype(handlers)*>(nullptr);
+    ff::make_runner_view(empty, Receiver{&result})(0); CHECK(result == 4);
+
     auto different = ff::make_blueprint<int, error_type>()
         | ff::then(DifferentHandler{}) | ff::on_error(DifferentHandler{}) | ff::end();
     auto different_view = ff::make_fast_runner_view(different, Receiver{&result});
@@ -168,6 +191,14 @@ int main() {
     const
 #endif
     auto bp = ff::make_blueprint<int, error_type>() | ff::transform(Pure{}) | ff::end();
+    auto normal_view = ff::make_runner_view(bp, Receiver{&result});
+    normal_view(4); CHECK(result == 7);
+    auto other_view = ff::make_runner_view(bp);
+    auto other_controller = other_view.get_controller();
+    CHECK(other_controller && other_controller.get() != normal_view.get_controller().get());
+    other_controller->cancel(true);
+    normal_view(8); CHECK(result == 11);
+
     auto runner = ff::make_fast_runner_view(bp, Receiver{&result});
     runner(4); CHECK(result == 7);
     runner(8); CHECK(result == 11);

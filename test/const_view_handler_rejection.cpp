@@ -29,5 +29,9 @@ constexpr auto bp = ff::make_blueprint<int, error_type>()
     | ff::end();
 
 int main() {
+#if defined(FF_TEST_NORMAL_RUNNER)
+    (void)ff::make_runner_view(bp);
+#else
     (void)ff::make_fast_runner_view(bp);
+#endif
 }

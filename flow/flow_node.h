@@ -24,15 +24,6 @@ namespace flux_foundry {
                 "for return values and blueprint composition");
             return true;
         }
-        template <typename Executor>
-        struct dispatch_wrapper_t {
-            using executor_t = Executor;
-            Executor exec;
-            void operator()(task_wrapper_sbo&& sbo) noexcept {
-                exec->dispatch(std::move(sbo));
-            }
-        };
-
         struct identity {
             template <typename T>
             constexpr decltype(auto) operator()(T&& t) const noexcept {
@@ -50,6 +41,20 @@ namespace flux_foundry {
             static auto detect(...) -> std::false_type;
 
             static constexpr bool value = decltype(detect<Executor>(0))::value;
+        };
+
+        template <typename Executor>
+        struct dispatch_wrapper_t {
+            using executor_t = Executor;
+            Executor exec;
+            void operator()(task_wrapper_sbo&& sbo) noexcept {
+                exec->dispatch(std::move(sbo));
+            }
+
+            template <typename Q = Executor, std::enable_if_t<check_executor<const Q>::value, int> = 0>
+            void operator()(task_wrapper_sbo&& sbo) const noexcept {
+                exec->dispatch(std::move(sbo));
+            }
         };
 
         template <typename T, typename... Rest>

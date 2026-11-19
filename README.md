@@ -650,9 +650,13 @@ construction in C++14. C++17 supports constexpr construction when stored values
 are constant-expression-compatible. `constexpr` is not `consteval`: runtime
 construction and captures are still permitted.
 
-For const-callable transform chains ending in the default `end()`, a
-`constexpr` (therefore const) BP may also
-be borrowed by a fast runner view. The wrapper's const overload is enabled only
+Both `make_runner_view(bp, receiver)` and `make_fast_runner_view(bp, receiver)`
+can borrow a `constexpr` blueprint with compatible nodes. The normal runner
+retains its cancellation controller. Keep the blueprint and any references it
+captures alive through the last continuation. A `static constexpr` blueprint
+can serve runs that outlive the creating function.
+
+For `transform`, the wrapper's const overload is enabled only
 when the underlying const callable is nonthrowing and returns the same type as
 the existing transform contract. Mutable-only callables retain their non-const
 path and are deliberately rejected through a const BP. This does not promise

@@ -503,6 +503,7 @@ if("cxx_std_17" IN_LIST CMAKE_CXX_COMPILE_FEATURES AND CMAKE_CXX_COMPILER_ID MAT
             LABELS "smoke;contract;compile-fail")
     endfunction()
     add_const_view_rejection(const_view_mutable_handler_rejection)
+    add_const_view_rejection(normal_const_view_mutable_handler_rejection -DFF_TEST_NORMAL_RUNNER)
     foreach(node then on_error)
         string(TOUPPER "${node}" node_macro)
         add_const_view_rejection(const_view_${node}_different_result_rejection
