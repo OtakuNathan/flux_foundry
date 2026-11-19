@@ -58,6 +58,37 @@ using reference_zip = ff::flow_impl::zipped_callable<ff::flow_impl::identity, Re
 static_assert(std::is_same<decltype(std::declval<reference_zip&>()(1)), int>::value, "zip retains auto value return");
 static_assert(std::is_same<decltype(std::declval<const reference_zip&>()(1)), int>::value, "const zip retains auto value return");
 
+struct DualHandler {
+    result_type operator()(result_type&& r) noexcept {
+        return result_type(ff::value_tag, r.has_value() ? 1 : 3);
+    }
+    result_type operator()(result_type&& r) const noexcept {
+        return result_type(ff::value_tag, r.has_value() ? 2 : 4);
+    }
+};
+struct DifferentHandler {
+    result_type operator()(result_type&& r) & noexcept {
+        return result_type(ff::value_tag, r.has_value() ? r.value() : 8);
+    }
+    void operator()(result_type&&) const & noexcept {}
+};
+struct MayThrowHandler {
+    result_type operator()(result_type&& r) noexcept {
+        return result_type(ff::value_tag, r.has_value() ? 11 : 13);
+    }
+    result_type operator()(result_type&& r) const {
+        return result_type(ff::value_tag, r.has_value() ? 12 : 14);
+    }
+};
+
+template <typename F>
+using then_wrapper = ff::flow_impl::result_handler_wrapper<ff::flow_impl::then_step, F, result_type, result_type>;
+
+static_assert(!ff::flow_impl::is_invocable_with<const then_wrapper<DifferentHandler>, result_type&&>::value,
+    "a different const output must leave the mutable path available");
+static_assert(ff::flow_impl::is_invocable_with<const then_wrapper<MayThrowHandler>, result_type&&>::value ==
+    bool(FLUX_FOUNDRY_HAS_EXCEPTIONS), "the const handler must respect the active exception policy");
+
 struct Receiver {
     using value_type = result_type;
     int* p;
@@ -103,6 +134,34 @@ int main() {
     CHECK(void_out(result_type(ff::value_tag, 1)).has_value());
 
     int result = 0;
+    auto handlers = ff::make_blueprint<int, error_type>()
+        | ff::then(DualHandler{}) | ff::on_error(DualHandler{}) | ff::end();
+    auto mutable_view = ff::make_fast_runner_view(handlers, Receiver{&result});
+    mutable_view(0); CHECK(result == 1);
+    mutable_view(result_type(ff::error_tag, error_type{})); CHECK(result == 3);
+    const auto& const_handlers = handlers;
+    auto const_view = ff::make_fast_runner_view(&const_handlers, Receiver{&result});
+    const_view(0); CHECK(result == 2);
+    const_view(result_type(ff::error_tag, error_type{})); CHECK(result == 4);
+
+    auto different = ff::make_blueprint<int, error_type>()
+        | ff::then(DifferentHandler{}) | ff::on_error(DifferentHandler{}) | ff::end();
+    auto different_view = ff::make_fast_runner_view(different, Receiver{&result});
+    different_view(7); CHECK(result == 7);
+    different_view(result_type(ff::error_tag, error_type{})); CHECK(result == 8);
+
+    auto may_throw = ff::make_blueprint<int, error_type>()
+        | ff::then(MayThrowHandler{}) | ff::on_error(MayThrowHandler{}) | ff::end();
+    auto mutable_throw_view = ff::make_fast_runner_view(may_throw, Receiver{&result});
+    mutable_throw_view(0); CHECK(result == 11);
+    mutable_throw_view(result_type(ff::error_tag, error_type{})); CHECK(result == 13);
+#if FLUX_FOUNDRY_HAS_EXCEPTIONS
+    const auto& const_may_throw = may_throw;
+    auto const_throw_view = ff::make_fast_runner_view(const_may_throw, Receiver{&result});
+    const_throw_view(0); CHECK(result == 12);
+    const_throw_view(result_type(ff::error_tag, error_type{})); CHECK(result == 14);
+#endif
+
 #if FLUX_FOUNDRY_CPP_VER >= 201703L
     constexpr
 #else

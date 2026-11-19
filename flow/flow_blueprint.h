@@ -48,33 +48,6 @@ namespace flux_foundry {
             constexpr static bool value = decltype(detect<G>(0))::value;
         };
 
-        // 同 is_invocable_with，但要求 callable 通过 const 引用调用（用于选择 const 可调用的包装）
-        template <typename G, typename O>
-        struct is_const_invocable_with {
-        private:
-            template <typename F>
-            constexpr static auto detect(int) -> decltype(std::declval<const F &>()(std::declval<O>()), std::true_type{});
-
-            template <typename...>
-            constexpr static auto detect(...) -> std::false_type;
-
-        public:
-            constexpr static bool value = decltype(detect<G>(0))::value;
-        };
-
-        template <typename G>
-        struct is_const_invocable_with<G, void> {
-        private:
-            template <typename F>
-            constexpr static auto detect(int) -> decltype(std::declval<const F &>()(), std::true_type{});
-
-            template <typename...>
-            constexpr static auto detect(...) -> std::false_type;
-
-        public:
-            constexpr static bool value = decltype(detect<G>(0))::value;
-        };
-
         template <typename G>
         struct is_invocable_with<G, void> {
         private:

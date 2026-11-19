@@ -738,6 +738,22 @@ namespace flux_foundry {
 
     // one-short runner.
     namespace fast_runner_impl {
+        // Calculation and end nodes invoke their stored callable directly on the borrowed BP.
+        template <typename Node, typename = void>
+        struct const_handler_compatible : std::true_type {};
+
+        template <typename Node>
+        struct const_handler_compatible<Node, void_t<typename Node::F_t>>
+            : std::integral_constant<bool, flow_impl::is_invocable_with<
+                  const typename Node::F_t, typename Node::I_t&&>::value> {};
+
+        template <typename Pointer>
+        struct view_handlers_compatible : std::true_type {};
+
+        template <typename I, typename O, typename... Nodes>
+        struct view_handlers_compatible<const flow_impl::flow_blueprint<I, O, Nodes...>*>
+            : conjunction<const_handler_compatible<Nodes>...> {};
+
         template <typename flow_bp>
         struct bp_storage {
             static_assert(flow_impl::is_blueprint_v<flow_bp>, "flow_bp must be a flow_blueprint");
@@ -858,6 +874,15 @@ namespace flux_foundry {
 
         using bp_t = typename flow_bp_storage::bp_t;
         using receiver_t = std::decay_t<receiver_type>;
+
+        using bp_pointer = decltype(std::declval<flow_bp_storage&>().operator->());
+        static_assert(fast_runner_impl::view_handlers_compatible<bp_pointer>::value,
+            "A const blueprint (including a constexpr variable) is borrowed as const, but a node "
+            "cannot be called through const. Remove mutable from a handler that needs no mutable "
+            "state, or provide a compatible const overload. For then/on_error, the const overload must "
+            "return the same result type as the non-const call and be noexcept in strict no-exception "
+            "mode. For stateful handlers, build a non-const "
+            "blueprint using auto (or C++20 constinit auto for static storage).");
 
         static_assert(flow_impl::is_blueprint_v<bp_t>, "bp_t must be a flow_blueprint");
         static_assert(check_receiver_v<receiver_t>,

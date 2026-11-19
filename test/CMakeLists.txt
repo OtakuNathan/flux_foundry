@@ -493,6 +493,25 @@ foreach(std 14 17 20)
     endif()
 endforeach()
 
+if("cxx_std_17" IN_LIST CMAKE_CXX_COMPILE_FEATURES AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+    function(add_const_view_rejection name)
+        add_test(NAME ${name}
+            COMMAND ${CMAKE_CXX_COMPILER} -std=c++17 -fsyntax-only -I${PROJECT_SOURCE_DIR} ${ARGN}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/const_view_handler_rejection.cpp)
+        set_tests_properties(${name} PROPERTIES
+            PASS_REGULAR_EXPRESSION "error: static assertion failed[^\n]*A const blueprint .* is borrowed as const"
+            LABELS "smoke;contract;compile-fail")
+    endfunction()
+    add_const_view_rejection(const_view_mutable_handler_rejection)
+    foreach(node then on_error)
+        string(TOUPPER "${node}" node_macro)
+        add_const_view_rejection(const_view_${node}_different_result_rejection
+            -DFF_TEST_${node_macro} -DFF_TEST_DIFFERENT_RESULT)
+        add_const_view_rejection(const_view_${node}_throwing_const_rejection
+            -DFF_TEST_${node_macro} -DFF_TEST_THROWING_CONST -fno-exceptions -DFLUX_FOUNDRY_NO_EXCEPTION_STRICT=1)
+    endforeach()
+endif()
+
 # User checkpoints and realistic pipeline ownership across executor/backend handoffs.
 foreach(mode enabled disabled noexc)
     if(mode STREQUAL "noexc")

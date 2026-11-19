@@ -299,48 +299,69 @@ namespace flux_foundry {
             return std::move(bp) | std::move(node);
         }
 
-        // then
-        // 包装按「F 是否 const 可调用」分流：
-        //   * const 可调用 -> 非 mutable 包装，整条链保持 const 可调用，可被 const 快跑通道借用
-        //   * 否则         -> 保留 mutable 包装，兼容捕获了可变状态的 callable
-        template <typename F, typename F_I, typename F_O, bool ConstInvocable>
-        struct then_callable;
+        // Invoke the stored handler with the same cv-qualification as the wrapper.
+        template <typename F, typename I, typename O, typename = void>
+        struct const_result_handler_compatible : std::false_type {};
 
-        template <typename F, typename F_I, typename F_O>
-        struct then_callable<F, F_I, F_O, true> {
-            F f;
-            F_O operator()(F_I&& in) const noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                try {
-#endif
-                    LIKELY_IF(in.has_value()) {
-                        return f(std::move(in));
-                    }
-                    return F_O(error_tag, std::move(in).error());
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                } catch (...) {
-                    return F_O(error_tag, std::current_exception());
+        template <typename F, typename I, typename O>
+        struct const_result_handler_compatible<F, I, O, void_t<invoke_result_t<const F&, I&&>>>
+            : std::integral_constant<bool, std::is_same<invoke_result_t<const F&, I&&>, O>::value &&
+                  (FLUX_FOUNDRY_HAS_EXCEPTIONS || is_nothrow_invocable_with<const F, I&&>::value)> {};
+
+        struct then_step {
+            template <typename O, typename F, typename I>
+            static O run(F& f, I&& in) {
+                LIKELY_IF(in.has_value()) {
+                    return f(std::move(in));
                 }
-#endif
+                return O(error_tag, std::move(in).error());
             }
         };
 
-        template <typename F, typename F_I, typename F_O>
-        struct then_callable<F, F_I, F_O, false> {
+        struct on_error_step {
+            template <typename O, typename I>
+            static O forward_success(I&& in, std::false_type) {
+                return O(value_tag, std::move(in).value());
+            }
+
+            template <typename O, typename I>
+            static O forward_success(I&&, std::true_type) {
+                return O(value_tag);
+            }
+
+            template <typename O, typename F, typename I>
+            static O run(F& f, I&& in) {
+                LIKELY_IF(in.has_value()) {
+                    return forward_success<O>(std::move(in), std::is_void<typename I::value_type>{});
+                }
+                return f(std::move(in));
+            }
+        };
+
+        template <typename Step, typename F, typename I, typename O>
+        struct result_handler_wrapper {
             F f;
-            F_O operator()(F_I&& in) noexcept {
+
+            template <typename Handler>
+            static O run(Handler& handler, I&& in) noexcept {
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 try {
 #endif
-                    LIKELY_IF(in.has_value()) {
-                        return f(std::move(in));
-                    }
-                    return F_O(error_tag, std::move(in).error());
+                    return Step::template run<O>(handler, std::move(in));
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
                 } catch (...) {
-                    return F_O(error_tag, std::current_exception());
+                    return O(error_tag, std::current_exception());
                 }
 #endif
+            }
+
+            O operator()(I&& in) noexcept {
+                return run(f, std::move(in));
+            }
+
+            template <typename Q = F, std::enable_if_t<const_result_handler_compatible<Q, I, O>::value, int> = 0>
+            O operator()(I&& in) const noexcept {
+                return run(f, std::move(in));
             }
         };
 
@@ -351,7 +372,7 @@ namespace flux_foundry {
             template <typename F_I, typename F_O>
             static constexpr auto make(then_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
-                using callable = then_callable<F, F_I, F_O, is_const_invocable_with<F, F_I&&>::value>;
+                using callable = result_handler_wrapper<then_step, F, F_I, F_O>;
                 return flow_calc_node<F_I, F_O, callable>(callable{std::move(self.f)});
             }
         };
@@ -366,7 +387,7 @@ namespace flux_foundry {
                 "callable F is not compatible with current blueprint"
                 "and must be nothrow-invocable.");
 #endif
-            using F_O = invoke_result_t<F, O&&>;
+            using F_O = invoke_result_t<F&, O&&>;
             static_assert(is_result_t<F_O>::value,
                 "the output of the callable F in then must return a result<T, E>");
 
@@ -374,108 +395,17 @@ namespace flux_foundry {
             return std::move(bp) | std::move(node);
         }
 
-        // error_recover：同 then，按 F 的 const 可调用性分流，保住兼容性也保住 const 快跑通道
-        template <typename F, typename F_I, typename F_O, bool ConstInvocable>
-        struct error_callable;
-
-        template <typename F, typename F_I, typename F_O>
-        struct error_callable<F, F_I, F_O, true> {
-            F f;
-            F_O operator()(F_I&& in) const noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                try {
-#endif
-                    LIKELY_IF(in.has_value()) {
-                        return F_O(value_tag, std::move(in).value());
-                    }
-                    return f(std::move(in));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                } catch (...) {
-                    return F_O(error_tag, std::current_exception());
-                }
-#endif
-            }
-        };
-
-        template <typename F, typename F_I, typename F_O>
-        struct error_callable<F, F_I, F_O, false> {
-            F f;
-            F_O operator()(F_I&& in) noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                try {
-#endif
-                    LIKELY_IF(in.has_value()) {
-                        return F_O(value_tag, std::move(in).value());
-                    }
-                    return f(std::move(in));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                } catch (...) {
-                    return F_O(error_tag, std::current_exception());
-                }
-#endif
-            }
-        };
-
-        template <typename F, typename F_I, typename F_O, bool ConstInvocable>
-        struct error_callable_void;
-
-        template <typename F, typename F_I, typename F_O>
-        struct error_callable_void<F, F_I, F_O, true> {
-            F f;
-            F_O operator()(F_I&& in) const noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                try {
-#endif
-                    LIKELY_IF(in.has_value()) {
-                        return F_O(value_tag);
-                    }
-                    return f(std::move(in));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                } catch (...) {
-                    return F_O(error_tag, std::current_exception());
-                }
-#endif
-            }
-        };
-
-        template <typename F, typename F_I, typename F_O>
-        struct error_callable_void<F, F_I, F_O, false> {
-            F f;
-            F_O operator()(F_I&& in) noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                try {
-#endif
-                    LIKELY_IF(in.has_value()) {
-                        return F_O(value_tag);
-                    }
-                    return f(std::move(in));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                } catch (...) {
-                    return F_O(error_tag, std::current_exception());
-                }
-#endif
-            }
-        };
-
         template <typename F>
         struct error_node {
             F f;
 
-            template <typename F_I, typename F_O,
-                std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
+            template <typename F_I, typename F_O>
             static constexpr auto make(error_node&& self)
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
-                using callable = error_callable<F, F_I, F_O, is_const_invocable_with<F, F_I&&>::value>;
-                return flow_calc_node<F_I, F_O, callable>(callable{std::move(self.f)});
-            }
-
-            template <typename F_I, typename F_O,
-                std::enable_if_t<std::is_void<typename F_I::value_type>::value>* = nullptr>
-            static constexpr auto make(error_node&& self)
-                    noexcept(std::is_nothrow_move_constructible<F>::value) {
-                static_assert(std::is_void<typename F_O::value_type>::value,
+                static_assert(!std::is_void<typename F_I::value_type>::value ||
+                    std::is_void<typename F_O::value_type>::value,
                     "on_error must preserve a void success type.");
-                using callable = error_callable_void<F, F_I, F_O, is_const_invocable_with<F, F_I&&>::value>;
+                using callable = result_handler_wrapper<on_error_step, F, F_I, F_O>;
                 return flow_calc_node<F_I, F_O, callable>(callable{std::move(self.f)});
             }
         };
@@ -491,7 +421,7 @@ namespace flux_foundry {
                 "and must be nothrow-invocable.");
 #endif
 
-            using F_O = invoke_result_t<F, O&&>;
+            using F_O = invoke_result_t<F&, O&&>;
             static_assert(is_result_t<F_O>::value, "The callable F in error must return a result<T, E>");
 
             auto node = error_node<F>::template make<O, F_O>(std::move(a));
