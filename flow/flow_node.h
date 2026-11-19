@@ -300,6 +300,50 @@ namespace flux_foundry {
         }
 
         // then
+        // 包装按「F 是否 const 可调用」分流：
+        //   * const 可调用 -> 非 mutable 包装，整条链保持 const 可调用，可被 const 快跑通道借用
+        //   * 否则         -> 保留 mutable 包装，兼容捕获了可变状态的 callable
+        template <typename F, typename F_I, typename F_O, bool ConstInvocable>
+        struct then_callable;
+
+        template <typename F, typename F_I, typename F_O>
+        struct then_callable<F, F_I, F_O, true> {
+            F f;
+            F_O operator()(F_I&& in) const noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                try {
+#endif
+                    LIKELY_IF(in.has_value()) {
+                        return f(std::move(in));
+                    }
+                    return F_O(error_tag, std::move(in).error());
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                } catch (...) {
+                    return F_O(error_tag, std::current_exception());
+                }
+#endif
+            }
+        };
+
+        template <typename F, typename F_I, typename F_O>
+        struct then_callable<F, F_I, F_O, false> {
+            F f;
+            F_O operator()(F_I&& in) noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                try {
+#endif
+                    LIKELY_IF(in.has_value()) {
+                        return f(std::move(in));
+                    }
+                    return F_O(error_tag, std::move(in).error());
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                } catch (...) {
+                    return F_O(error_tag, std::current_exception());
+                }
+#endif
+            }
+        };
+
         template <typename F>
         struct then_node {
             F f;
@@ -307,21 +351,8 @@ namespace flux_foundry {
             template <typename F_I, typename F_O>
             static constexpr auto make(then_node&& self)
                 noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    try {
-#endif
-                        LIKELY_IF(in.has_value()) {
-                            return f(std::move(in));
-                        }
-                        return F_O(error_tag, std::move(in).error());
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    } catch (...) {
-                        return F_O(error_tag, std::current_exception());
-                    }
-#endif
-                };
-                return flow_calc_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
+                using callable = then_callable<F, F_I, F_O, is_const_invocable_with<F, F_I&&>::value>;
+                return flow_calc_node<F_I, F_O, callable>(callable{std::move(self.f)});
             }
         };
 
@@ -343,7 +374,89 @@ namespace flux_foundry {
             return std::move(bp) | std::move(node);
         }
 
-        // error_recover
+        // error_recover：同 then，按 F 的 const 可调用性分流，保住兼容性也保住 const 快跑通道
+        template <typename F, typename F_I, typename F_O, bool ConstInvocable>
+        struct error_callable;
+
+        template <typename F, typename F_I, typename F_O>
+        struct error_callable<F, F_I, F_O, true> {
+            F f;
+            F_O operator()(F_I&& in) const noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                try {
+#endif
+                    LIKELY_IF(in.has_value()) {
+                        return F_O(value_tag, std::move(in).value());
+                    }
+                    return f(std::move(in));
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                } catch (...) {
+                    return F_O(error_tag, std::current_exception());
+                }
+#endif
+            }
+        };
+
+        template <typename F, typename F_I, typename F_O>
+        struct error_callable<F, F_I, F_O, false> {
+            F f;
+            F_O operator()(F_I&& in) noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                try {
+#endif
+                    LIKELY_IF(in.has_value()) {
+                        return F_O(value_tag, std::move(in).value());
+                    }
+                    return f(std::move(in));
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                } catch (...) {
+                    return F_O(error_tag, std::current_exception());
+                }
+#endif
+            }
+        };
+
+        template <typename F, typename F_I, typename F_O, bool ConstInvocable>
+        struct error_callable_void;
+
+        template <typename F, typename F_I, typename F_O>
+        struct error_callable_void<F, F_I, F_O, true> {
+            F f;
+            F_O operator()(F_I&& in) const noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                try {
+#endif
+                    LIKELY_IF(in.has_value()) {
+                        return F_O(value_tag);
+                    }
+                    return f(std::move(in));
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                } catch (...) {
+                    return F_O(error_tag, std::current_exception());
+                }
+#endif
+            }
+        };
+
+        template <typename F, typename F_I, typename F_O>
+        struct error_callable_void<F, F_I, F_O, false> {
+            F f;
+            F_O operator()(F_I&& in) noexcept {
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                try {
+#endif
+                    LIKELY_IF(in.has_value()) {
+                        return F_O(value_tag);
+                    }
+                    return f(std::move(in));
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+                } catch (...) {
+                    return F_O(error_tag, std::current_exception());
+                }
+#endif
+            }
+        };
+
         template <typename F>
         struct error_node {
             F f;
@@ -352,21 +465,8 @@ namespace flux_foundry {
                 std::enable_if_t<!std::is_void<typename F_I::value_type>::value>* = nullptr>
             static constexpr auto make(error_node&& self)
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
-                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    try {
-#endif
-                        LIKELY_IF(in.has_value()) {
-                            return F_O(value_tag, std::move(in).value());
-                        }
-                        return f(std::move(in));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    } catch (...) {
-                        return F_O(error_tag, std::current_exception());
-                    }
-#endif
-                };
-                return flow_calc_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
+                using callable = error_callable<F, F_I, F_O, is_const_invocable_with<F, F_I&&>::value>;
+                return flow_calc_node<F_I, F_O, callable>(callable{std::move(self.f)});
             }
 
             template <typename F_I, typename F_O,
@@ -375,21 +475,8 @@ namespace flux_foundry {
                     noexcept(std::is_nothrow_move_constructible<F>::value) {
                 static_assert(std::is_void<typename F_O::value_type>::value,
                     "on_error must preserve a void success type.");
-                auto wrapper = [f = std::move(self.f)](F_I&& in) mutable noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    try {
-#endif
-                        LIKELY_IF(in.has_value()) {
-                            return F_O(value_tag);
-                        }
-                        return f(std::move(in));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-                    } catch (...) {
-                        return F_O(error_tag, std::current_exception());
-                    }
-#endif
-                };
-                return flow_calc_node<F_I, F_O, decltype(wrapper)>(std::move(wrapper));
+                using callable = error_callable_void<F, F_I, F_O, is_const_invocable_with<F, F_I&&>::value>;
+                return flow_calc_node<F_I, F_O, callable>(callable{std::move(self.f)});
             }
         };
 
