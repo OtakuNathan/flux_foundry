@@ -21,7 +21,6 @@
 using namespace flux_foundry;
 using namespace std::chrono;
 
-// 测试配置
 constexpr size_t CAPACITY = (1u << 16);
 #if FLUX_FOUNDRY_WITH_TSAN
 constexpr int DEFAULT_DURATION_SEC = 1;
@@ -246,7 +245,6 @@ run_mode parse_mode_or_default(const char* text, run_mode fallback) noexcept {
     return fallback;
 }
 
-// SPSC 测试
 void test_spsc(int duration_sec) {
     std::cout << "\n=== SPSC Queue (1P1C) ===\n";
 
@@ -348,7 +346,6 @@ void test_spsc(int duration_sec) {
     require_no_duplicates("spsc", duplicate_sample);
 }
 
-// MPSC 测试
 void test_mpsc(int producers, int duration_sec) {
     std::cout << "\n=== MPSC Queue (" << producers << "P1C) ===\n";
 
@@ -451,7 +448,6 @@ void test_mpsc(int producers, int duration_sec) {
     require_no_duplicates("mpsc", duplicate_sample);
 }
 
-// MPMC 测试
 void test_mpmc(int producers, int consumers, int duration_sec) {
     std::cout << "\n=== MPMC Queue (" << producers << "P" << consumers << "C) ===\n";
 
@@ -557,11 +553,9 @@ void test_mpmc(int producers, int consumers, int duration_sec) {
     require_no_duplicates("mpmc", duplicate_sample);
 }
 
-// SPMC 测试
 void test_spmc(int stealers, int duration_sec) {
     std::cout << "\n=== SPMC Deque (1P" << stealers << "C) ===\n";
 
-    // 必须在 owner 线程创建
     auto q = std::make_unique<spmc_deque<uint64_t, CAPACITY>>();
     std::atomic<bool> start{false}, stop{false};
     std::vector<counter_slot> pop_cnt(stealers);
