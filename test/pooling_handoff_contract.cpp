@@ -73,11 +73,37 @@ void all_capacities() {
     handoff<1>(); handoff<2>(); handoff<3>(); handoff<4>();
     handoff<16>(); handoff<512>();
 }
+
+struct single_slot_pooled final : pooling_base<single_slot_pooled, 1> {
+    std::uint64_t words[8];
+};
+
+void check_pooling_base_cache_cap() {
+    const auto before = shared_available();
+    std::size_t after_two_allocs = 0;
+    std::size_t after_first_delete = 0;
+    std::size_t after_second_delete = 0;
+    std::thread worker([&] {
+        auto* a = new single_slot_pooled{};
+        auto* b = new single_slot_pooled{};
+        after_two_allocs = shared_available();
+        delete a;
+        after_first_delete = shared_available();
+        delete b;
+        after_second_delete = shared_available();
+    });
+    worker.join();
+    check(after_two_allocs + 2 == before, "pooling_base allocated two fresh shared-pool blocks");
+    check(after_first_delete == after_two_allocs, "first delete filled the 1-slot TLS cache");
+    check(after_second_delete + 1 == before, "second delete bypassed full 1-slot TLS cache back to shared pool");
+    check(shared_available() == before, "worker exit returned cached pooling_base slot to shared pool");
+}
 } // namespace
 
 int main() {
     const auto available = shared_available();
     check(available > 64, "shared pool unexpectedly empty");
+    check_pooling_base_cache_cap();
     all_capacities();
     check(shared_available() == available, "thread exit leaked shared-pool blocks");
 

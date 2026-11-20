@@ -25,6 +25,7 @@ namespace flux_foundry {
         static constexpr size_t shutdown_flag = size_t{1} << 1;
         static constexpr size_t pending_shift = 2;
         static constexpr size_t pending_unit = size_t{1} << pending_shift;
+        static constexpr size_t drain_batch = 16;
 
         padded_t<std::atomic<size_t>> ctrl_{0};
         mpsc_queue<task_wrapper_sbo, capacity> q;
@@ -117,13 +118,28 @@ namespace flux_foundry {
 
             assert(current() == nullptr && "simple_executor::run() must not be nested/re-entered on the same thread");
             current() = this;
+            size_t drained = 0;
             for (backoff_strategy<> backoff;;) {
                 auto p = q.try_pop();
                 if (p) {
                     p.get()();
-                    auto state = ctrl.fetch_sub(pending_unit, std::memory_order_acq_rel);
                     backoff.reset();
-                    if (is_shutdown(state) && pending_count(state) == 1) {
+                    if (++drained == drain_batch) {
+                        auto state = ctrl.fetch_sub(drained * pending_unit, std::memory_order_acq_rel);
+                        const size_t retired = drained;
+                        drained = 0;
+                        if (is_shutdown(state) && pending_count(state) == retired) {
+                            break;
+                        }
+                    }
+                    continue;
+                }
+
+                if (drained > 0) {
+                    auto state = ctrl.fetch_sub(drained * pending_unit, std::memory_order_acq_rel);
+                    const size_t retired = drained;
+                    drained = 0;
+                    if (is_shutdown(state) && pending_count(state) == retired) {
                         break;
                     }
                     continue;

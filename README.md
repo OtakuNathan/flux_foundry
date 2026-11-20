@@ -464,7 +464,7 @@ sequenceDiagram
 - Explicit cancel path via `flow_controller`
 - Async node submit/cancel lifecycle managed through `awaitable_base`
 - A runner whose execution stays synchronous/inline may be invoked again after the call returns.
-- Once execution is handed off to an asynchronous executor or event loop, that runner instance reports `is_consumed() == true`; invoking it again is rejected (and asserts in debug builds). Create a new runner from the shared blueprint for another operation.
+- After an asynchronous handoff, start the next operation with a fresh runner. Both normal and fast runners expose `is_consumed()` and assert on reentry or reuse after handoff in debug builds. Defining `NDEBUG` compiles out the state, checks, and query. Use the same setting across translation units that share runner types.
 - Awaitables are conservatively treated as asynchronous. An awaitable that guarantees every successful `submit()` calls `resume()` before returning may declare `static constexpr bool completes_inline = true`; an `awaitable_base` type must also declare `static constexpr bool support_cancel = false`, because concurrent cancellation can resume on another thread. With those guarantees and an inline executor, the runner remains reusable.
 
 ### Library-synthesized errors

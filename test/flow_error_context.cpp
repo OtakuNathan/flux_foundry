@@ -371,15 +371,49 @@ void test_catch_dispatch() {
     ff::make_fast_runner_view(const_bp, sink{&observed})(-23);
     check(observed == 2, "const catch uses the const overload");
 }
-#else
+#endif
+
 struct legacy_error { int code; };
 struct status_error { int code; };
+
+struct throwing_from_int {
+    int v;
+    explicit throwing_from_int(int x) noexcept(false) : v(x) {}
+    throwing_from_int(const throwing_from_int&) noexcept = default;
+    throwing_from_int(throwing_from_int&&) noexcept = default;
+    throwing_from_int& operator=(const throwing_from_int&) noexcept = default;
+    throwing_from_int& operator=(throwing_from_int&&) noexcept = default;
+};
+
+#if !FLUX_FOUNDRY_HAS_EXCEPTIONS
+static_assert(!std::is_constructible<ff::result_t<throwing_from_int, int>, ff::result_t<int, int>&&>::value,
+              "throwing move-converting result_t constructor must be disabled in strict no-exception mode");
+static_assert(std::is_constructible<ff::result_t<long, int>, ff::result_t<int, int>&&>::value,
+              "nothrow move-converting result_t constructor must remain enabled");
 #endif
+
+struct unavailable_operation final : ff::awaitable_base<unavailable_operation, int, status_error> {
+    using async_result_type = ff::result_t<int, status_error>;
+    explicit unavailable_operation(async_result_type&&) noexcept {}
+    bool available() const noexcept { return false; }
+    int submit() noexcept { return 0; }
+    void cancel() noexcept {}
+};
+
+status_error run_unavailable_status_op() {
+    auto bp = ff::make_blueprint<int, status_error>()
+        | ff::await<unavailable_operation>()
+        | ff::end();
+    status_error error{0};
+    auto runner = ff::make_fast_runner_view(bp, factory_receiver<status_error>{&error});
+    runner(1);
+    return error;
+}
 
 } // namespace flow_error_context_test
 
-#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 namespace flux_foundry {
+#if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
 template <>
 struct cancel_error<flow_error_context_test::error_type> {
     static flow_error_context_test::error_type make(cancel_kind) noexcept {
@@ -393,6 +427,13 @@ struct awaitable_creating_error<flow_error_context_test::error_type> {
         return {};
     }
 };
+#endif
+
+template <>
+struct cancel_error<flow_error_context_test::status_error> {
+    static flow_error_context_test::status_error make(cancel_kind) noexcept { return {-2}; }
+};
+
 template <>
 struct awaitable_creating_error<flow_error_context_test::legacy_error> {
     static flow_error_context_test::legacy_error make() noexcept { return {-1}; }
@@ -414,7 +455,6 @@ struct async_submission_failed_error<flow_error_context_test::status_error> {
     static flow_error_context_test::status_error make() noexcept { return {5}; }
 };
 } // namespace flux_foundry
-#endif
 
 int main() {
     using namespace flow_error_context_test;
@@ -434,10 +474,10 @@ int main() {
             check(false, "default factory produced the expected exception type");
         }
     }
-#else
+#endif
     check(run_factory<legacy_error>(-23).code == 5, "legacy no-arg error factory still works");
     check(run_factory<status_error>(-71).code == -71, "status-aware factory takes priority");
-#endif
+    check(run_unavailable_status_op().code == -1, "custom error awaitable reports unavailable creation");
     test_recovery<false, false, true>(-23);
     test_recovery<false, false, false>(-71);
     test_recovery<true, true, false>(-23);

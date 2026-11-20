@@ -287,6 +287,10 @@ public:
     }
 
     static bool is_hazard(const void* ptr) noexcept {
+        // Establish a StoreLoad barrier against a prior release unlink of ptr
+        // before scanning hazard slots, pairing with protect()'s seq_cst store
+        // and re-check load.
+        std::atomic_thread_fence(std::memory_order_seq_cst);
         auto& self = instance();
         for (size_t i = 0; i < MAX_SLOT; ++i) {
             // seq_cst: must observe the same global total order as protect()'s

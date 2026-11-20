@@ -43,6 +43,29 @@ namespace flux_foundry {
     }
 
     namespace runner_impl {
+#ifndef NDEBUG
+        enum class runner_state : unsigned char {
+            ready,
+            running,
+            consumed,
+        };
+
+        struct invocation_guard {
+            runner_state& state;
+
+            explicit invocation_guard(runner_state& state_) noexcept : state(state_) {
+                assert(state == runner_state::ready && "runner is already running or was consumed by asynchronous handoff");
+                state = runner_state::running;
+            }
+
+            ~invocation_guard() noexcept {
+                if (state == runner_state::running) {
+                    state = runner_state::ready;
+                }
+            }
+        };
+#endif
+
         template <typename E>
         auto submit_error_from_factory(int code, int) -> decltype(async_submission_failed_error<E>::make(code)) {
             return async_submission_failed_error<E>::make(code);
@@ -286,19 +309,21 @@ namespace flux_foundry {
             }
         }
 
-        bool is_force_canceled() const noexcept {
+        size_t cancel_state() const noexcept {
             auto& state = state_.get();
-            return (state.load(std::memory_order_acquire) & runner_cancel::msk) == runner_cancel::hard;
+            return state.load(std::memory_order_acquire) & runner_cancel::msk;
+        }
+
+        bool is_force_canceled() const noexcept {
+            return cancel_state() == runner_cancel::hard;
         }
 
         bool is_soft_canceled() const noexcept {
-            auto& state = state_.get();
-            return (state.load(std::memory_order_acquire) & runner_cancel::msk) == runner_cancel::soft;
+            return cancel_state() == runner_cancel::soft;
         }
 
         bool is_canceled() const noexcept {
-            auto& state = state_.get();
-            auto s = state.load(std::memory_order_acquire) & runner_cancel::msk;
+            auto s = cancel_state();
             return s == runner_cancel::soft || s == runner_cancel::hard;
         }
     };
@@ -344,15 +369,11 @@ namespace flux_foundry {
         using controller_ptr = std::decay_t<controller_ptr_t>;
 
     private:
-        enum class runner_state : unsigned char {
-            ready,
-            running,
-            consumed,
-        };
-
         compressed_pair<bp_ptr, receiver_t> data;
         controller_ptr controller;
-        runner_state state_ = runner_state::ready;
+#ifndef NDEBUG
+        runner_impl::runner_state state_ = runner_impl::runner_state::ready;
+#endif
 
         bp_ptr& bp() noexcept {
             return data.first();
@@ -362,39 +383,6 @@ namespace flux_foundry {
             return data.second();
         }
 
-        bool begin_run() noexcept {
-            if (!bp()) {
-                return false;
-            }
-            if (state_ != runner_state::ready) {
-                assert(false && "flow_runner is already running or was consumed by asynchronous handoff");
-                return false;
-            }
-            state_ = runner_state::running;
-            return true;
-        }
-
-        void finish_run() noexcept {
-            if (state_ == runner_state::running) {
-                state_ = runner_state::ready;
-            }
-        }
-
-        void consume() noexcept {
-            state_ = runner_state::consumed;
-        }
-
-        void restore_running_after_failed_submit() noexcept {
-            state_ = runner_state::running;
-        }
-
-        struct invocation_guard {
-            flow_runner& runner;
-
-            ~invocation_guard() noexcept {
-                runner.finish_run();
-            }
-        };
     public:
         flow_runner() = delete;
 
@@ -415,18 +403,22 @@ namespace flux_foundry {
             return controller;
         }
 
+#ifndef NDEBUG
         bool is_consumed() const noexcept {
-            return state_ == runner_state::consumed;
+            return state_ == runner_impl::runner_state::consumed;
         }
+#endif
 
         void operator()(const I_t& param)
             noexcept(std::is_nothrow_copy_constructible<I_t>::value) {
             // Controller is created lazily per run-start so a moved-from runner can be
             // safely resumed by internal continuations without sharing external controller state.
-            if (!begin_run()) {
+            if (!bp()) {
                 return;
             }
-            invocation_guard guard{ *this };
+#ifndef NDEBUG
+            runner_impl::invocation_guard guard{state_};
+#endif
 
             LIKELY_IF (!controller) {
                 init_controller();
@@ -440,10 +432,12 @@ namespace flux_foundry {
         void operator()(I_t&& param) noexcept {
             // Controller is created lazily per run-start so a moved-from runner can be
             // safely resumed by internal continuations without sharing external controller state.
-            if (!begin_run()) {
+            if (!bp()) {
                 return;
             }
-            invocation_guard guard{ *this };
+#ifndef NDEBUG
+            runner_impl::invocation_guard guard{state_};
+#endif
 
             LIKELY_IF (!controller) {
                 init_controller();
@@ -460,10 +454,12 @@ namespace flux_foundry {
         void operator()(Args&& ... params) noexcept {
             // Controller is created lazily per run-start so a moved-from runner can be
             // safely resumed by internal continuations without sharing external controller state.
-            if (!begin_run()) {
+            if (!bp()) {
                 return;
             }
-            invocation_guard guard{ *this };
+#ifndef NDEBUG
+            runner_impl::invocation_guard guard{state_};
+#endif
 
             LIKELY_IF (!controller) {
                 init_controller();
@@ -505,7 +501,8 @@ namespace flux_foundry {
                 using node_i_t = typename node_t::I_t;
                 using error_type = typename node_i_t::error_type;
 
-                UNLIKELY_IF (self.controller->is_force_canceled()) {
+                const auto cs = self.controller->cancel_state();
+                UNLIKELY_IF (cs == runner_cancel::hard) {
                     using end_node_t = flat_storage_element_t<0, storage_t>;
                     using end_in_t = typename end_node_t::I_t;
                     using end_err_t = typename end_in_t::error_type;
@@ -514,7 +511,7 @@ namespace flux_foundry {
                 }
 
                 auto& node = get<I>(self.bp()->nodes_);
-                UNLIKELY_IF (self.controller->is_soft_canceled()) {
+                UNLIKELY_IF (cs == runner_cancel::soft) {
                     dispatch(node, self, node_i_t(error_tag, cancel_error<error_type>::make(cancel_kind::soft)), typename node_t::tag{}, std::true_type{});
                     return;
                 }
@@ -550,7 +547,9 @@ namespace flux_foundry {
             template <typename dispatcher_t, typename param_t>
             static void dispatch_impl(dispatcher_t& dispatcher, flow_runner& self, param_t&& in,
                                       std::false_type /* inline executor? */) noexcept {
-                self.consume();
+#ifndef NDEBUG
+                self.state_ = runner_impl::runner_state::consumed;
+#endif
                 dispatcher(
                     task_wrapper_sbo([data = self.data,
                                       controller = self.controller,
@@ -644,8 +643,9 @@ namespace flux_foundry {
                     auto exp = state;
                         
                     // am I still have the lock?
-                    LIKELY_IF (!cs.compare_exchange_strong(exp, state + epoch,
-                                                           std::memory_order_relaxed, std::memory_order_relaxed)) {
+                    LIKELY_IF (cs.load(std::memory_order_relaxed) != state
+                               || !cs.compare_exchange_strong(exp, state + epoch,
+                                                              std::memory_order_relaxed, std::memory_order_relaxed)) {
                         // no it is freed by guard.
                         controller->reset_cancel_handler();
                     } else {
@@ -674,8 +674,9 @@ namespace flux_foundry {
                             auto& cs = controller->state_.get();
                             auto exp = state;
                             // am I still have the lock?
-                            LIKELY_IF (!cs.compare_exchange_strong(exp, state + epoch,
-                                                                   std::memory_order_relaxed, std::memory_order_relaxed)) {
+                            LIKELY_IF (cs.load(std::memory_order_relaxed) != state
+                                       || !cs.compare_exchange_strong(exp, state + epoch,
+                                                                      std::memory_order_relaxed, std::memory_order_relaxed)) {
                                 // no it is freed by guard.
                                 controller->reset_cancel_handler();
                             } else {
@@ -727,10 +728,14 @@ namespace flux_foundry {
                         self.controller, is_inline_executor_t{}, completes_inline_t{})
                 );
 
-                prepare_submit(self, completes_inline_t{});
+#ifndef NDEBUG
+                if (!completes_inline_t::value) self.state_ = runner_impl::runner_state::consumed;
+#endif
                 const int submit_code = awaitable.submit_async();
                 UNLIKELY_IF (submit_code != 0) {
-                    restore_after_failed_submit(self, is_inline_executor_t{});
+#ifndef NDEBUG
+                    if (is_inline_executor_t::value) self.state_ = runner_impl::runner_state::running;
+#endif
                     node_output_t failure(error_tag,
                         runner_impl::make_submit_error<typename node_output_t::error_type>(awaitable, submit_code, 0));
                     awaitable.release();
@@ -791,11 +796,14 @@ namespace flux_foundry {
                     std::move(controller), state, is_inline_executor_t{}, completes_inline_t{})
                 );
 
-                // failed to submit the io.
-                prepare_submit(self, completes_inline_t{});
+#ifndef NDEBUG
+                if (!completes_inline_t::value) self.state_ = runner_impl::runner_state::consumed;
+#endif
                 const int submit_code = awaitable.submit_async();
                 UNLIKELY_IF (submit_code != 0) {
-                    restore_after_failed_submit(self, is_inline_executor_t{});
+#ifndef NDEBUG
+                    if (is_inline_executor_t::value) self.state_ = runner_impl::runner_state::running;
+#endif
                     self.controller->reset_cancel_handler_when_locked();
                     g.controller->unlock(state);
                     g.controller = nullptr;
@@ -805,20 +813,6 @@ namespace flux_foundry {
                     awaitable.release();
                     dispatch_impl(dispatcher, self, std::move(failure), is_inline_executor_t{});
                 }
-            }
-
-            static void prepare_submit(flow_runner&, std::true_type) noexcept {
-            }
-
-            static void prepare_submit(flow_runner& self, std::false_type) noexcept {
-                self.consume();
-            }
-
-            static void restore_after_failed_submit(flow_runner& self, std::true_type) noexcept {
-                self.restore_running_after_failed_submit();
-            }
-
-            static void restore_after_failed_submit(flow_runner&, std::false_type) noexcept {
             }
 
             template <typename node_t, typename param_t, size_t I_ = I, std::enable_if_t<I_ != 0>* = nullptr>
@@ -888,14 +882,10 @@ namespace flux_foundry {
 
         using storage_t = typename bp_t::storage_t;
     private:
-        enum class runner_state : unsigned char {
-            ready,
-            running,
-            consumed,
-        };
-
         compressed_pair<flow_bp_storage, receiver_t> data;
-        runner_state state_ = runner_state::ready;
+#ifndef NDEBUG
+        runner_impl::runner_state state_ = runner_impl::runner_state::ready;
+#endif
 
         flow_bp_storage& bp() noexcept {
             return data.first();
@@ -904,40 +894,6 @@ namespace flux_foundry {
         receiver_t& receiver() noexcept {
             return data.second();
         }
-
-        bool begin_run() noexcept {
-            if (!bp()) {
-                return false;
-            }
-            if (state_ != runner_state::ready) {
-                assert(false && "flow_fast_runner is already running or was consumed by asynchronous handoff");
-                return false;
-            }
-            state_ = runner_state::running;
-            return true;
-        }
-
-        void finish_run() noexcept {
-            if (state_ == runner_state::running) {
-                state_ = runner_state::ready;
-            }
-        }
-
-        void consume() noexcept {
-            state_ = runner_state::consumed;
-        }
-
-        void restore_running_after_failed_submit() noexcept {
-            state_ = runner_state::running;
-        }
-
-        struct invocation_guard {
-            flow_fast_runner& runner;
-
-            ~invocation_guard() noexcept {
-                runner.finish_run();
-            }
-        };
 
     public:
         flow_fast_runner() = delete;
@@ -952,35 +908,43 @@ namespace flux_foundry {
             : data(std::move(bp_), std::move(receiver_)) {
         }
 
+#ifndef NDEBUG
         bool is_consumed() const noexcept {
-            return state_ == runner_state::consumed;
+            return state_ == runner_impl::runner_state::consumed;
         }
+#endif
 
         void operator()(const I_t& param)
             noexcept(std::is_nothrow_copy_constructible<I_t>::value) {
-            if (!begin_run()) {
+            if (!bp()) {
                 return;
             }
-            invocation_guard guard{ *this };
+#ifndef NDEBUG
+            runner_impl::invocation_guard guard{state_};
+#endif
 
             ipc<node_count - 1>::run(*this, I_t(param));
         }
 
         void operator()(I_t&& param) noexcept {
-            if (!begin_run()) {
+            if (!bp()) {
                 return;
             }
-            invocation_guard guard{ *this };
+#ifndef NDEBUG
+            runner_impl::invocation_guard guard{state_};
+#endif
             ipc<node_count - 1>::run(*this, std::move(param));
         }
 
         template <typename ... Args,
             std::enable_if_t<std::is_constructible<typename I_t::value_type, Args&& ...>::value>* = nullptr>
         void operator()(Args&& ... params) noexcept {
-            if (!begin_run()) {
+            if (!bp()) {
                 return;
             }
-            invocation_guard guard{ *this };
+#ifndef NDEBUG
+            runner_impl::invocation_guard guard{state_};
+#endif
             ipc<node_count - 1>::run(*this, I_t(value_tag, std::forward<Args>(params)...));
         }
 
@@ -1018,7 +982,9 @@ namespace flux_foundry {
 
             template <typename dispatcher_t, typename param_t>
             static void dispatch_impl(dispatcher_t& dispatcher, flow_fast_runner& self, param_t&& in, std::false_type) noexcept {
-                self.consume();
+#ifndef NDEBUG
+                self.state_ = runner_impl::runner_state::consumed;
+#endif
                 dispatcher(
                     task_wrapper_sbo([data = self.data,
                                       in = std::forward<param_t>(in)]() mutable noexcept {
@@ -1109,11 +1075,14 @@ namespace flux_foundry {
                         is_inline_executor_t{}, completes_inline_t{})
                 );
 
-                // failed to submit the io.
-                prepare_submit(self, completes_inline_t{});
+#ifndef NDEBUG
+                if (!completes_inline_t::value) self.state_ = runner_impl::runner_state::consumed;
+#endif
                 const int submit_code = awaitable.submit_async();
                 UNLIKELY_IF (submit_code != 0) {
-                    restore_after_failed_submit(self, is_inline_executor_t{});
+#ifndef NDEBUG
+                    if (is_inline_executor_t::value) self.state_ = runner_impl::runner_state::running;
+#endif
                     node_output_t failure(error_tag,
                         runner_impl::make_submit_error<typename node_output_t::error_type>(awaitable, submit_code, 0));
                     awaitable.release();
@@ -1121,19 +1090,6 @@ namespace flux_foundry {
                 }
             }
 
-            static void prepare_submit(flow_fast_runner&, std::true_type) noexcept {
-            }
-
-            static void prepare_submit(flow_fast_runner& self, std::false_type) noexcept {
-                self.consume();
-            }
-
-            static void restore_after_failed_submit(flow_fast_runner& self, std::true_type) noexcept {
-                self.restore_running_after_failed_submit();
-            }
-
-            static void restore_after_failed_submit(flow_fast_runner&, std::false_type) noexcept {
-            }
         };
     };
 

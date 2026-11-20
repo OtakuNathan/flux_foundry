@@ -36,6 +36,21 @@ bool test_spsc_variadic_emplace() {
     return value.has_value() && value.get().first == 11 && value.get().second == 31;
 }
 
+bool test_spmc_empty_boundary() {
+    spmc_deque<int, 4> deque;
+    if (deque.try_pop_back().has_value()) {
+        return false;
+    }
+    if (!deque.try_emplace_back(42)) {
+        return false;
+    }
+    auto value = deque.try_pop_back();
+    if (!value.has_value() || value.get() != 42) {
+        return false;
+    }
+    return !deque.try_pop_back().has_value();
+}
+
 bool test_result_error_copy_fallback() {
     result_t<int, copy_fallback_error> result(value_tag, 7);
     copy_fallback_error first_error{41};
@@ -96,13 +111,15 @@ bool test_shared_member_task() {
 
 int main() {
     const bool spsc_ok = test_spsc_variadic_emplace();
+    const bool spmc_ok = test_spmc_empty_boundary();
     const bool result_ok = test_result_error_copy_fallback();
     const bool callable_ok = test_large_byte_aligned_callable();
     const bool member_task_ok = test_shared_member_task();
 
     std::printf("[%s] spsc variadic emplace\n", spsc_ok ? "OK" : "FAIL");
+    std::printf("[%s] spmc empty boundary\n", spmc_ok ? "OK" : "FAIL");
     std::printf("[%s] result_t error copy fallback\n", result_ok ? "OK" : "FAIL");
     std::printf("[%s] large byte-aligned callable\n", callable_ok ? "OK" : "FAIL");
     std::printf("[%s] shared member task ownership\n", member_task_ok ? "OK" : "FAIL");
-    return spsc_ok && result_ok && callable_ok && member_task_ok ? 0 : 1;
+    return spsc_ok && spmc_ok && result_ok && callable_ok && member_task_ok ? 0 : 1;
 }

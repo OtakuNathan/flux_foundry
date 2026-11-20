@@ -1,5 +1,6 @@
 #include "lifecycle_test_support.h"
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -118,7 +119,8 @@ bool pooled_runner() {
     int value = 0;
     auto runner = make_runner(std::allocator_arg, pooled_controller_allocator<>{}, shared, receiver{&value});
     runner(21);
-    if (value != 42 || runner.is_consumed()) return false;
+    assert(!runner.is_consumed());
+    if (value != 42) return false;
     runner(8);
     auto controller = runner.get_controller();
     controller->cancel(true);
@@ -156,7 +158,8 @@ bool cancellation_before_backend_completion() {
             make_lite_ptr<decltype(bp)>(std::move(bp)), receiver{&value});
         runner(request{&pending, &destroyed});
         control = runner.get_controller();
-        if (!runner.is_consumed() || !pending) return false;
+        assert(runner.is_consumed());
+        if (!pending) return false;
     }
     std::thread cancel([&] { control->cancel(true); });
     cancel.join();

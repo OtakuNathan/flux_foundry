@@ -221,7 +221,7 @@ namespace flux_foundry {
 #if FLUX_FOUNDRY_HAS_EXCEPTIONS
                 std::is_constructible<base, other_base &&>
 #else
-                std::is_constructible<base, other_base &&>
+                std::is_nothrow_constructible<base, other_base &&>
 #endif
         > >* = nullptr>
         explicit result_t(result_t<U, F> &&rhs)

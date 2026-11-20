@@ -51,6 +51,7 @@ namespace flux_foundry {
         copy,
         move,
         destroy,
+        relocate,
     };
 
     enum class lifespan_op_error : uint32_t {
@@ -162,6 +163,42 @@ namespace flux_foundry {
         return lifespan_op_error::success;
     }
 
+    template <typename T, bool sbo_enabled,
+        std::enable_if_t<conjunction_v<
+            std::integral_constant<bool, sbo_enabled>,
+            std::is_trivially_move_constructible<T>,
+            std::is_trivially_destructible<T>
+        >>* = nullptr>
+    lifespan_op_error relocate_impl(void* dst, void* src) {
+        memcpy(dst, src, sizeof(T));
+        return lifespan_op_error::success;
+    }
+
+    template <typename T, bool sbo_enabled,
+        std::enable_if_t<conjunction_v<
+            std::integral_constant<bool, sbo_enabled>,
+            negation<conjunction<
+                std::is_trivially_move_constructible<T>,
+                std::is_trivially_destructible<T>
+            >>,
+            std::is_move_constructible<T>
+        >>* = nullptr>
+    lifespan_op_error relocate_impl(void* dst, void* src) {
+        T* p = tr_ptr<T, sbo_enabled>(src);
+        new (dst) T(std::move(*p));
+        p->~T();
+        return lifespan_op_error::success;
+    }
+
+    template <typename T, bool sbo_enabled,
+        std::enable_if_t<!sbo_enabled>* = nullptr>
+    lifespan_op_error relocate_impl(void* dst, void* src) {
+        T*& src_ptr = *static_cast<T**>(src);
+        *static_cast<T**>(dst) = src_ptr;
+        src_ptr = nullptr;
+        return lifespan_op_error::success;
+    }
+
     template <typename T, bool enabled>
     struct life_span_manager {
         static lifespan_op_error manage(void* dst, const void* src, type_erase_lifespan_op op) {
@@ -172,6 +209,8 @@ namespace flux_foundry {
                 return move_construct_impl<T, enabled>(dst, const_cast<void*>(src));
             case type_erase_lifespan_op::destroy:
                 return destroy_impl<T, enabled>(const_cast<void*>(src));
+            case type_erase_lifespan_op::relocate:
+                return relocate_impl<T, enabled>(dst, const_cast<void*>(src));
             default:
                 return lifespan_op_error::unsupported;
             }
@@ -192,6 +231,20 @@ namespace flux_foundry {
 
         static constexpr size_t buf_size = size;
 
+    private:
+        void relocate_payload(void* dst, void* src) const noexcept {
+            auto result = manager_(dst, src, type_erase_lifespan_op::relocate);
+            UNLIKELY_IF (result == lifespan_op_error::unsupported) {
+                // Older managers implement relocation as two separate operations.
+                result = manager_(dst, src, type_erase_lifespan_op::move);
+                if (result == lifespan_op_error::success) {
+                    result = manager_(nullptr, src, type_erase_lifespan_op::destroy);
+                }
+            }
+            UNLIKELY_IF (result != lifespan_op_error::success) std::abort();
+        }
+
+    public:
         raw_type_erase_base() noexcept
             : invoker_{ derived::stub }, manager_ { nullptr } {
         }
@@ -244,10 +297,11 @@ namespace flux_foundry {
         raw_type_erase_base(raw_type_erase_base&& rhs) noexcept
             : invoker_ { derived::stub } , manager_ { nullptr } {
             if (rhs.manager_) {
-                rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
+                rhs.relocate_payload(this->data_, rhs.data_);
                 this->invoker_ = rhs.invoker_;
                 this->manager_ = rhs.manager_;
-                rhs.clear();
+                rhs.manager_ = nullptr;
+                rhs.invoker_ = derived::stub;
             }
         }
 
@@ -259,8 +313,7 @@ namespace flux_foundry {
             // temporary for an occupied destination: rhs may be owned by it.
             if (!this->manager_) {
                 if (rhs.manager_) {
-                    rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
-                    rhs.manager_(nullptr, rhs.data_, type_erase_lifespan_op::destroy);
+                    rhs.relocate_payload(this->data_, rhs.data_);
                     using std::swap;
                     swap(this->invoker_, rhs.invoker_);
                     swap(this->manager_, rhs.manager_);
@@ -356,21 +409,14 @@ namespace flux_foundry {
             LIKELY_IF (this->manager_ && rhs.manager_) {
                 alignas(align) unsigned char backup[buf_size];
 
-                this->manager_(backup, this->data_, type_erase_lifespan_op::move);
-                this->manager_(nullptr, this->data_, type_erase_lifespan_op::destroy);
-
-                rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
-                rhs.manager_(nullptr, rhs.data_, type_erase_lifespan_op::destroy);
-
-                this->manager_(rhs.data_, backup, type_erase_lifespan_op::move);
-                this->manager_(nullptr, backup, type_erase_lifespan_op::destroy);
+                this->relocate_payload(backup, this->data_);
+                rhs.relocate_payload(this->data_, rhs.data_);
+                this->relocate_payload(rhs.data_, backup);
             } else {
                 if (this->manager_ && !rhs.manager_) {
-                    this->manager_(rhs.data_, this->data_, type_erase_lifespan_op::move);
-                    this->manager_(nullptr, this->data_, type_erase_lifespan_op::destroy);
+                    this->relocate_payload(rhs.data_, this->data_);
                 } else {
-                    rhs.manager_(this->data_, rhs.data_, type_erase_lifespan_op::move);
-                    rhs.manager_(nullptr, rhs.data_, type_erase_lifespan_op::destroy);
+                    rhs.relocate_payload(this->data_, rhs.data_);
                 }
             }
 

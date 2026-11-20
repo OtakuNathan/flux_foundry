@@ -305,6 +305,11 @@ flux_foundry_add_probe(flux_foundry_simple_fullqueue_compile_probe simple_fullqu
 # Public-header self-containment checks. Building these targets is the test.
 flux_foundry_add_probe(flux_foundry_header_back_off_standalone header_back_off_standalone.cpp)
 flux_foundry_add_probe(flux_foundry_header_flow_runner_standalone header_flow_runner_standalone.cpp)
+flux_foundry_add_probe(flux_foundry_header_flow_awaitable_standalone header_flow_awaitable_standalone.cpp)
+target_compile_definitions(flux_foundry_header_flow_awaitable_standalone PRIVATE FLUX_FOUNDRY_HAS_EXCEPTIONS=0)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC)
+    target_compile_options(flux_foundry_header_flow_awaitable_standalone PRIVATE -Werror=undef)
+endif()
 if(TARGET flux_foundry_gsource_executor)
     add_executable(flux_foundry_header_gsource_standalone header_gsource_standalone.cpp)
     target_link_libraries(flux_foundry_header_gsource_standalone PRIVATE

@@ -6,7 +6,11 @@
 #ifndef FLUX_FOUNDRY_FLOW_AWAITABLE_H
 #define FLUX_FOUNDRY_FLOW_AWAITABLE_H
 
+#include "../base/traits.h"
 #include <atomic>
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+#include <exception>
+#endif
 #include <new>
 #include <type_traits>
 #include "../memory/pooling.h"
@@ -80,15 +84,7 @@ namespace flux_foundry {
         }
 
         void do_resume(result_t<T, E>&& result) noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-            try {
-#endif
-                this->next_step(std::move(result));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-            } catch (...) {
-                this->next_step(result_t<T, E>(error_tag, std::current_exception()));
-            }
-#endif
+            this->next_step(std::move(result));
             release();
         }
 
@@ -242,15 +238,7 @@ namespace flux_foundry {
         next_step_t next_step;
 
         void do_resume(result_t<T, E>&& result) noexcept {
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-            try {
-#endif
-                this->next_step(std::move(result));
-#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
-            } catch (...) {
-                this->next_step(result_t<T, E>(error_tag, std::current_exception()));
-            }
-#endif
+            this->next_step(std::move(result));
             release();
         }
 
@@ -387,40 +375,47 @@ namespace flux_foundry {
             "awaitable requirement: Missing 'void cancel() noexcept'.\n"
             "Only awaitable_base-derived types require this.");
 
- #if !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+        using node_error_t = typename awaitable::async_result_type::error_type;
+        using awaitable_t = awaitable;
+
+#if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+        static constexpr bool captures_exception =
+            std::is_constructible<node_error_t, std::exception_ptr>::value;
+#else
+        static constexpr bool captures_exception = false;
+#endif
+        static constexpr bool allow_throwing_ctor =
+            FLUX_FOUNDRY_HAS_EXCEPTIONS && (captures_exception || !FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS);
+
         template <typename U>
-        constexpr static auto detect_available(int) 
+        constexpr static auto detect_available(int)
             -> conjunction<std::is_convertible<decltype(std::declval<U&>().available()), int>,
             std::integral_constant<bool, noexcept(std::declval<U&>().available())>>;
 
         template <typename U>
         constexpr static auto detect_available(...) -> std::false_type;
 
-                
-        static_assert(decltype(detect_available<awaitable>(0))::value,
+        static_assert(captures_exception || decltype(detect_available<awaitable>(0))::value,
             "awaitable requirement: Missing 'bool available() noexcept'.\n"
             "Must be able to provide whether the awaitable is fully created and initialized.");
-#endif
 
-        using node_error_t = typename awaitable::async_result_type::error_type;
-        using awaitable_t = awaitable;
-
-        template <typename A = awaitable, typename ... Args,
-#if FLUX_FOUNDRY_HAS_EXCEPTIONS
-            std::enable_if_t<std::is_constructible<A, Args&&...>::value>* = nullptr
-#else
-            std::enable_if_t<std::is_nothrow_constructible<A, Args&&...>::value>* = nullptr
-#endif
-        >
-        result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) const noexcept {
+    private:
 #if FLUX_FOUNDRY_COMPILER_HAS_EXCEPTIONS
+        template <typename ... Args>
+        static result_t<typename awaitable::access_delegate, node_error_t>
+        create(std::true_type, Args&& ... param) noexcept {
             try {
                 auto aw = new awaitable(std::forward<Args>(param)...);
                 return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
             } catch (...) {
                 return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, std::current_exception());
             }
-#else
+        }
+#endif
+
+        template <typename ... Args>
+        static result_t<typename awaitable::access_delegate, node_error_t>
+        create(std::false_type, Args&& ... param) noexcept {
             auto aw = new (std::nothrow) awaitable(std::forward<Args>(param)...);
             UNLIKELY_IF (!aw) {
                 return result_t<typename awaitable::access_delegate, node_error_t>(error_tag, awaitable_creating_error<node_error_t>::make());
@@ -432,7 +427,15 @@ namespace flux_foundry {
             }
 
             return result_t<typename awaitable::access_delegate, node_error_t>(value_tag, aw->delegate());
-#endif
+        }
+
+    public:
+        template <typename A = awaitable, typename ... Args,
+            std::enable_if_t<std::conditional_t<allow_throwing_ctor,
+                std::is_constructible<A, Args&&...>,
+                std::is_nothrow_constructible<A, Args&&...>>::value>* = nullptr>
+        result_t<typename awaitable::access_delegate, node_error_t> operator()(Args&& ... param) const noexcept {
+            return create(std::integral_constant<bool, captures_exception>{}, std::forward<Args>(param)...);
         }
     };
 

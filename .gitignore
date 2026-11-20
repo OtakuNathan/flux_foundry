@@ -3,6 +3,7 @@ test/bin/
 
 # CMake build output
 build/
+build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake

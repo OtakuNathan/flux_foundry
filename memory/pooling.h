@@ -5,7 +5,7 @@
 
 #include "aligned_alloc.h"
 #include "static_mem_pool.h"
-#include "base/traits.h"
+#include "../base/traits.h"
 
 namespace flux_foundry {
     namespace detail {
@@ -159,7 +159,7 @@ namespace flux_foundry {
     // best-effort TLS cache; cross-thread frees may reduce locality and cause memory drift.
     template <typename element_t, size_t cache_cap = 128>
     struct pooling_base {
-        static_assert((cache_cap & (cache_cap - 1)) == 0, "CacheSize must be power of two");
+        static_assert(cache_cap > 0 && (cache_cap & (cache_cap - 1)) == 0, "CacheSize must be power of two");
 
         static constexpr size_t align() noexcept {
             return alignof(element_t) > alignof(std::max_align_t)
@@ -186,11 +186,11 @@ namespace flux_foundry {
         static void* operator new(std::size_t n, const std::nothrow_t&) noexcept {
             static_assert(std::is_final<element_t>::value, "the derived struct(class) must be tagged as final!");
             UNLIKELY_IF(n != sizeof(element_t)) return nullptr;
-            return flux_foundry_allocator<sizeof(element_t), alignof(element_t)>().alloc();
+            return flux_foundry_allocator<sizeof(element_t), alignof(element_t), cache_cap>().alloc();
         }
 
         static void operator delete(void* p) noexcept {
-            flux_foundry_allocator<sizeof(element_t), alignof(element_t)>().dealloc(p);
+            flux_foundry_allocator<sizeof(element_t), alignof(element_t), cache_cap>().dealloc(p);
         }
 
         static void operator delete(void* p, const std::nothrow_t&) noexcept {

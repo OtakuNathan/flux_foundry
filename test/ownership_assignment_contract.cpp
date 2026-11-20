@@ -124,6 +124,31 @@ bool callable_assignment_edges() {
     return !source && !destination && destroyed == 2;
 }
 
+bool legacy_manager_relocation() {
+    using payload = owned_callable<1>;
+    int destroyed = 0;
+    {
+        callable_wrapper<int()> source{payload(42, &destroyed)};
+        source.manager_ = [](void* dst, const void* src, type_erase_lifespan_op op) {
+            switch (op) {
+            case type_erase_lifespan_op::copy:
+            case type_erase_lifespan_op::move:
+            case type_erase_lifespan_op::destroy:
+                return life_span_manager<payload, true>::manage(dst, src, op);
+            default:
+                return lifespan_op_error::unsupported;
+            }
+        };
+
+        callable_wrapper<int()> moved(std::move(source)), assigned;
+        assigned = std::move(moved);
+        callable_wrapper<int()> other([]() noexcept { return 7; });
+        assigned.swap(other);
+        if (source || moved || assigned() != 7 || other() != 42 || destroyed != 0) return false;
+    }
+    return destroyed == 1;
+}
+
 struct nested_callable {
     callable_wrapper<int()> child;
     callable_wrapper<int()>** exposed;
@@ -174,6 +199,7 @@ int main() {
     check("const SBO callable ownership", callable_assignment_edges<callable_wrapper<int() const>, 1>());
     check("const heap callable ownership", callable_assignment_edges<callable_wrapper<int() const>, 128>());
     check("move a callable owned by the replaced callable", nested_callable_assignment());
+    check("legacy manager relocation", legacy_manager_relocation());
     check("task assignment ownership", task_assignment());
     return ok ? 0 : 1;
 }
